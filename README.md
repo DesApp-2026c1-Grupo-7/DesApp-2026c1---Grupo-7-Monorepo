@@ -1,0 +1,1 @@
+# DesApp-2026c1---Grupo-7-Monorepo
