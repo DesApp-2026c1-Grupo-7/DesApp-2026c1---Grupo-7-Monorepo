@@ -1,0 +1,116 @@
+.materials-container {
+  padding: 24px;
+}
+
+/* HEADER */
+.materials-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.materials-header h2 {
+  margin: 0;
+}
+
+.materials-header p {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* BOTON */
+.btn-primary {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* FILTROS */
+.materials-filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.materials-filters input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+}
+
+.materials-filters select {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+}
+
+/* LISTA */
+.materials-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* CARD */
+.material-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-radius: 10px;
+  background: white;
+  border: 1px solid #e5e7eb;
+}
+
+.material-left {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.file-icon {
+  background: #dbeafe;
+  color: #2563eb;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 18px;
+}
+
+.material-left h4 {
+  margin: 0;
+}
+
+.materia {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.meta {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* DERECHA */
+.material-right {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.like {
+  color: green;
+}
+
+.dislike {
+  color: red;
+}
+
+.downloads {
+  color: #6b7280;
+  font-size: 13px;
+}
