@@ -1,0 +1,66 @@
+.admin-container {
+  padding: 24px;
+}
+
+.subtitle {
+  color: #6b7280;
+  margin-bottom: 20px;
+}
+
+/* STATS */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.stat-card {
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.stat-card.warning {
+  background: #fff7ed;
+}
+
+/* ACCESOS */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.action {
+  background: white;
+  padding: 20px;
+  text-align: center;
+  border-radius: 12px;
+}
+
+.action.highlight {
+  border: 2px solid #3b82f6;
+}
+
+/* CARD */
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-top: 20px;
+}
+
+/* CHART */
+.chart-placeholder {
+  height: 150px;
+  background: #e5e7eb;
+  border-radius: 8px;
+}
+
+/* ACTIVITY */
+.activity {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}

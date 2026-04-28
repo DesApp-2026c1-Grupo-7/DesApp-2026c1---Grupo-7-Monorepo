@@ -1,0 +1,169 @@
+.moderation-container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* TITULOS */
+.subtitle {
+  color: #6b7280;
+  margin-bottom: 20px;
+}
+
+/* STATS */
+.stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.stat-card svg {
+  width: 28px;
+  height: 28px;
+}
+
+.stat-card.warning {
+  background: #fff7ed;
+  color: #f59e0b;
+}
+
+.stat-card.success {
+  background: #ecfdf5;
+  color: #22c55e;
+}
+
+.stat-card.neutral {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* FILTROS */
+.filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.filters select {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+/* CARDS */
+.report-card {
+  background: white;
+  padding: 18px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.tags {
+  display: flex;
+  gap: 8px;
+}
+
+.tag {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.tag.tipo {
+  background: #e0e7ff;
+  color: #4f46e5;
+}
+
+.tag.estado {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.fecha {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* INFO */
+.motivo {
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+
+.report-info {
+  display: flex;
+  justify-content: space-between;
+  background: #f9fafb;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+/* ACTIONS */
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.right-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* BOTONES */
+button {
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-outline {
+  border: 1px solid #3b82f6;
+  color: #3b82f6;
+  background: white;
+}
+
+button.btn-danger {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #b91c1c;
+  border-color: #b91c1c;
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
+}
+
+button.btn-success {
+  background: #22c55e;
+  color: white;
+}
+
+.btn-success:hover {
+  background-color: #15803d;
+  border-color: #15803d;
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25);
+}
+

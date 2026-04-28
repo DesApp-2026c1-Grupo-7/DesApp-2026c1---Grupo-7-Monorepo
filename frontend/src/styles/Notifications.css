@@ -1,0 +1,101 @@
+.notifications-container {
+  padding: 24px;
+  max-width: 900px;
+}
+
+/* HEADER */
+.notifications-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.notifications-header p {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* TITULOS */
+.section-title {
+  margin: 20px 0 10px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* CARD */
+.notification-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+}
+
+/* COLORES */
+.notification-card.success {
+  border-left: 4px solid #22c55e;
+}
+
+.notification-card.info {
+  border-left: 4px solid #3b82f6;
+}
+
+.notification-card.warning {
+  border-left: 4px solid #f59e0b;
+}
+
+.notification-card.read {
+  background: white;
+}
+
+/* CONTENIDO */
+.left {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.icon {
+  background: #e5e7eb;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.notification-card.success .icon {
+  background: #dcfce7;
+}
+
+.notification-card.info .icon {
+  background: #dbeafe;
+}
+
+.notification-card.warning .icon {
+  background: #fef3c7;
+}
+
+.notification-card h4 {
+  margin: 0;
+}
+
+.notification-card p {
+  margin: 2px 0;
+  font-size: 14px;
+}
+
+.notification-card span {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* BOTON LINK */
+.link-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  font-size: 14px;
+}
