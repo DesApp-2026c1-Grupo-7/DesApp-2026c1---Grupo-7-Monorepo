@@ -1,0 +1,90 @@
+/* Fondo */
+.login-container {
+  height: 100vh;
+  background: #cbd5e1; /* gris azulado como figma */
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Card */
+.login-card {
+  background: #e5e7eb;
+  padding: 30px;
+  border-radius: 12px;
+  width: 360px;
+
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+/* Header */
+.login-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.login-header .icon {
+  font-size: 30px;
+  margin-bottom: 10px;
+}
+
+.login-header h1 {
+  margin-bottom: 5px;
+}
+
+.login-header p {
+  font-size: 14px;
+  color: #475569;
+}
+
+/* Form */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.login-form label {
+  font-size: 14px;
+}
+
+/* Inputs */
+.login-form input {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #94a3b8;
+}
+
+/* Options */
+.login-options {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+/* Botones */
+.btn {
+  margin-top: 10px;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: #2563eb;
+  color: white;
+}
+
+button.btn.secondary {
+  background: #4b5563;
+  color: white;
+}
+
+/* Register */
+.register {
+  text-align: center;
+  font-size: 13px;
+  margin-top: 10px;
+}

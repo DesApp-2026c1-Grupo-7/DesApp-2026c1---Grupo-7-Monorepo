@@ -1,0 +1,188 @@
+.dashboard {
+  padding: 24px;
+}
+
+/* HEADER */
+.dashboard-header h1 {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.dashboard-header p {
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+/* PROGRESS */
+.progress-card {
+  margin-top: 20px;
+  background: linear-gradient(90deg, #3b82f6, #7c3aed);
+  border-radius: 12px;
+  padding: 20px;
+  color: white;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-header span {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.progress-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: white;
+  border-radius: 10px;
+}
+
+.progress-percent {
+  font-size: 12px;
+}
+
+.progress-text {
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+/* STATS */
+.stats {
+  display: flex;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.stat-card {
+  flex: 1;
+  background: white;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  
+  text-align: left;
+}
+
+.icon {
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.icon.green {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.icon.blue {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.icon.orange {
+  background: #ffedd5;
+  color: #ea580c;
+}
+
+/* SECTIONS */
+.section {
+  margin-top: 30px;
+}
+
+.section h2 {
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+/* QUICK ACCESS */
+.quick-access {
+  display: flex;
+  gap: 16px;
+}
+
+.quick-card {
+  flex: 1;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.quick-card:hover {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.quick-card span {
+  display: block;
+  margin-top: 10px;
+}
+
+/* ICON COLORS */
+.blue { color: #2563eb; }
+.purple { color: #7c3aed; }
+.green { color: #16a34a; }
+.pink { color: #db2777; }
+
+/* EVENTS */
+.events {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.event {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 10px;
+}
+
+.event.blue {
+  background: #e0e7ff;
+}
+
+.event.green {
+  background: #dcfce7;
+}
+
+.date {
+  text-align: center;
+  font-weight: bold;
+}
+
+.date span {
+  display: block;
+  font-size: 18px;
+}
+
+.date small {
+  font-size: 12px;
+}

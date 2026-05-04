@@ -1,0 +1,100 @@
+.admin-careers-container {
+  padding: 24px 32px;
+}
+
+/* HEADER */
+.admin-careers-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.admin-careers-header h1 {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.admin-careers-header p {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* BOTÓN */
+.btn-primary {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background-color: #1d4ed8;
+}
+
+/* SEARCH */
+.admin-search-box {
+  margin-bottom: 16px;
+}
+
+.admin-search-box input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+/* TABLE */
+.admin-table-container {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead {
+  background: #f9fafb;
+  text-align: left;
+}
+
+th, td {
+  padding: 14px 16px;
+  font-size: 14px;
+}
+
+tbody tr {
+  border-top: 1px solid #f1f5f9;
+}
+
+.code {
+  color: #2563eb;
+  font-weight: 500;
+}
+
+/* ACTIONS */
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.icon-btn.edit:hover {
+  color: #2563eb;
+}
+
+.icon-btn.delete:hover {
+  color: #dc2626;
+}
