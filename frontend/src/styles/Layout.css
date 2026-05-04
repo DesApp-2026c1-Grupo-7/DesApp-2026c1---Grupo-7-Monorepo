@@ -1,13 +1,51 @@
 .layout {
   display: flex;
+  min-height: 100vh;
+  background: var(--bg-main);
 }
 
 .main {
   flex: 1;
-  background: var(--bg);
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
 }
 
 .content {
-  padding: 20px;
+  padding: 0;
+  flex: 1;
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    padding: 1rem;
+  }
+  
+  .sidebar-header {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+  }
+  
+  .menu {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+  
+  .link {
+    white-space: nowrap;
+  }
 }

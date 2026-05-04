@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
 
 // student
 import Layout from "./components/Layout";
@@ -16,7 +17,6 @@ import Materials from "./pages/student/Materials";
 import Notifications from "./pages/student/Notifications";
 
 // admin
-import AdminLayout from "./components/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard"
 import AdminCareers from "./pages/admin/AdminCareers";
 import CreateCareer from "./pages/admin/CreateCareer";
@@ -28,9 +28,12 @@ const App = () => {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Auth Flow */}
         <Route path="/" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-        <Route path="/student" element={<Layout />}>
+        {/* Student Flow */}
+        <Route path="/student" element={<Layout role="student" />}>
           <Route index element={<StudentDashboard />} />         
           <Route path="situation" element={<Situation />} />
           <Route path="load-situation" element={<LoadSituation />} />
@@ -43,7 +46,8 @@ const App = () => {
           <Route path="profile" element={<Profile />} />
         </Route>
 
-        <Route path="/admin" element={<AdminLayout />}>
+        {/* Admin Flow */}
+        <Route path="/admin" element={<Layout role="admin" />}>
           <Route index element={<AdminDashboard />} />
           <Route path="carreras" element={<AdminCareers />} />
           <Route path="carreras/nueva" element={<CreateCareer />} />

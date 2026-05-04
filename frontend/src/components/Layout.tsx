@@ -3,10 +3,14 @@ import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import "../styles/Layout.css";
 
-const Layout = () => {
+interface LayoutProps {
+  role: "student" | "admin";
+}
+
+const Layout = ({ role }: LayoutProps) => {
   return (
     <div className="layout">
-      <Sidebar />
+      <Sidebar role={role} />
 
       <div className="main">
         <Navbar />

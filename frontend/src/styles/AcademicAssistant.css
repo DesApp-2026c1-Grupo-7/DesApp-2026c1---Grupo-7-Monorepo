@@ -1,37 +1,44 @@
 .assistant {
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
-  padding: 32px;
+  padding: 2.5rem 2rem;
 }
 
 .assistant h1 {
-  font-size: 24px;
-  margin-bottom: 6px;
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.025em;
+  margin-bottom: 0.5rem;
 }
 
 .subtitle {
-  color: #64748b;
-  margin-bottom: 24px;
+  color: var(--text-muted);
+  font-size: 1rem;
+  margin-bottom: 2.5rem;
 }
 
 .small {
-  font-size: 13px;
-  color: #64748b;
-  margin-bottom: 12px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
 }
 
 /* Secciones */
-.section {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 20px;
+.assistant .section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow-sm);
 }
 
-.section h3 {
-  margin-bottom: 16px;
-  font-size: 15px;
+.assistant .section h3 {
+  margin-bottom: 1.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-main);
 }
 
 /* Materias */
@@ -39,36 +46,43 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px;
-  border-radius: 10px;
-  margin-bottom: 10px;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 0.75rem;
+  transition: all 0.2s;
+}
+
+.subject:hover {
+  transform: translateX(4px);
 }
 
 .subject.success {
-  background: #ecfdf5;
-  border: 1px solid #86efac;
+  background: #f0fdf4;
+  border: 1px solid #bcf0da;
 }
 
 .subject.warning {
-  background: #fff7ed;
-  border: 1px solid #fdba74;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
 }
 
 /* Badges */
 .badge {
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 12px;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .badge.green {
   background: #dcfce7;
-  color: #166534;
+  color: #15803d;
 }
 
 .badge.orange {
-  background: #ffedd5;
-  color: #9a3412;
+  background: #fef3c7;
+  color: #b45309;
 }
 
 /* Finales */
@@ -76,44 +90,84 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  padding: 14px;
-  border-radius: 10px;
-  margin-bottom: 10px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  padding: 1.25rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+  transition: all 0.2s;
+}
+
+.final-card:hover {
+  border-color: var(--primary);
+  background: white;
+  box-shadow: var(--shadow-sm);
 }
 
 .final-card button {
-  background: #2563eb;
+  background: var(--primary);
   color: white;
   border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
-  cursor: pointer;
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.875rem;
 }
 
 .final-card button:hover {
-  background: #1d4ed8;
+  background: var(--primary-hover);
+  transform: translateY(-1px);
 }
 
 /* Proyección */
 .projection {
   background: #f5f3ff;
-  border: 1px solid #d8b4fe;
-  padding: 14px;
-  border-radius: 10px;
-  margin-bottom: 10px;
+  border: 1px solid #ddd6fe;
+  padding: 1.25rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
 }
 
 .projection h4 {
-  margin-bottom: 6px;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  color: #5b21b6;
+}
+
+.projection ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.projection li {
+  font-size: 0.9375rem;
+  color: #4c1d95;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.projection li::before {
+  content: "→";
+  color: #8b5cf6;
 }
 
 .note {
-  margin-top: 10px;
-  font-size: 12px;
-  background: #eff6ff;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #bfdbfe;
+  margin-top: 1.5rem;
+  font-size: 0.8125rem;
+  background: #f0f9ff;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid #bae6fd;
+  color: #0369a1;
+  display: flex;
+  gap: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .assistant { padding: 1.5rem 1rem; }
+  .final-card { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .final-card button { width: 100%; }
 }

@@ -1,10 +1,35 @@
 .stat {
-  flex: 1;
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
+  background: var(--bg-card);
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
 }
 
-.stat.green { border-left: 5px solid #22c55e; }
-.stat.blue { border-left: 5px solid #3b82f6; }
-.stat.orange { border-left: 5px solid #f97316; }
+.stat:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.stat h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1;
+}
+
+.stat p {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Color variations */
+.stat.green { border-top: 4px solid var(--success); }
+.stat.blue { border-top: 4px solid var(--primary); }
+.stat.orange { border-top: 4px solid var(--warning); }
+.stat.pink { border-top: 4px solid #db2777; }
