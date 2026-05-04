@@ -17,6 +17,24 @@ dist
 dist-ssr
 *.local
 
+# Workspace local de Claude Code / herramientas de IA
+.claude/
+
+# Workspace de Claude Code (no se versiona)
+.claude/
+
+# Documentos internos del equipo (no se versionan)
+*.docx
+*.xlsx
+*.pdf
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
