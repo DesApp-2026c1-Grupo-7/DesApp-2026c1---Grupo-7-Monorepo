@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import "../../styles/Auth.css";
 
-const Login = () => {
+const Register = () => {
   const navigate = useNavigate();
 
   return (
@@ -9,43 +9,33 @@ const Login = () => {
       <div className="login-card">
 
         <div className="login-header">
-          <div className="icon">🎓</div>
-          <h1>Bienvenido</h1>
-          <p>Sistema de Acompañamiento Académico</p>
+          <div className="icon">📝</div>
+          <h1>Crear Cuenta</h1>
+          <p>Únete al Sistema de Acompañamiento Académico</p>
         </div>
 
         <div className="login-form">
+          <label>Nombre Completo</label>
+          <input placeholder="Juan Pérez" />
+
           <label>Email</label>
           <input placeholder="estudiante@universidad.edu" />
 
           <label>Contraseña</label>
           <input type="password" placeholder="••••••••" />
 
-          <div className="login-options">
-            <label>
-              <input type="checkbox" />
-              Recordarme
-            </label>
-
-            <a href="#">¿Olvidaste tu contraseña?</a>
-          </div>
+          <label>Confirmar Contraseña</label>
+          <input type="password" placeholder="••••••••" />
 
           <button
             className="btn primary"
             onClick={() => navigate("/student")}
           >
-            Ingresar como Estudiante
-          </button>
-
-          <button
-            className="btn secondary"
-            onClick={() => navigate("/admin")}
-          >
-            Ingresar como Administrador
+            Registrarse
           </button>
 
           <p className="register">
-            ¿No tienes cuenta? <a onClick={() => navigate("/register")} style={{cursor: 'pointer'}}>Regístrate aquí</a>
+            ¿Ya tienes cuenta? <a onClick={() => navigate("/")} style={{cursor: 'pointer'}}>Inicia sesión aquí</a>
           </p>
         </div>
 
@@ -54,4 +44,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;
