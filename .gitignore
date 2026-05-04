@@ -45,3 +45,6 @@ frontend/.env
 *.njsproj
 *.sln
 *.sw?
+
+# Sprint summaries
+resumen-sprint-1.txt
