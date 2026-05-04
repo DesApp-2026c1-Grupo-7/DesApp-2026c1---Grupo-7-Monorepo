@@ -17,8 +17,9 @@ dist
 dist-ssr
 *.local
 
-# Workspace local de Claude Code / herramientas de IA
+# Workspace local de Claude Code / Gemini CLI / herramientas de IA
 .claude/
+.gemini/
 
 # Workspace de Claude Code (no se versiona)
 .claude/
