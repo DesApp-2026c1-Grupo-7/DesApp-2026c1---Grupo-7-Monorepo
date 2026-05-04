@@ -61,7 +61,7 @@ const Sidebar = ({ role }: SidebarProps) => {
             end={item.to === "/student" || item.to === "/admin"}
           >
             {item.icon}
-            {item.label}
+            <span>{item.label}</span>
           </NavLink>
         ))}
       </nav>
