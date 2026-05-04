@@ -1,6 +1,12 @@
 import "../styles/StatCard.css";
 
-const StatCard = ({ title, value, color }: any) => {
+type StatCardProps = {
+  title: string;
+  value: string | number;
+  color: string;
+};
+
+const StatCard = ({ title, value, color }: StatCardProps) => {
   return (
     <div className={`stat ${color}`}>
       <h2>{value}</h2>

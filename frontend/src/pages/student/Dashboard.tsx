@@ -5,9 +5,6 @@ import {
   GraduationCap,
   Calendar,
   Users,
-  CheckCircle,
-  Clock,
-  XCircle,
   TrendingUp,
 } from "lucide-react";
 
