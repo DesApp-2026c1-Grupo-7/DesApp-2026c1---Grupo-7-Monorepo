@@ -211,8 +211,13 @@ function planificarCursada(estudiante, plan, correlatividades, horasMaxSemana):
             raise Error('No es posible planificar la cursada con el límite de horas semanal configurado')
 
         # Avanzar el estado: marcar las del cuatri como aprobadas
+        # Mantener un único registro acumulativo por estudiante-materia
         for m in delCuatri:
-            estado.situaciones.push({ materia: m.id, estado: 'aprobada' })
+            situacionExistente = estado.situaciones.find(s => s.materia == m.id)
+            if situacionExistente != null:
+                situacionExistente.estado = 'aprobada'
+            else:
+                estado.situaciones.push({ materia: m.id, estado: 'aprobada' })
 
         planResult.push({ cuatri: cuatriNum, materias: delCuatri, horasSemana: horasUsadas })
         cuatriNum++
