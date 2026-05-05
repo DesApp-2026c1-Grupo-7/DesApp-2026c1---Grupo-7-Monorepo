@@ -78,6 +78,7 @@ function materiasInscribibles(estudiante, plan, correlatividades, oferta = null)
 ```
 function calcularAvance(estudiante, plan):
     situaciones = estudiante.situaciones
+    situacionesMap = mapa { s.materiaId -> s } desde situaciones   # lista -> mapa para O(1) lookup
     materias = plan.materias
 
     aprobadas = situaciones.filter(s => s.estado == 'aprobada')
@@ -90,13 +91,15 @@ function calcularAvance(estudiante, plan):
     creditosObtenidos = sum(aprobadas.map(a => materia(a).creditos))
     porcentajeCreditos = (creditosObtenidos / creditosTotales) * 100
 
+    # Derivar la duración del plan desde los años de las materias (PlanDeEstudio no tiene campo 'duracion')
+    duracionPlan = max(materias.map(m => m.año))
     porAño = {}
-    for año in 1..plan.duracion:
+    for año in 1..duracionPlan:
         delAño = materias.filter(m => m.año == año)
         porAño[año] = {
             total: delAño.length,
-            aprobadas: delAño.filter(m => situaciones[m.id]?.estado == 'aprobada').length,
-            regularizadas: delAño.filter(m => situaciones[m.id]?.estado == 'regularizada').length,
+            aprobadas: delAño.filter(m => situacionesMap[m.id]?.estado == 'aprobada').length,
+            regularizadas: delAño.filter(m => situacionesMap[m.id]?.estado == 'regularizada').length,
         }
         porAño[año].faltantes = porAño[año].total - porAño[año].aprobadas
 
