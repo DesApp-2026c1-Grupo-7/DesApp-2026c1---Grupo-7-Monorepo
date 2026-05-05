@@ -1,76 +1,67 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getMaterias, deleteMateria, createMateria, type Materia } from "../../services/materias.service";
+import { getCarreras, type Carrera } from "../../services/carreras.service";
 import "../../styles/Subjects.css";
 
-interface Subject {
-  id: number;
-  name: string;
-  code: string;
-  year: number;
-  career: string;
-  correlatives: string;
-}
-
-const mockSubjects: Subject[] = [
-  {
-    id: 1,
-    name: "Algoritmos y Estructuras de Datos",
-    code: "ALGO101",
-    year: 1,
-    career: "Ing. Sistemas",
-    correlatives: "-",
-  },
-  {
-    id: 2,
-    name: "Programación I",
-    code: "PROG101",
-    year: 1,
-    career: "Ing. Sistemas",
-    correlatives: "-",
-  },
-  {
-    id: 3,
-    name: "Sistemas Operativos",
-    code: "SIST201",
-    year: 2,
-    career: "Ing. Sistemas",
-    correlatives: "Programación I",
-  },
-  {
-    id: 4,
-    name: "Base de Datos",
-    code: "BD201",
-    year: 2,
-    career: "Ing. Sistemas",
-    correlatives: "Algoritmos y Estructuras",
-  },
-  {
-    id: 5,
-    name: "Redes de Computadoras",
-    code: "REDES301",
-    year: 3,
-    career: "Ing. Sistemas",
-    correlatives: "Sistemas Operativos",
-  },
-];
-
 export default function Subjects() {
+  const [materias, setMaterias] = useState<Materia[]>([]);
+  const [carreras, setCarreras] = useState<Carrera[]>([]);
   const [search, setSearch] = useState("");
   const [careerFilter, setCareerFilter] = useState("todas");
   const [yearFilter, setYearFilter] = useState("todos");
+  const [loading, setLoading] = useState(true);
 
-  const filteredSubjects = mockSubjects.filter((subject) => {
-    const matchesSearch = subject.name
-      .toLowerCase()
-      .includes(search.toLowerCase());
+  const [showForm, setShowForm] = useState(false);
+  const [formNombre, setFormNombre] = useState("");
+  const [formCodigo, setFormCodigo] = useState("");
+  const [formAnio, setFormAnio] = useState(1);
+  const [formCarrera, setFormCarrera] = useState("");
+  const [formError, setFormError] = useState("");
 
-    const matchesCareer =
-      careerFilter === "todas" || subject.career === careerFilter;
+  useEffect(() => {
+    Promise.all([getMaterias(), getCarreras()]).then(([m, c]) => {
+      setMaterias(m);
+      setCarreras(c);
+      if (c.length > 0) setFormCarrera(c[0]._id);
+    }).finally(() => setLoading(false));
+  }, []);
 
-    const matchesYear =
-      yearFilter === "todos" || subject.year.toString() === yearFilter;
-
+  const filteredSubjects = materias.filter((m) => {
+    const matchesSearch = m.nombre.toLowerCase().includes(search.toLowerCase());
+    const matchesCareer = careerFilter === "todas" || m.carrera?._id === careerFilter;
+    const matchesYear = yearFilter === "todos" || m.anio.toString() === yearFilter;
     return matchesSearch && matchesCareer && matchesYear;
   });
+
+  async function handleDelete(id: string) {
+    if (!confirm("¿Estás seguro de eliminar esta materia?")) return;
+    await deleteMateria(id);
+    setMaterias((prev) => prev.filter((m) => m._id !== id));
+  }
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError("");
+    if (!formNombre || !formCodigo || !formCarrera) {
+      setFormError("Nombre, código y carrera son obligatorios");
+      return;
+    }
+    try {
+      const nueva = await createMateria({
+        nombre: formNombre,
+        codigo: formCodigo,
+        anio: formAnio,
+        carrera: formCarrera,
+      });
+      setMaterias((prev) => [...prev, nueva]);
+      setShowForm(false);
+      setFormNombre("");
+      setFormCodigo("");
+      setFormAnio(1);
+    } catch (err: any) {
+      setFormError(err.response?.data?.error || "Error al crear la materia");
+    }
+  }
 
   return (
     <div className="subjects-container">
@@ -81,8 +72,26 @@ export default function Subjects() {
           <p>Administra materias y correlatividades</p>
         </div>
 
-        <button className="btn-primary">+ Nueva Materia</button>
+        <button className="btn-primary" onClick={() => setShowForm(!showForm)}>
+          {showForm ? "Cancelar" : "+ Nueva Materia"}
+        </button>
       </div>
+
+      {/* FORM NUEVA MATERIA */}
+      {showForm && (
+        <form onSubmit={handleCreate} style={{ background: "#f9f9f9", padding: "1.5rem", borderRadius: "8px", marginBottom: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          {formError && <p style={{ color: "#e74c3c", fontSize: "0.9rem", margin: 0 }}>{formError}</p>}
+          <input placeholder="Nombre de la materia" value={formNombre} onChange={(e) => setFormNombre(e.target.value)} />
+          <input placeholder="Código (ej: ALGO101)" value={formCodigo} onChange={(e) => setFormCodigo(e.target.value)} />
+          <select value={formAnio} onChange={(e) => setFormAnio(Number(e.target.value))}>
+            {[1, 2, 3, 4, 5, 6].map((y) => <option key={y} value={y}>{y}° Año</option>)}
+          </select>
+          <select value={formCarrera} onChange={(e) => setFormCarrera(e.target.value)}>
+            {carreras.map((c) => <option key={c._id} value={c._id}>{c.nombre}</option>)}
+          </select>
+          <button type="submit" className="btn-primary">Crear Materia</button>
+        </form>
+      )}
 
       {/* FILTROS */}
       <div className="subjects-filters">
@@ -95,14 +104,14 @@ export default function Subjects() {
 
         <select onChange={(e) => setCareerFilter(e.target.value)}>
           <option value="todas">Todas las carreras</option>
-          <option value="Ing. Sistemas">Ing. Sistemas</option>
+          {carreras.map((c) => (
+            <option key={c._id} value={c._id}>{c.nombre}</option>
+          ))}
         </select>
 
         <select onChange={(e) => setYearFilter(e.target.value)}>
           <option value="todos">Todos los años</option>
-          <option value="1">1°</option>
-          <option value="2">2°</option>
-          <option value="3">3°</option>
+          {[1, 2, 3, 4, 5, 6].map((y) => <option key={y} value={y.toString()}>{y}°</option>)}
         </select>
       </div>
 
@@ -117,35 +126,27 @@ export default function Subjects() {
           <span>Acciones</span>
         </div>
 
-        {filteredSubjects.map((subject) => (
-          <div key={subject.id} className="table-row">
-            <span>{subject.name}</span>
-            <span>{subject.code}</span>
-            <span>{subject.year}°</span>
-            <span className="career">{subject.career}</span>
-            <span>{subject.correlatives}</span>
+        {loading ? (
+          <p style={{ padding: "2rem", textAlign: "center" }}>Cargando materias...</p>
+        ) : filteredSubjects.length === 0 ? (
+          <p style={{ padding: "2rem", textAlign: "center" }}>
+            {materias.length === 0 ? "No hay materias creadas aún" : "No se encontraron resultados"}
+          </p>
+        ) : (
+          filteredSubjects.map((m) => (
+            <div key={m._id} className="table-row">
+              <span>{m.nombre}</span>
+              <span>{m.codigo}</span>
+              <span>{m.anio}°</span>
+              <span className="career">{m.carrera?.nombre || "-"}</span>
+              <span>{m.correlativas?.length ? m.correlativas.map((c) => c.nombre).join(", ") : "-"}</span>
 
-            <div className="actions">
-              <button title="Correlativas">🔗</button>
-              <button title="Editar">✏️</button>
-              <button title="Eliminar">🗑️</button>
+              <div className="actions">
+                <button title="Eliminar" onClick={() => handleDelete(m._id)}>🗑️</button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* BLOQUE INFERIOR */}
-      <div className="correlatives-box">
-        <h4>🔗 Gestión de Correlatividades</h4>
-        <p>
-          Las correlatividades definen qué materias deben estar aprobadas para
-          poder cursar otras. Haz clic en el icono de correlatividades para
-          editar las dependencias de cada materia.
-        </p>
-
-        <button className="btn-primary-outline">
-          Ver Diagrama de Correlatividades
-        </button>
+          ))
+        )}
       </div>
     </div>
   );

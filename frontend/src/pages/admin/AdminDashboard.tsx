@@ -1,6 +1,19 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { getCarreras } from "../../services/carreras.service";
+import { getMaterias } from "../../services/materias.service";
 import "../../styles/AdminDashboard.css";
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({ carreras: 0, materias: 0 });
+
+  useEffect(() => {
+    Promise.all([getCarreras(), getMaterias()]).then(([carreras, materias]) => {
+      setStats({ carreras: carreras.length, materias: materias.length });
+    });
+  }, []);
+
   return (
     <div className="admin-container">
       <h1>Panel de Administración</h1>
@@ -9,23 +22,13 @@ export default function AdminDashboard() {
       {/* STATS */}
       <div className="stats">
         <div className="stat-card">
-          <h2>1,247</h2>
-          <span>Estudiantes Activos</span>
-        </div>
-
-        <div className="stat-card">
-          <h2>8</h2>
+          <h2>{stats.carreras}</h2>
           <span>Carreras</span>
         </div>
 
         <div className="stat-card">
-          <h2>156</h2>
+          <h2>{stats.materias}</h2>
           <span>Materias</span>
-        </div>
-
-        <div className="stat-card warning">
-          <h2>5</h2>
-          <span>Denuncias Pendientes</span>
         </div>
       </div>
 
@@ -33,35 +36,17 @@ export default function AdminDashboard() {
       <h3>Accesos Rápidos</h3>
 
       <div className="quick-actions">
-        <div className="action">Gestión de Carreras</div>
-        <div className="action">Planes de Estudio</div>
-        <div className="action">Materias</div>
-        <div className="action highlight">Moderación</div>
-      </div>
-
-      {/* ACTIVIDAD */}
-      <div className="card">
-        <h3>Actividad del Sistema</h3>
-        <div className="chart-placeholder"></div>
-      </div>
-
-      {/* ACTIVIDAD RECIENTE */}
-      <div className="card">
-        <h3>Actividad Reciente</h3>
-
-        <div className="activity">
-          <p>👤 Nuevo estudiante registrado</p>
-          <span>Hace 10 min</span>
+        <div className="action" onClick={() => navigate("/admin/carreras")} style={{ cursor: "pointer" }}>
+          Gestión de Carreras
         </div>
-
-        <div className="activity">
-          <p>📄 Material subido</p>
-          <span>Hace 1 hora</span>
+        <div className="action" onClick={() => navigate("/admin/studyplans")} style={{ cursor: "pointer" }}>
+          Planes de Estudio
         </div>
-
-        <div className="activity">
-          <p>⚠️ Nueva denuncia</p>
-          <span>Hace 2 horas</span>
+        <div className="action" onClick={() => navigate("/admin/subjects")} style={{ cursor: "pointer" }}>
+          Materias
+        </div>
+        <div className="action highlight" onClick={() => navigate("/admin/moderation")} style={{ cursor: "pointer" }}>
+          Moderación
         </div>
       </div>
     </div>

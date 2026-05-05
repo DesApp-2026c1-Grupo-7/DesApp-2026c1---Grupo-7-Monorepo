@@ -1,15 +1,16 @@
 const { Router } = require('express');
 const healthRoutes = require('./health.routes');
+const authRoutes = require('./auth.routes');
+const carrerasRoutes = require('./carreras.routes');
+const materiasRoutes = require('./materias.routes');
+const planesRoutes = require('./planes.routes');
 
 const router = Router();
 
 router.use('/health', healthRoutes);
-
-// Aca se montan los routers de cada modulo a medida que se agregan:
-// router.use('/auth', require('./auth.routes'));
-// router.use('/usuarios', require('./usuarios.routes'));
-// router.use('/carreras', require('./carreras.routes'));
-// router.use('/planes', require('./planes.routes'));
-// router.use('/materias', require('./materias.routes'));
+router.use('/auth', authRoutes);
+router.use('/carreras', carrerasRoutes);
+router.use('/materias', materiasRoutes);
+router.use('/planes', planesRoutes);
 
 module.exports = router;

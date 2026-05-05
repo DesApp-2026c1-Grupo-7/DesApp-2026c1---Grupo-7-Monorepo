@@ -1,19 +1,21 @@
-import { Bell, LogOut, Menu } from "lucide-react";
+import { Bell, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import "../styles/Navbar.css";
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
+    logout();
     navigate("/");
   };
 
   return (
     <header className="navbar">
       <div className="left">
-        <Menu size={20} className="close" />
+        {user && <span style={{ fontSize: "0.9rem", color: "#666" }}>Hola, {user.nombre}</span>}
       </div>
 
       <div className="right">

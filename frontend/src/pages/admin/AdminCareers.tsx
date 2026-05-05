@@ -1,38 +1,40 @@
-import "../../styles/AdminCareers.css";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-const careers = [
-  {
-    nombre: "Ingeniería en Sistemas",
-    codigo: "INGSIST",
-    estudiantes: 450,
-    materias: 47,
-  },
-  {
-    nombre: "Licenciatura en Informática",
-    codigo: "LICINF",
-    estudiantes: 320,
-    materias: 42,
-  },
-  {
-    nombre: "Ingeniería Industrial",
-    codigo: "INGIND",
-    estudiantes: 280,
-    materias: 45,
-  },
-  {
-    nombre: "Ingeniería Electrónica",
-    codigo: "INGELEC",
-    estudiantes: 197,
-    materias: 44,
-  },
-];
+import { getCarreras, deleteCarrera, type Carrera } from "../../services/carreras.service";
+import "../../styles/AdminCareers.css";
 
 export default function AdminCareers() {
   const navigate = useNavigate();
+  const [carreras, setCarreras] = useState<Carrera[]>([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadCarreras();
+  }, []);
+
+  async function loadCarreras() {
+    try {
+      const data = await getCarreras();
+      setCarreras(data);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("¿Estás seguro de eliminar esta carrera?")) return;
+    await deleteCarrera(id);
+    setCarreras((prev) => prev.filter((c) => c._id !== id));
+  }
+
+  const filtered = carreras.filter((c) =>
+    c.nombre.toLowerCase().includes(search.toLowerCase()) ||
+    c.codigo.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="admin-careers-container">
-      
       {/* Header */}
       <div className="admin-careers-header">
         <div>
@@ -40,50 +42,56 @@ export default function AdminCareers() {
           <p>Administra las carreras disponibles</p>
         </div>
 
-        <button
-          className="btn-primary"
-           onClick={() => navigate("/admin/carreras/nueva")}
-        >
+        <button className="btn-primary" onClick={() => navigate("/admin/carreras/nueva")}>
           + Nueva Carrera
         </button>
       </div>
 
       {/* Buscador */}
       <div className="admin-search-box">
-        <input placeholder="Buscar carrera..." />
+        <input
+          placeholder="Buscar carrera..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       {/* Tabla */}
       <div className="admin-table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Carrera</th>
-              <th>Código</th>
-              <th>Estudiantes</th>
-              <th>Materias</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {careers.map((c, index) => (
-              <tr key={index}>
-                <td>{c.nombre}</td>
-                <td className="code">{c.codigo}</td>
-                <td>{c.estudiantes}</td>
-                <td>{c.materias}</td>
-
-                <td className="actions">
-                  <button className="icon-btn edit">✏️</button>
-                  <button className="icon-btn delete">🗑️</button>
-                </td>
+        {loading ? (
+          <p style={{ padding: "2rem", textAlign: "center" }}>Cargando carreras...</p>
+        ) : filtered.length === 0 ? (
+          <p style={{ padding: "2rem", textAlign: "center" }}>
+            {carreras.length === 0 ? "No hay carreras creadas aún" : "No se encontraron resultados"}
+          </p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Carrera</th>
+                <th>Código</th>
+                <th>Materias</th>
+                <th>Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
 
+            <tbody>
+              {filtered.map((c) => (
+                <tr key={c._id}>
+                  <td>{c.nombre}</td>
+                  <td className="code">{c.codigo}</td>
+                  <td>{c.materias}</td>
+                  <td className="actions">
+                    <button className="icon-btn delete" onClick={() => handleDelete(c._id)}>
+                      🗑️
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }
