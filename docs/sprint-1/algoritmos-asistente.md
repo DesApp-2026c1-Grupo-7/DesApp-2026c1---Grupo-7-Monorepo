@@ -205,8 +205,10 @@ function planificarCursada(estudiante, plan, correlatividades, horasMaxSemana):
                 horasUsadas += i.materia.horasSemana
 
         if delCuatri.empty:
-            # Ninguna materia entra en las horas restantes → break para evitar loop
-            break
+            # Configuración imposible: hay materias pendientes e inscribibles,
+            # pero ninguna entra dentro de horasMaxSemana.
+            # Devolver error claro para que el frontend lo distinga de un plan completo.
+            raise Error('No es posible planificar la cursada con el límite de horas semanal configurado')
 
         # Avanzar el estado: marcar las del cuatri como aprobadas
         for m in delCuatri:
