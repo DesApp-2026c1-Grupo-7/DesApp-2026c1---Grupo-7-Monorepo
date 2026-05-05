@@ -59,23 +59,42 @@
 }
 
 .btn-primary {
-  background-color: #2563eb;
+  background-color: var(--primary);
   color: white;
   padding: 10px 20px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
+  font-weight: 600;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
 }
 
 .btn-primary:hover {
-  background-color: #1d4ed8;
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
-  background-color: #e5e7eb;
-  color: #111827;
+  background-color: var(--bg-main);
+  color: var(--text-main);
   padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   cursor: pointer;
+  font-weight: 600;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background-color: #fee2e2;
+  color: var(--error);
+  border-color: #fca5a5;
 }

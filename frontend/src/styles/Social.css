@@ -55,20 +55,37 @@
 }
 
 /* Botones */
-.btn {
+.social-container .btn {
   border: none;
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
+  font-weight: 600;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
 }
 
-.btn.primary {
-  background: #2563eb;
+.social-container .btn.primary {
+  background: var(--primary);
   color: white;
 }
 
-.btn.secondary {
-  background: #f3f4f6;
+.social-container .btn.primary:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.social-container .btn.secondary {
+  background: var(--bg-main);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+}
+
+.social-container .btn.secondary:hover {
+  background: white;
 }
 
 /* Post box */

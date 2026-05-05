@@ -1,75 +1,46 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "../../styles/Subjects.css";
+import api from "../../services/api";
 
 interface Subject {
-  id: number;
-  name: string;
-  code: string;
-  year: number;
-  career: string;
-  correlatives: string;
+  _id: string;
+  nombre: string;
+  codigo: string;
+  anio: number;
+  cuatrimestre: number;
+  creditos: number;
 }
 
-const mockSubjects: Subject[] = [
-  {
-    id: 1,
-    name: "Algoritmos y Estructuras de Datos",
-    code: "ALGO101",
-    year: 1,
-    career: "Ing. Sistemas",
-    correlatives: "-",
-  },
-  {
-    id: 2,
-    name: "Programación I",
-    code: "PROG101",
-    year: 1,
-    career: "Ing. Sistemas",
-    correlatives: "-",
-  },
-  {
-    id: 3,
-    name: "Sistemas Operativos",
-    code: "SIST201",
-    year: 2,
-    career: "Ing. Sistemas",
-    correlatives: "Programación I",
-  },
-  {
-    id: 4,
-    name: "Base de Datos",
-    code: "BD201",
-    year: 2,
-    career: "Ing. Sistemas",
-    correlatives: "Algoritmos y Estructuras",
-  },
-  {
-    id: 5,
-    name: "Redes de Computadoras",
-    code: "REDES301",
-    year: 3,
-    career: "Ing. Sistemas",
-    correlatives: "Sistemas Operativos",
-  },
-];
-
 export default function Subjects() {
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [careerFilter, setCareerFilter] = useState("todas");
   const [yearFilter, setYearFilter] = useState("todos");
 
-  const filteredSubjects = mockSubjects.filter((subject) => {
-    const matchesSearch = subject.name
+  useEffect(() => {
+    fetchSubjects();
+  }, []);
+
+  const fetchSubjects = async () => {
+    try {
+      const response = await api.get("/materias");
+      setSubjects(response.data);
+    } catch (error) {
+      console.error("Error al obtener materias:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredSubjects = subjects.filter((subject) => {
+    const matchesSearch = subject.nombre
       .toLowerCase()
       .includes(search.toLowerCase());
 
-    const matchesCareer =
-      careerFilter === "todas" || subject.career === careerFilter;
-
     const matchesYear =
-      yearFilter === "todos" || subject.year.toString() === yearFilter;
+      yearFilter === "todos" || subject.anio.toString() === yearFilter;
 
-    return matchesSearch && matchesCareer && matchesYear;
+    return matchesSearch && matchesYear;
   });
 
   return (
@@ -93,16 +64,13 @@ export default function Subjects() {
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        <select onChange={(e) => setCareerFilter(e.target.value)}>
-          <option value="todas">Todas las carreras</option>
-          <option value="Ing. Sistemas">Ing. Sistemas</option>
-        </select>
-
         <select onChange={(e) => setYearFilter(e.target.value)}>
           <option value="todos">Todos los años</option>
           <option value="1">1°</option>
           <option value="2">2°</option>
           <option value="3">3°</option>
+          <option value="4">4°</option>
+          <option value="5">5°</option>
         </select>
       </div>
 
@@ -112,26 +80,32 @@ export default function Subjects() {
           <span>Materia</span>
           <span>Código</span>
           <span>Año</span>
-          <span>Carrera</span>
-          <span>Correlativas</span>
+          <span>Cuat.</span>
+          <span>Créditos</span>
           <span>Acciones</span>
         </div>
 
-        {filteredSubjects.map((subject) => (
-          <div key={subject.id} className="table-row">
-            <span>{subject.name}</span>
-            <span>{subject.code}</span>
-            <span>{subject.year}°</span>
-            <span className="career">{subject.career}</span>
-            <span>{subject.correlatives}</span>
+        {loading ? (
+          <p style={{ padding: '20px', textAlign: 'center' }}>Cargando materias...</p>
+        ) : filteredSubjects.length > 0 ? (
+          filteredSubjects.map((subject) => (
+            <div key={subject._id} className="table-row">
+              <span>{subject.nombre}</span>
+              <span>{subject.codigo}</span>
+              <span>{subject.anio}°</span>
+              <span>{subject.cuatrimestre === 0 ? 'Anual' : `${subject.cuatrimestre}°`}</span>
+              <span>{subject.creditos}</span>
 
-            <div className="actions">
-              <button title="Correlativas">🔗</button>
-              <button title="Editar">✏️</button>
-              <button title="Eliminar">🗑️</button>
+              <div className="actions">
+                <button title="Correlativas">🔗</button>
+                <button title="Editar">✏️</button>
+                <button title="Eliminar">🗑️</button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <p style={{ padding: '20px', textAlign: 'center' }}>No se encontraron materias.</p>
+        )}
       </div>
 
       {/* BLOQUE INFERIOR */}

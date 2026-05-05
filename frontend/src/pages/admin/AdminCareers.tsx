@@ -1,35 +1,36 @@
+import { useEffect, useState } from "react";
 import "../../styles/AdminCareers.css";
 import { useNavigate } from "react-router-dom";
+import api from "../../services/api";
 
-const careers = [
-  {
-    nombre: "Ingeniería en Sistemas",
-    codigo: "INGSIST",
-    estudiantes: 450,
-    materias: 47,
-  },
-  {
-    nombre: "Licenciatura en Informática",
-    codigo: "LICINF",
-    estudiantes: 320,
-    materias: 42,
-  },
-  {
-    nombre: "Ingeniería Industrial",
-    codigo: "INGIND",
-    estudiantes: 280,
-    materias: 45,
-  },
-  {
-    nombre: "Ingeniería Electrónica",
-    codigo: "INGELEC",
-    estudiantes: 197,
-    materias: 44,
-  },
-];
+interface Career {
+  _id: string;
+  nombre: string;
+  codigo: string;
+  cantidadEstudiantes: number;
+  cantidadMaterias: number;
+}
 
 export default function AdminCareers() {
   const navigate = useNavigate();
+  const [careers, setCareers] = useState<Career[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCareers();
+  }, []);
+
+  const fetchCareers = async () => {
+    try {
+      const response = await api.get("/carreras");
+      setCareers(response.data);
+    } catch (error) {
+      console.error("Error al obtener carreras:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="admin-careers-container">
       
@@ -55,33 +56,37 @@ export default function AdminCareers() {
 
       {/* Tabla */}
       <div className="admin-table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Carrera</th>
-              <th>Código</th>
-              <th>Estudiantes</th>
-              <th>Materias</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {careers.map((c, index) => (
-              <tr key={index}>
-                <td>{c.nombre}</td>
-                <td className="code">{c.codigo}</td>
-                <td>{c.estudiantes}</td>
-                <td>{c.materias}</td>
-
-                <td className="actions">
-                  <button className="icon-btn edit">✏️</button>
-                  <button className="icon-btn delete">🗑️</button>
-                </td>
+        {loading ? (
+          <p style={{ padding: '20px', textAlign: 'center' }}>Cargando carreras...</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Carrera</th>
+                <th>Código</th>
+                <th>Estudiantes</th>
+                <th>Materias</th>
+                <th>Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {careers.map((c) => (
+                <tr key={c._id}>
+                  <td>{c.nombre}</td>
+                  <td className="code">{c.codigo}</td>
+                  <td>{c.cantidadEstudiantes}</td>
+                  <td>{c.cantidadMaterias}</td>
+
+                  <td className="actions">
+                    <button className="icon-btn edit">✏️</button>
+                    <button className="icon-btn delete">🗑️</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
     </div>

@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import "../../styles/Dashboard.css";
 import StatCard from "../../components/StatCard";
+import api from "../../services/api";
 import {
   BookOpen,
   GraduationCap,
@@ -8,13 +10,53 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+interface AcademicRecord {
+  estado: string;
+}
+
 export default function Dashboard() {
+  const [userName, setUserName] = useState("Estudiante");
+  const [stats, setStats] = useState({ aprobadas: 0, regular: 0, pendientes: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      setUserName(user.nombre);
+    }
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const response = await api.get("/academico/situacion");
+      const records: AcademicRecord[] = response.data;
+      
+      const counts = records.reduce((acc, curr) => {
+        if (curr.estado === 'Aprobada') acc.aprobadas++;
+        else if (curr.estado === 'Regular') acc.regular++;
+        else if (curr.estado === 'Pendiente') acc.pendientes++;
+        return acc;
+      }, { aprobadas: 0, regular: 0, pendientes: 0 });
+
+      setStats(counts);
+    } catch (error) {
+      console.error("Error al obtener estadísticas:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const totalMaterias = 47; // Hardcoded por ahora hasta tener la carrera del usuario
+  const avancePercent = Math.round((stats.aprobadas / totalMaterias) * 100);
+
   return (
     <div className="dashboard">
       {/* HEADER */}
       <div className="dashboard-header">
         <h1>Dashboard</h1>
-        <p>Bienvenido, Juan Pérez</p>
+        <p>Bienvenido, {userName}</p>
       </div>
 
       {/* PROGRESO */}
@@ -29,23 +71,28 @@ export default function Dashboard() {
 
         <div className="progress-bar-container">
           <div className="progress-bar">
-            <div className="progress-fill" style={{ width: "68%" }} />
+            <div className="progress-fill" style={{ width: `${avancePercent}%` }} />
           </div>
-          <span className="progress-percent">68%</span>
+          <span className="progress-percent">{avancePercent}%</span>
         </div>
 
         <p className="progress-text">
-          32 de 47 materias aprobadas
+          {stats.aprobadas} de {totalMaterias} materias aprobadas
         </p>
       </div>
 
       {/* STATS */}
 
       <div className="stats">
-        
-        <StatCard title="Materias Aprobadas" value="32" color="green"/> 
-        <StatCard title="Regularizadas" value="8" color="blue" />
-        <StatCard title="Pendientes" value="7" color="orange" />
+        {loading ? (
+          <p>Cargando estadísticas...</p>
+        ) : (
+          <>
+            <StatCard title="Materias Aprobadas" value={stats.aprobadas.toString()} color="green"/> 
+            <StatCard title="Regularizadas" value={stats.regular.toString()} color="blue" />
+            <StatCard title="Pendientes" value={stats.pendientes.toString()} color="orange" />
+          </>
+        )}
       </div>
 
       {/* ACCESOS */}

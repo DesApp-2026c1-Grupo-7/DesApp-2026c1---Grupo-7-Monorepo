@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const app = require('./app');
 const { connectDB } = require('./config/db');
+const { seedUsers } = require('./utils/seed');
 const logger = require('./utils/logger');
 
 const PORT = process.env.PORT || 5000;
@@ -9,6 +10,7 @@ const PORT = process.env.PORT || 5000;
 async function start() {
   try {
     await connectDB();
+    await seedUsers();
     app.listen(PORT, () => {
       logger.info(`Servidor escuchando en http://localhost:${PORT}`);
     });

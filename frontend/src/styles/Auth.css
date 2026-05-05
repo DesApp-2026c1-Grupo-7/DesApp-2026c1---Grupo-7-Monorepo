@@ -97,6 +97,7 @@
 }
 
 .btn {
+  width: 100%;
   padding: 0.875rem;
   border-radius: var(--radius-md);
   font-weight: 600;
@@ -106,6 +107,8 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .btn.primary {
