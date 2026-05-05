@@ -28,19 +28,11 @@ const Situation = () => {
   const yearOptions = ["Todos los años", "1°", "2°", "3°", "4°", "5°"];
 
   useEffect(() => {
-    fetchSituation();
+    api.get("/academico/situacion")
+      .then((response) => { setData(response.data); })
+      .catch((error) => { console.error("Error al obtener situación académica:", error); })
+      .finally(() => { setLoading(false); });
   }, []);
-
-  const fetchSituation = async () => {
-    try {
-      const response = await api.get("/academico/situacion");
-      setData(response.data);
-    } catch (error) {
-      console.error("Error al obtener situación académica:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filteredData = data.filter((m) => {
     const matchEstado = selected === "Todos los estados" || m.estado === (selected === "Regularizada" ? "Regular" : selected);

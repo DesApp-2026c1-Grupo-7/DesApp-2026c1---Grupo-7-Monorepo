@@ -17,19 +17,11 @@ export default function AdminCareers() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchCareers();
+    api.get("/carreras")
+      .then((response) => { setCareers(response.data); })
+      .catch((error) => { console.error("Error al obtener carreras:", error); })
+      .finally(() => { setLoading(false); });
   }, []);
-
-  const fetchCareers = async () => {
-    try {
-      const response = await api.get("/carreras");
-      setCareers(response.data);
-    } catch (error) {
-      console.error("Error al obtener carreras:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="admin-careers-container">

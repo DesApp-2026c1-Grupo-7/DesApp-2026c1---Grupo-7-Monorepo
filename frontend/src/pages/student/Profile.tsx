@@ -1,15 +1,16 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import "../../styles/Profile.css";
 
 export default function Profile() {
-  const [user, setUser] = useState<{ nombre: string; email: string; role: string } | null>(null);
-
-  useEffect(() => {
+  const [user] = useState<{ nombre: string; email: string; role: string } | null>(() => {
     const userStr = localStorage.getItem("user");
-    if (userStr) {
-      setUser(JSON.parse(userStr));
+    if (!userStr) return null;
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      return null;
     }
-  }, []);
+  });
 
   if (!user) {
     return <div className="profile-container"><p>Cargando perfil...</p></div>;

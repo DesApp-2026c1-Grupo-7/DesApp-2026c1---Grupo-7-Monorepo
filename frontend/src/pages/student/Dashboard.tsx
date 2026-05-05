@@ -15,38 +15,35 @@ interface AcademicRecord {
 }
 
 export default function Dashboard() {
-  const [userName, setUserName] = useState("Estudiante");
+  const [userName] = useState<string>(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      return userStr ? JSON.parse(userStr).nombre ?? "Estudiante" : "Estudiante";
+    } catch {
+      return "Estudiante";
+    }
+  });
   const [stats, setStats] = useState({ aprobadas: 0, regular: 0, pendientes: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      setUserName(user.nombre);
-    }
-    fetchStats();
+    api.get("/academico/situacion")
+      .then((response) => {
+        const records: AcademicRecord[] = response.data;
+        const counts = records.reduce(
+          (acc, curr) => {
+            if (curr.estado === "Aprobada") acc.aprobadas++;
+            else if (curr.estado === "Regular") acc.regular++;
+            else if (curr.estado === "Pendiente") acc.pendientes++;
+            return acc;
+          },
+          { aprobadas: 0, regular: 0, pendientes: 0 }
+        );
+        setStats(counts);
+      })
+      .catch((error) => { console.error("Error al obtener estadísticas:", error); })
+      .finally(() => { setLoading(false); });
   }, []);
-
-  const fetchStats = async () => {
-    try {
-      const response = await api.get("/academico/situacion");
-      const records: AcademicRecord[] = response.data;
-      
-      const counts = records.reduce((acc, curr) => {
-        if (curr.estado === 'Aprobada') acc.aprobadas++;
-        else if (curr.estado === 'Regular') acc.regular++;
-        else if (curr.estado === 'Pendiente') acc.pendientes++;
-        return acc;
-      }, { aprobadas: 0, regular: 0, pendientes: 0 });
-
-      setStats(counts);
-    } catch (error) {
-      console.error("Error al obtener estadísticas:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const totalMaterias = 47; // Hardcoded por ahora hasta tener la carrera del usuario
   const avancePercent = Math.round((stats.aprobadas / totalMaterias) * 100);
