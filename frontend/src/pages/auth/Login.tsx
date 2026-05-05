@@ -23,8 +23,9 @@ const Login = () => {
 
       // Redirección automática basada en el rol detectado
       navigate(user.role === "admin" ? "/admin" : "/student");
-    } catch (err: any) {
-      setError(err.response?.data?.mensaje || "Error al iniciar sesión");
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { mensaje?: string } } };
+      setError(axiosErr.response?.data?.mensaje || "Error al iniciar sesión");
     } finally {
       setLoading(false);
     }

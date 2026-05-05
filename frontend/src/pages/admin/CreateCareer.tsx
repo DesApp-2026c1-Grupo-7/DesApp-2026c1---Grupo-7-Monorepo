@@ -23,8 +23,9 @@ export default function CreateCareerPage() {
         descripcion
       });
       navigate("/admin/carreras");
-    } catch (err: any) {
-      setError(err.response?.data?.mensaje || "Error al crear la carrera");
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { mensaje?: string } } };
+      setError(axiosErr.response?.data?.mensaje || "Error al crear la carrera");
     } finally {
       setLoading(false);
     }

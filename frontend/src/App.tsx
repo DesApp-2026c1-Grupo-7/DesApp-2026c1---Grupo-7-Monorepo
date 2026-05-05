@@ -25,23 +25,38 @@ import StudyPlans from "./pages/admin/StudyPlans";
 import Subjects from "./pages/admin/Subjects";
 import Moderation from "./pages/admin/Moderation";
 
-const App = () => {
+const getActiveUser = (): { role?: string } | null => {
   const token = localStorage.getItem("token");
   const userStr = localStorage.getItem("user");
-  const user = token && userStr ? JSON.parse(userStr) : null;
+  if (!token || !userStr) return null;
+  try {
+    return JSON.parse(userStr);
+  } catch {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    return null;
+  }
+};
 
+const AuthRedirect = () => {
+  const user = getActiveUser();
+  if (!user) return <Login />;
+  return <Navigate to={user.role === "admin" ? "/admin" : "/student"} replace />;
+};
+
+const RegisterRedirect = () => {
+  const user = getActiveUser();
+  if (!user) return <Register />;
+  return <Navigate to={user.role === "admin" ? "/admin" : "/student"} replace />;
+};
+
+const App = () => {
   return (
     <BrowserRouter>
       <Routes>
         {/* Auth — redirige si ya está logueado */}
-        <Route
-          path="/"
-          element={user ? <Navigate to={user.role === "admin" ? "/admin" : "/student"} replace /> : <Login />}
-        />
-        <Route
-          path="/register"
-          element={user ? <Navigate to="/student" replace /> : <Register />}
-        />
+        <Route path="/" element={<AuthRedirect />} />
+        <Route path="/register" element={<RegisterRedirect />} />
 
         {/* Student Flow */}
         <Route

@@ -49,8 +49,9 @@ const Register = () => {
       localStorage.setItem("user", JSON.stringify(user));
 
       navigate("/student");
-    } catch (err: any) {
-      setError(err.response?.data?.mensaje || "Error al registrarse");
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { mensaje?: string } } };
+      setError(axiosErr.response?.data?.mensaje || "Error al registrarse");
     } finally {
       setLoading(false);
     }

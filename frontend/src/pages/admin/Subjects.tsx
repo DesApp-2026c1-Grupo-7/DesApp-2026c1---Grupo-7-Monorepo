@@ -18,19 +18,11 @@ export default function Subjects() {
   const [yearFilter, setYearFilter] = useState("todos");
 
   useEffect(() => {
-    fetchSubjects();
+    api.get("/materias")
+      .then((response) => { setSubjects(response.data); })
+      .catch((error) => { console.error("Error al obtener materias:", error); })
+      .finally(() => { setLoading(false); });
   }, []);
-
-  const fetchSubjects = async () => {
-    try {
-      const response = await api.get("/materias");
-      setSubjects(response.data);
-    } catch (error) {
-      console.error("Error al obtener materias:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filteredSubjects = subjects.filter((subject) => {
     const matchesSearch = subject.nombre

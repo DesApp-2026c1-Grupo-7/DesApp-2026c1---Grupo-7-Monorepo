@@ -19,19 +19,11 @@ const StudyPlans = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchPlans();
+    api.get("/planes")
+      .then((response) => { setPlans(response.data); })
+      .catch((error) => { console.error("Error al obtener planes:", error); })
+      .finally(() => { setLoading(false); });
   }, []);
-
-  const fetchPlans = async () => {
-    try {
-      const response = await api.get("/planes");
-      setPlans(response.data);
-    } catch (error) {
-      console.error("Error al obtener planes:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="plans-container">
