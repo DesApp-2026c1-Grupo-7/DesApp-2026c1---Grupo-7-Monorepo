@@ -15,7 +15,7 @@
 - Opcional: `oferta` académica del cuatri (filtro adicional, CdU-19).
 
 ### Salida
-- `inscribibles[]`: materias que cumplen TODAS sus correlatividades y aún no están aprobadas ni cursando.
+- `inscribibles[]`: materias que cumplen TODAS sus correlatividades y aún no están aprobadas, regularizadas ni cursando.
 
 ### Pseudocódigo
 ```
@@ -26,8 +26,8 @@ function materiasInscribibles(estudiante, plan, correlatividades, oferta = null)
     for materia in plan.materias:
         estadoActual = situacion[materia.id] ?? 'no_cursada'
 
-        # Skip si ya la aprobó o la está cursando
-        if estadoActual in ('aprobada', 'cursando'):
+        # Skip si ya la aprobó, la regularizó (debe rendir final) o la está cursando
+        if estadoActual in ('aprobada', 'regularizada', 'cursando'):
             continue
 
         # Verificar todas las correlatividades de esta materia
@@ -57,7 +57,7 @@ function materiasInscribibles(estudiante, plan, correlatividades, oferta = null)
 - O(M * R) donde M = materias del plan, R = promedio de correlatividades por materia. Para planes reales (~40 materias, ~3 correlativas c/u) es despreciable.
 
 ### Casos borde
-- Materia sin correlatividades → habilitada por defecto si no fue aprobada/cursando.
+- Materia sin correlatividades → habilitada por defecto si no fue aprobada, regularizada ni está cursando.
 - Correlatividad apunta a materia fuera del plan (ej. cambio de plan) → tratar como `no_cursada` y bloquear (logear warning).
 - Estudiante sin situación cargada → todas las materias sin correlativas son inscribibles.
 
