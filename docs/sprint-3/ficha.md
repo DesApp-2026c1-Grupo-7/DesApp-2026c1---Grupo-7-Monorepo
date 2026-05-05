@@ -1,6 +1,6 @@
 # Sprint 3 — 21/05 → 04/06
 
-**Objetivo:** consolidar puntos 5 y 6 del TP — gestión de finales + historial académico completo.
+**Objetivo:** consolidar la gestión de finales y el historial académico completo.
 
 ## Alcance
 1. **Finales**: registrar intentos, calcular vencimiento de regularidad (4 cuatris, parametrizable).
