@@ -246,24 +246,24 @@ Reglas de asignación:
 | Sesiones de estudio: modelo + CRUD + visibilidad por privacidad del creador | **Thomas** | Santino |
 | Inscripción a sesión + aprobación manual + email de confirmación | **Thomas** | Santino |
 | UI sesiones: crear, listar con filtros, inscribirse, gestionar | **Matías** | Marcos |
-| Job de recordatorio 24h antes (cron) | **Thomas** | Santino |
-| Configurar servicio de mail (SMTP / SendGrid / Mailgun — definir) | **Thomas** | Santino |
-| Casos de prueba de los flujos sociales y de sesiones | **Marcos** | Todos |
+| Storage de archivos (definir: filesystem local, S3, Cloudinary) y subida con límite 25MB | **Thomas** | Santino |
+| CRUD materiales (archivos + links) con tags/metadata + búsqueda + validación de formatos permitidos | **Santino** | Thomas |
+| Casos de prueba de los flujos sociales, sesiones y materiales | **Marcos** | Todos |
 
 ---
 
-### 🚀 Sprint 5 (25/06 → 16/07) — Materiales + notificaciones + reportes
+### 🚀 Sprint 5 (25/06 → 16/07) — Reportes + cierre
 
-**Objetivo de demo:** la app entera funcionando end-to-end con materiales, denuncias moderadas, notificaciones y reportes.
+**Objetivo de demo:** cerrar la app end-to-end, estabilizar lo entregado y llegar a la review final con reportes, métricas y flujos completos validados.
 
 | Tarea | Owner | Backup |
 |---|---|---|
-| Storage de archivos (definir: filesystem local, S3, Cloudinary) y subida con límite 25MB | **Thomas** | Santino |
-| Validación de formatos permitidos | **Thomas** | Santino |
-| CRUD materiales (archivos + links) con tags/metadata + búsqueda | **Santino** | Thomas |
-| Sistema de valoración 👍/👎 + ratio + sort | **Santino** | Thomas |
-| Sistema de denuncias + motivos configurables por admin | **Thomas** | Santino |
-| Suspensión automática (N/M configurables) | **Thomas** | Santino |
+| Reportes operativos y métricas finales para la demo | **Santino** | Thomas |
+| QA integral de flujos end-to-end + corrección de bugs de cierre | **Marcos** | Todos |
+| Hardening de permisos, validaciones y manejo de errores | **Thomas** | Santino |
+| Ajustes finales de UX/UI y consistencia entre pantallas | **Matías** | Marcos |
+| Preparación de demo, datos semilla y recorrido de presentación | **Matías** | Marcos |
+| Cierre técnico: documentación, smoke tests y checklist final de entrega | **Thomas** | Santino |
 | Panel de moderación (admin) | **Santino** | Thomas |
 | UI repositorio de materiales por materia + filtros + ordenamiento | **Matías** | Marcos |
 | UI denuncias (estudiante) + UI moderación (admin) | **Matías** | Marcos |
