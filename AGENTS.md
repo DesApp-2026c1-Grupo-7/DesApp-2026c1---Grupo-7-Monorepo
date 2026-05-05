@@ -9,7 +9,7 @@
 Cada vez que un agente termine una tarea, **antes de devolver el control al usuario debe**:
 
 1. **Marcar la card de Trello como hecha**: mover a la lista `Hecho en este sprint` y marcar todos los ítems del checklist "Definition of Done" como `complete`. Board: https://trello.com/b/aUEcBwaC/desapp-2026c1-grupo-7
-2. **Mergear el PR a `dev`** (no a `main`) o, si la persona no tiene permisos, dejar el PR abierto con CI verde y avisar.
+2. **Abrir o actualizar el PR hacia `dev`** (no a `main`), dejarlo con CI verde, **pedir review y esperar la aprobación requerida antes de mergear**, siguiendo el flujo oficial definido en `CONTRIBUTING.md`.
 3. **Actualizar este archivo** si la tarea cambió el plan: tachar lo cerrado en el backlog, anotar lo que quedó pendiente.
 4. **Hacer push** del trabajo al remoto antes de cerrar la sesión.
 
