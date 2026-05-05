@@ -13,7 +13,16 @@ const ProtectedRoute = ({ children, allowedRole }: ProtectedRouteProps) => {
     return <Navigate to="/" replace />;
   }
 
-  const user = JSON.parse(userStr);
+  let user: { role?: "student" | "admin" };
+
+  try {
+    user = JSON.parse(userStr);
+  } catch {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    return <Navigate to="/" replace />;
+  }
+
   if (user.role !== allowedRole) {
     return <Navigate to="/" replace />;
   }
