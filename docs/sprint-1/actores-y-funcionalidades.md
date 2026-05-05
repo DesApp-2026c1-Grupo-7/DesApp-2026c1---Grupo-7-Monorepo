@@ -1,65 +1,81 @@
 # Actores y Funcionalidades Principales
 
-> Punto 1 del sprint 1. **Owner:** TBD. **Estado:** plantilla, hay que completar.
+> Punto 1 del sprint 1. **Owner:** Marcos Bejarano. **Estado:** Completado.
 
 ## Actores
 
 ### Estudiante
-Usuario principal del sistema. Gestiona su trayectoria académica y participa de la red social.
+Usuario principal del sistema que busca organizar su vida académica y colaborar con otros compañeros.
 
-**Funcionalidades clave:**
-- Registrarse y autenticarse.
-- Configurar su perfil (público/privado, foto, datos personales).
-- Cargar su situación académica (manual o por Excel).
-- Registrar inscripciones, regularizaciones y aprobaciones por cuatrimestre.
-- Ver análisis de su situación: materias en las que puede inscribirse, finales pendientes, % de avance, condiciones para recibirse.
-- Generar proyecciones "¿qué pasa si...?" y planificadores de cursada.
-- Conectarse con otros estudiantes (contactos).
-- Ver feed de novedades de sus contactos.
-- Crear y unirse a sesiones de estudio.
-- Publicar y consultar materiales por materia.
-- Valorar (👍/👎) y denunciar materiales.
-- Recibir notificaciones in-app y por email.
+**Funcionalidades clave (según módulos):**
+- **Módulo 1 & 3: Gestión Académica**
+  - Registrarse e iniciar sesión en el sistema.
+  - Configurar perfil personal (datos personales, foto, privacidad).
+  - Cargar situación académica (materias aprobadas, regularizadas, cuatrimestres).
+  - Registrar materias a cursar y actualizar el estado de las cursadas.
+  - Registrar presentaciones a exámenes finales.
+  - Gestionar la foja académica.
+- **Módulo 4: Asistente Académico**
+  - Consultar análisis de situación: materias disponibles para inscripción, finales pendientes, avance de carrera.
+  - Planificar cursada mediante un planificador interactivo (mover materias entre días).
+  - Guardar y modificar proyecciones de planes de estudio.
+- **Módulo 5 & 6: Red Social y Colaboración**
+  - Gestionar lista de contactos (agregar, ver, aceptar solicitudes).
+  - Consultar novedades académicas y posteos de contactos en el feed.
+  - Crear, editar, unirse o cancelar sesiones de estudio colaborativo.
+  - Consultar disponibilidad de sesiones de estudio.
+- **Módulo 7 & 8: Materiales y Notificaciones**
+  - Consultar, subir y compartir material de estudio por materia.
+  - Valorar material de estudio (👍/👎).
+  - Denunciar contenido inapropiado.
+  - Recibir y visualizar notificaciones (in-app y por email).
 
 ### Administrador
-Configura el sistema y modera contenido.
+Encargado de la configuración estructural del sistema y la moderación de la comunidad.
 
 **Funcionalidades clave:**
-- Dar de alta otros administradores.
-- Crear y mantener carreras (nombre, título, instituto, duración).
-- Crear planes de estudio por carrera (estado: vigente / en transición / discontinuado).
-- Cargar materias del plan: año, anual o cuatrimestral, condiciones (créditos, materias UNaHur, niveles de inglés), optativas.
-- Definir correlatividades.
-- Cargar oferta académica por período.
-- Configurar motivos de denuncia y umbrales (N pendientes, M verificadas) para suspensión automática de materiales.
-- Moderar denuncias (confirmar/rechazar) y notificar al autor y al denunciante.
-- Suspender/reactivar cuentas de estudiantes.
-- Generar reportes de uso y reportes sociales.
+- **Módulo 1 & 2: Configuración del Sistema**
+  - Crear y actualizar datos de carreras universitarias.
+  - Configurar planes de estudio (carga de materias, años, duraciones, correlatividades y condiciones).
+  - Gestionar permisos para la configuración de carreras y planes.
+- **Módulo 4 & 9: Operaciones y Reportes**
+  - Cargar la oferta académica de cada período.
+  - Generar reportes de uso, estadísticas del sistema y reportes sociales.
+- **Módulo 7: Moderación**
+  - Configurar motivos de denuncia y umbrales para materiales.
+  - Gestionar y moderar contenidos denunciados (confirmar/rechazar denuncias).
+  - Gestionar el estado de las cuentas de estudiantes (suspender/reactivar).
 
-## Casos de uso prioritarios para sprint 1 (solo navegación)
+## Casos de uso prioritarios para sprint 1
 
-Las pantallas que tienen que existir en el skeleton del sprint 1 (sin lógica funcional, solo navegación):
+Las pantallas que conforman el skeleton funcional del sistema:
 
 **Estudiante:**
 - Login / Registro
-- Home (dashboard)
-- Mi situación académica
-- Asistente académico (situación actual / proyecciones)
+- Home (Dashboard con resumen de avance)
+- Mi situación académica (Carga y visualización)
+- Asistente académico (Planificador y proyecciones)
+- Red Social (Contactos y Feed)
+- Sesiones de estudio (Buscador y creación)
+- Materiales (Repositorio por materia)
 - Mi perfil
 
 **Administrador:**
-- Login
-- Home admin
-- Gestión de carreras
-- Gestión de planes de estudio
-- Gestión de materias
-- Moderación de denuncias (placeholder)
+- Login Admin
+- Dashboard Admin (Métricas rápidas)
+- Gestión de Carreras
+- Gestión de Planes de Estudio y Materias
+- Moderación de Denuncias
+- Gestión de Usuarios
 
-## Diagrama de casos de uso
+## Diagramas de Casos de Uso
 
-> TODO: agregar diagrama (PlantUML o imagen) acá.
+### Flujos Principales
+![Diagrama de Casos de Uso - Flujos Principales](./diagramas/casos-de-uso-principales.svg)
+
+*El diagrama incluye los flujos de: Registro/Login, Ver Situación Académica, Configurar Carrera y Cargar Plan de Estudio.*
 
 ## Pendientes de definir
-- [ ] ¿Hay un actor "visitante" no autenticado o solo redirige a login?
-- [ ] ¿El administrador inicial se crea por seed o por variable de entorno?
-- [ ] Confirmar lista de pantallas del skeleton con el equipo.
+- [x] ¿Hay un actor "visitante"? Solo redirige a login.
+- [x] ¿El administrador inicial? Se creará mediante un script de seed inicial.
+- [x] Confirmar lista de pantallas: Validado con el equipo según el skeleton actual.
