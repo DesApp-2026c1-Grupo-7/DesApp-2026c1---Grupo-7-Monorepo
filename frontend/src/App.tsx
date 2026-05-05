@@ -1,7 +1,8 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 // student
 import Layout from "./components/Layout";
@@ -17,7 +18,7 @@ import Materials from "./pages/student/Materials";
 import Notifications from "./pages/student/Notifications";
 
 // admin
-import AdminDashboard from "./pages/admin/AdminDashboard"
+import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminCareers from "./pages/admin/AdminCareers";
 import CreateCareer from "./pages/admin/CreateCareer";
 import StudyPlans from "./pages/admin/StudyPlans";
@@ -25,16 +26,33 @@ import Subjects from "./pages/admin/Subjects";
 import Moderation from "./pages/admin/Moderation";
 
 const App = () => {
+  const token = localStorage.getItem("token");
+  const userStr = localStorage.getItem("user");
+  const user = token && userStr ? JSON.parse(userStr) : null;
+
   return (
     <BrowserRouter>
       <Routes>
-        {/* Auth Flow */}
-        <Route path="/" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        {/* Auth — redirige si ya está logueado */}
+        <Route
+          path="/"
+          element={user ? <Navigate to={user.role === "admin" ? "/admin" : "/student"} replace /> : <Login />}
+        />
+        <Route
+          path="/register"
+          element={user ? <Navigate to="/student" replace /> : <Register />}
+        />
 
         {/* Student Flow */}
-        <Route path="/student" element={<Layout role="student" />}>
-          <Route index element={<StudentDashboard />} />         
+        <Route
+          path="/student"
+          element={
+            <ProtectedRoute allowedRole="student">
+              <Layout role="student" />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<StudentDashboard />} />
           <Route path="situation" element={<Situation />} />
           <Route path="load-situation" element={<LoadSituation />} />
           <Route path="assistant" element={<AcademicAssistant />} />
@@ -47,7 +65,14 @@ const App = () => {
         </Route>
 
         {/* Admin Flow */}
-        <Route path="/admin" element={<Layout role="admin" />}>
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <Layout role="admin" />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<AdminDashboard />} />
           <Route path="carreras" element={<AdminCareers />} />
           <Route path="carreras/nueva" element={<CreateCareer />} />
