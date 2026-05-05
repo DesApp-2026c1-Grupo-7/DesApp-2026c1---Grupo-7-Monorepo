@@ -25,7 +25,10 @@
 - [ ] App desplegada y accesible públicamente.
 - [ ] Dashboard admin con al menos 4 gráficos significativos.
 - [ ] CSV y PDF de reportes descargables.
-- [ ] Suite E2E pasa los 6 flujos: registro → login → carga situación → ver asistente → cargar final → admin crea carrera.
+- [ ] Suite E2E pasa los 6 flujos base: registro → login → carga situación → ver asistente → cargar final → admin crea carrera.
+- [ ] Existe al menos 1 E2E específico del sprint que valida acceso y render del dashboard admin con métricas/gráficos visibles.
+- [ ] Existe al menos 1 E2E específico del sprint que valida exportación de reportes en CSV y PDF desde `/api/reportes/*`.
+- [ ] Existe al menos 1 prueba E2E o smoke automatizada para hardening de endpoints (autorización/validación/rate limiting) sobre los cambios de este sprint.
 - [ ] README final con badges (CI, coverage, deploy).
 - [ ] Manual de usuario (`docs/manual-usuario.md`) con screenshots.
 - [ ] Manual técnico (`docs/manual-tecnico.md`) con diagramas y decisiones.
