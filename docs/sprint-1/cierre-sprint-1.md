@@ -12,6 +12,8 @@ PR #10 dejo la base mergeada. La rama `feature/cerrar-deuda-puntos-1-4` cierra l
 - Punto 2: carreras, planes, materias, correlativas, campos exactos y estado de plan.
 - Punto 3: situacion academica, Excel preview/correccion/confirmacion, cursadas, finales, actividades con creditos.
 - Punto 4: inscribibles, finales con intentos/vencimiento, avance, oferta, que-pasa-si y planificador.
+- Plus punto 4: comparacion de rendimiento real contra plan de estudio y guardado de multiples planificaciones.
+- Excel de prueba: `docs/sprint-1/situacion-academica-ejemplo.xlsx`.
 - Tests reales: `backend/test/sprint1-debt.test.js`.
 
 ## Fuera de alcance
@@ -28,6 +30,7 @@ Puntos 5 a 9 quedan para sprints siguientes: red social, sesiones, materiales, n
 6. Cargar situacion manual o Excel con preview.
 7. Registrar actividad con creditos.
 8. Usar asistente: disponibles, finales, avance, que-pasa-si y planificador.
+9. Comparar rendimiento vs plan y guardar una planificacion por horas semanales.
 
 ## Validacion
 

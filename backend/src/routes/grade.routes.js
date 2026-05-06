@@ -27,8 +27,11 @@ router.get('/inscripciones-activas', auth, gradeController.getInscripcionesActiv
 router.get('/disponibles', auth, gradeController.getMateriasDisponibles);
 router.get('/proyeccion', auth, gradeController.getProyeccionCursada);
 router.get('/avance', auth, gradeController.getAvanceCarrera);
+router.get('/rendimiento-plan', auth, gradeController.getRendimientoPlan);
 router.post('/que-pasa-si', auth, gradeController.getQuePasaSi);
 router.get('/planificador', auth, gradeController.getPlanificador);
+router.get('/planes-guardados', auth, gradeController.listSavedStudyPlans);
+router.post('/planes-guardados', auth, gradeController.saveStudyPlan);
 router.get('/actividades-creditos', auth, gradeController.listCreditActivities);
 router.post('/actividades-creditos', auth, gradeController.createCreditActivity);
 

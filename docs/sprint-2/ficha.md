@@ -7,6 +7,8 @@
 - PR #10 mergeado.
 - Deuda de puntos 1 a 4 cerrada en `feature/cerrar-deuda-puntos-1-4`.
 - Backend tests reales, frontend lint/build verde.
+- Revalidacion post-ajustes: seeds reiniciables, dashboard/asistente con mismo avance, registro con carrera, administracion de cuentas completa y plus de asistente cerrado.
+- Convocar docente para el jueves 07/05/2026 y mostrar cierre Sprint 1 + inicio Sprint 2.
 
 ## Alcance Sprint 2
 

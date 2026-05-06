@@ -101,9 +101,28 @@ const reactivateUser = async (req, res) => {
   }
 };
 
+const promoteUserToAdmin = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { role: 'admin', suspendido: false, motivoSuspension: '' },
+      { new: true, runValidators: true }
+    ).select(publicUserFields);
+
+    if (!user) {
+      return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+    }
+
+    res.json({ mensaje: 'Usuario promovido a administrador', user });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al promover usuario', error: error.message });
+  }
+};
+
 module.exports = {
   listUsers,
   createAdmin,
   suspendUser,
-  reactivateUser
+  reactivateUser,
+  promoteUserToAdmin
 };

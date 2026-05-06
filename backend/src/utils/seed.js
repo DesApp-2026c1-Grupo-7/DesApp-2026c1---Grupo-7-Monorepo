@@ -5,7 +5,24 @@ const Subject = require('../models/Subject');
 const StudyPlan = require('../models/StudyPlan');
 const Grade = require('../models/Grade');
 const AcademicOffer = require('../models/AcademicOffer');
+const Final = require('../models/Final');
+const CreditActivity = require('../models/CreditActivity');
+const SavedStudyPlan = require('../models/SavedStudyPlan');
 const logger = require('./logger');
+
+async function resetDatabase() {
+  await Promise.all([
+    AcademicOffer.deleteMany({}),
+    CreditActivity.deleteMany({}),
+    Final.deleteMany({}),
+    Grade.deleteMany({}),
+    SavedStudyPlan.deleteMany({}),
+    StudyPlan.deleteMany({}),
+    Subject.deleteMany({}),
+    Career.deleteMany({}),
+    User.deleteMany({})
+  ]);
+}
 
 async function seedCareers() {
   const careersData = [
@@ -54,6 +71,7 @@ async function seedSubjects(careerId) {
     { nombre: 'Ingles Tecnico', codigo: 'ENG1', anio: 2, cuatrimestre: 1, creditos: 4, esUnahur: false },
     { nombre: 'Sistemas Operativos', codigo: 'SO', anio: 2, cuatrimestre: 2, creditos: 6, esUnahur: true, correlativasCodigos: ['PROG1'] },
     { nombre: 'Bases de Datos I', codigo: 'BD1', anio: 3, cuatrimestre: 1, creditos: 6, esUnahur: true, correlativasCodigos: ['PROG1'] },
+    { nombre: 'Ingenieria de Software', codigo: 'ISW', anio: 3, cuatrimestre: 2, creditos: 6, esUnahur: true, correlativasCodigos: ['BD1', 'SO'] },
     { nombre: 'Optativa: Big Data', codigo: 'OPTBD', anio: 4, cuatrimestre: 2, creditos: 4, esOptativa: true, esUnahur: true, correlativasCodigos: ['BD1'] }
   ];
 
@@ -137,6 +155,11 @@ async function seedAcademicOffer(subjects) {
 
 async function seedUsers() {
   try {
+    if (process.env.SEED_RESET !== 'false') {
+      await resetDatabase();
+      logger.info('Base reiniciada antes de cargar seeds por defecto.');
+    }
+
     const careers = await seedCareers();
     const careerIngSist = careers[0];
     const subjects = await seedSubjects(careerIngSist._id);
@@ -179,4 +202,4 @@ async function seedUsers() {
   }
 }
 
-module.exports = { seedUsers };
+module.exports = { seedUsers, resetDatabase };

@@ -138,6 +138,11 @@ test('registro publico siempre crea estudiantes y admin gestiona cuentas', async
     .put(`/api/usuarios/${student.id || student._id}/reactivar`)
     .set('Authorization', `Bearer ${adminToken}`)
     .expect(200);
+
+  await request(app)
+    .put(`/api/usuarios/${student.id || student._id}/hacer-admin`)
+    .set('Authorization', `Bearer ${adminToken}`)
+    .expect(200);
 });
 
 test('carrera y plan guardan los campos exactos de la consigna', async () => {
@@ -215,4 +220,27 @@ test('oferta, que-pasa-si, planificador y creditos completan el asistente', asyn
     .set('Authorization', `Bearer ${studentToken}`)
     .expect(200);
   assert.ok(planificador.body.periodos.length >= 1);
+
+  const rendimiento = await request(app)
+    .get('/api/academico/rendimiento-plan?anioInicio=2026&anio=2026')
+    .set('Authorization', `Bearer ${studentToken}`)
+    .expect(200);
+  assert.equal(rendimiento.body.materiasEsperadasAprobadas, 2);
+
+  const saved = await request(app)
+    .post('/api/academico/planes-guardados')
+    .set('Authorization', `Bearer ${studentToken}`)
+    .send({
+      nombre: 'Plan prueba',
+      horasPorSemana: 4,
+      periodos: planificador.body.periodos
+    })
+    .expect(201);
+  assert.equal(saved.body.plan.nombre, 'Plan prueba');
+
+  const savedList = await request(app)
+    .get('/api/academico/planes-guardados')
+    .set('Authorization', `Bearer ${studentToken}`)
+    .expect(200);
+  assert.equal(savedList.body.length, 1);
 });

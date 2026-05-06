@@ -9,6 +9,8 @@ Checklist:
 - [x] Actores, DER, arquitectura y navegacion.
 - [x] Backend skeleton + healthcheck.
 - [x] Puntos 1 a 4 funcionales para alcance inicial.
+- [x] Plus punto 4: rendimiento vs plan y planes guardados.
+- [x] Excel de prueba para carga de situacion.
 - [x] Tests reales de backend.
 - [x] Frontend lint/build verde.
 

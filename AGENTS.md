@@ -66,8 +66,8 @@ Validacion:
 - [x] Que-pasa-si.
 - [x] Planificador por horas/semana con carga visible.
 - [x] Tests de algoritmos.
-- [ ] Plus: comparar rendimiento real vs plan.
-- [ ] Plus: guardar varios planes.
+- [x] Plus: comparar rendimiento real vs plan.
+- [x] Plus: guardar varios planes.
 
 ### Punto 5 - Red Social Academica
 
@@ -107,7 +107,7 @@ Validacion:
 
 ### Sprint 2 (07/05 -> 21/05) - Red social academica
 
-Objetivo: perfil, privacidad, contactos por invitacion y feed.
+Objetivo: perfil, privacidad, contactos por invitacion y feed. Reunion docente prevista para jueves 07/05/2026.
 
 ### Sprint 3 (21/05 -> 04/06) - Sesiones de estudio
 

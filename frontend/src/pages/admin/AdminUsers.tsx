@@ -62,6 +62,19 @@ export default function AdminUsers() {
     }
   };
 
+  const promoteToAdmin = async (user: UserAccount) => {
+    setMessage("");
+    setError("");
+    try {
+      await api.put(`/usuarios/${user._id}/hacer-admin`);
+      setMessage("Usuario promovido a administrador");
+      await fetchUsers();
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { mensaje?: string } } };
+      setError(ax.response?.data?.mensaje || "No se pudo promover la cuenta");
+    }
+  };
+
   return (
     <div className="admin-careers">
       <div className="admin-header">
@@ -103,6 +116,11 @@ export default function AdminUsers() {
                   <button className="btn-secondary" onClick={() => toggleSuspension(user)} disabled={user.role === "admin"}>
                     {user.suspendido ? "Reactivar" : "Suspender"}
                   </button>
+                  {user.role === "student" && (
+                    <button className="btn-primary" onClick={() => promoteToAdmin(user)} style={{ marginLeft: 8 }}>
+                      Hacer admin
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

@@ -4,6 +4,7 @@ const User = require('../models/User');
 const StudyPlan = require('../models/StudyPlan');
 const CreditActivity = require('../models/CreditActivity');
 const AcademicOffer = require('../models/AcademicOffer');
+const SavedStudyPlan = require('../models/SavedStudyPlan');
 
 const sortBySubjectPosition = (items) => [...items].sort((a, b) => {
   const materiaA = a.materia || {};
@@ -305,9 +306,14 @@ const getAvanceCarrera = async (req, res) => {
     const actividades = await CreditActivity.find({ estudiante: userId });
     const creditosActividades = actividades.reduce((sum, a) => sum + a.creditos, 0);
 
-    const aprobadas = grades.filter((g) => APPROVED_STATES.includes(g.estado));
-    const regularizadas = grades.filter((g) => g.estado === 'Regular');
-    const cursando = grades.filter((g) => ['Inscripto', 'Cursando'].includes(g.estado));
+    const planSet = new Set(materiasDelPlanOCarreraIds);
+    const gradesDelPlan = planSet.size > 0
+      ? grades.filter((g) => g.materia && planSet.has(g.materia._id.toString()))
+      : grades;
+
+    const aprobadas = gradesDelPlan.filter((g) => APPROVED_STATES.includes(g.estado));
+    const regularizadas = gradesDelPlan.filter((g) => g.estado === 'Regular');
+    const cursando = gradesDelPlan.filter((g) => ['Inscripto', 'Cursando'].includes(g.estado));
 
     const creditosMateriasAprobadas = aprobadas.reduce(
       (sum, g) => sum + (g.materia?.creditos || 0),
@@ -332,7 +338,17 @@ const getAvanceCarrera = async (req, res) => {
 
     // Avance por año
     const avancePorAnio = {};
-    for (const g of grades) {
+    const materiasBase = materiasDelPlanOCarreraIds.length > 0
+      ? await Subject.find({ _id: { $in: materiasDelPlanOCarreraIds } }).select('_id anio')
+      : [];
+    for (const materia of materiasBase) {
+      const anio = materia.anio;
+      if (!avancePorAnio[anio]) {
+        avancePorAnio[anio] = { aprobadas: 0, regulares: 0, cursando: 0, total: 0 };
+      }
+      avancePorAnio[anio].total++;
+    }
+    for (const g of gradesDelPlan) {
       if (!g.materia) continue;
       const anio = g.materia.anio;
       if (!avancePorAnio[anio]) {
@@ -362,6 +378,44 @@ const getAvanceCarrera = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al calcular avance', error: error.message });
+  }
+};
+
+const getRendimientoPlan = async (req, res) => {
+  try {
+    const { user, plan, materias } = await getPlanSubjectsForUser(req.user.id);
+    const grades = await Grade.find({ estudiante: req.user.id }).populate('materia');
+    const planSubjects = materias || [];
+    const currentYear = Number(req.query.anio || new Date().getFullYear());
+    const startYear = Number(req.query.anioInicio || Math.min(currentYear, 2024));
+    const elapsedAcademicYears = Math.max(1, currentYear - startYear + 1);
+    const expectedSubjects = planSubjects.filter((m) => m.anio <= elapsedAcademicYears);
+    const expectedIds = new Set(expectedSubjects.map((m) => m._id.toString()));
+    const approved = grades.filter((g) =>
+      g.materia &&
+      expectedIds.has(g.materia._id.toString()) &&
+      APPROVED_STATES.includes(g.estado)
+    );
+
+    const esperado = expectedSubjects.length;
+    const aprobado = approved.length;
+    const diferencia = aprobado - esperado;
+    const estado = diferencia >= 0 ? 'al-dia' : diferencia >= -2 ? 'leve-desvio' : 'atrasado';
+
+    res.json({
+      carrera: user?.carrera?.nombre || null,
+      plan: plan?.nombre || null,
+      anioInicio: startYear,
+      anioActual: currentYear,
+      aniosTranscurridos: elapsedAcademicYears,
+      materiasEsperadasAprobadas: esperado,
+      materiasAprobadasEsperadas: aprobado,
+      diferencia,
+      estado,
+      porcentajeCumplimiento: esperado > 0 ? Math.round((aprobado / esperado) * 100) : 0
+    });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al comparar rendimiento con el plan', error: error.message });
   }
 };
 
@@ -490,6 +544,50 @@ const getPlanificador = async (req, res) => {
   }
 };
 
+const listSavedStudyPlans = async (req, res) => {
+  try {
+    const plans = await SavedStudyPlan.find({ estudiante: req.user.id })
+      .sort({ updatedAt: -1 })
+      .populate('periodos.materias.materia', 'nombre codigo creditos');
+    res.json(plans);
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al listar planificaciones guardadas', error: error.message });
+  }
+};
+
+const saveStudyPlan = async (req, res) => {
+  try {
+    const { nombre, horasPorSemana, periodos } = req.body;
+    if (!nombre || !Array.isArray(periodos)) {
+      return res.status(400).json({ mensaje: 'nombre y periodos son obligatorios' });
+    }
+
+    const normalized = periodos.map((periodo) => ({
+      anio: periodo.anio,
+      cuatrimestre: periodo.cuatrimestre,
+      horasUsadas: periodo.horasUsadas,
+      materias: (periodo.materias || []).map((materia) => ({
+        materia: materia._id || materia.materia,
+        nombre: materia.nombre,
+        codigo: materia.codigo,
+        creditos: materia.creditos,
+        horasSemanalesEstimadas: materia.horasSemanalesEstimadas
+      }))
+    }));
+
+    const saved = await SavedStudyPlan.create({
+      estudiante: req.user.id,
+      nombre,
+      horasPorSemana: Math.max(1, Number(horasPorSemana || 1)),
+      periodos: normalized
+    });
+
+    res.status(201).json({ mensaje: 'Planificacion guardada', plan: saved });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al guardar planificacion', error: error.message });
+  }
+};
+
 module.exports = {
   getStudentSituation,
   updateGrade,
@@ -503,5 +601,8 @@ module.exports = {
   listCreditActivities,
   createCreditActivity,
   getQuePasaSi,
-  getPlanificador
+  getPlanificador,
+  getRendimientoPlan,
+  listSavedStudyPlans,
+  saveStudyPlan
 };

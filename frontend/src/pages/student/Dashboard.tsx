@@ -14,6 +14,14 @@ interface AcademicRecord {
   estado: string;
 }
 
+interface Avance {
+  totalMaterias: number;
+  aprobadas: number;
+  regularizadas: number;
+  pendientes: number;
+  porcentajeAvance: number;
+}
+
 export default function Dashboard() {
   const [userName] = useState<string>(() => {
     try {
@@ -24,11 +32,12 @@ export default function Dashboard() {
     }
   });
   const [stats, setStats] = useState({ aprobadas: 0, regular: 0, pendientes: 0 });
+  const [avance, setAvance] = useState<Avance | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get("/academico/situacion")
-      .then((response) => {
+    Promise.all([api.get("/academico/situacion"), api.get("/academico/avance")])
+      .then(([response, avanceResponse]) => {
         const records: AcademicRecord[] = response.data;
         const counts = records.reduce(
           (acc, curr) => {
@@ -39,14 +48,20 @@ export default function Dashboard() {
           },
           { aprobadas: 0, regular: 0, pendientes: 0 }
         );
-        setStats(counts);
+        const avanceData: Avance = avanceResponse.data;
+        setAvance(avanceData);
+        setStats({
+          aprobadas: avanceData.aprobadas ?? counts.aprobadas,
+          regular: avanceData.regularizadas ?? counts.regular,
+          pendientes: avanceData.pendientes ?? counts.pendientes
+        });
       })
       .catch((error) => { console.error("Error al obtener estadísticas:", error); })
       .finally(() => { setLoading(false); });
   }, []);
 
-  const totalMaterias = 47; // Hardcoded por ahora hasta tener la carrera del usuario
-  const avancePercent = Math.round((stats.aprobadas / totalMaterias) * 100);
+  const totalMaterias = avance?.totalMaterias ?? 0;
+  const avancePercent = avance?.porcentajeAvance ?? 0;
 
   return (
     <div className="dashboard">
@@ -61,7 +76,7 @@ export default function Dashboard() {
         <div className="progress-header">
           <div>
             <h2>Avance en la Carrera</h2>
-            <span>Ingeniería en Sistemas</span>
+            <span>Plan de estudio actual</span>
           </div>
           <TrendingUp size={20} />
         </div>

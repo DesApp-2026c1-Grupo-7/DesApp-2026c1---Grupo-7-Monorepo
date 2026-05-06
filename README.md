@@ -9,6 +9,10 @@ cd backend && npm install && npm run dev
 cd ../frontend && npm install && npm run dev
 ```
 
+El backend reinicia la base y carga seeds por defecto al levantar. Para conservar datos locales temporalmente, correr backend con `SEED_RESET=false`.
+
+El frontend de desarrollo queda fijo en `http://localhost:5173`.
+
 ## Validacion
 
 ```bash

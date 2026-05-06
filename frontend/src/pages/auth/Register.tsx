@@ -1,7 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import "../../styles/Auth.css";
+
+interface Career {
+  _id: string;
+  nombre: string;
+}
 
 const Register = () => {
   const navigate = useNavigate();
@@ -9,8 +14,19 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [careers, setCareers] = useState<Career[]>([]);
+  const [carrera, setCarrera] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    api.get("/carreras")
+      .then((response) => {
+        setCareers(response.data);
+        if (response.data.length > 0) setCarrera(response.data[0]._id);
+      })
+      .catch(() => setError("No se pudieron cargar las carreras"));
+  }, []);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +57,7 @@ const Register = () => {
         nombre, 
         email, 
         password,
+        carrera,
         role: 'student' // Default to student on public register
       });
       
@@ -112,6 +129,19 @@ const Register = () => {
             disabled={loading}
             required
           />
+
+          <label htmlFor="carrera">Carrera</label>
+          <select
+            id="carrera"
+            value={carrera}
+            onChange={(e) => setCarrera(e.target.value)}
+            disabled={loading || careers.length === 0}
+            required
+          >
+            {careers.map((career) => (
+              <option key={career._id} value={career._id}>{career.nombre}</option>
+            ))}
+          </select>
 
           <button
             type="submit"

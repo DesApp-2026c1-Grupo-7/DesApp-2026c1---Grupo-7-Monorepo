@@ -9,6 +9,7 @@ interface Subject {
   anio: number;
   cuatrimestre: number;
   creditos: number;
+  horasSemanalesEstimadas?: number;
   esOptativa?: boolean;
 }
 
@@ -32,7 +33,7 @@ interface Avance {
   creditosOptativasNecesarios: number;
   nivelInglesRequerido: string;
   materiasUnahurFaltantes: number;
-  avancePorAnio: Record<string, { aprobadas: number; regulares: number; cursando: number }>;
+  avancePorAnio: Record<string, { aprobadas: number; regulares: number; cursando: number; total?: number }>;
   porcentajeAvance: number;
 }
 
@@ -43,15 +44,35 @@ interface PlanPeriodo {
   materias: Subject[];
 }
 
+interface RendimientoPlan {
+  plan: string | null;
+  anioInicio: number;
+  materiasEsperadasAprobadas: number;
+  materiasAprobadasEsperadas: number;
+  diferencia: number;
+  estado: "al-dia" | "leve-desvio" | "atrasado";
+  porcentajeCumplimiento: number;
+}
+
+interface SavedPlan {
+  _id: string;
+  nombre: string;
+  horasPorSemana: number;
+  periodos: PlanPeriodo[];
+}
+
 const AcademicAssistant = () => {
   const [disponibles, setDisponibles] = useState<Subject[]>([]);
   const [finales, setFinales] = useState<FinalPendiente[]>([]);
   const [avance, setAvance] = useState<Avance | null>(null);
+  const [rendimiento, setRendimiento] = useState<RendimientoPlan | null>(null);
   const [planificador, setPlanificador] = useState<PlanPeriodo[]>([]);
+  const [planesGuardados, setPlanesGuardados] = useState<SavedPlan[]>([]);
   const [simulacion, setSimulacion] = useState<Subject[]>([]);
   const [materiasCursando, setMateriasCursando] = useState<Subject[]>([]);
   const [seleccionQuePasaSi, setSeleccionQuePasaSi] = useState<string[]>([]);
   const [horasPorSemana, setHorasPorSemana] = useState(12);
+  const [nombrePlan, setNombrePlan] = useState("Plan tentativo");
   const [actividad, setActividad] = useState({ nombre: "", creditos: 1 });
   const [oferta, setOferta] = useState({
     anio: new Date().getFullYear(),
@@ -68,18 +89,22 @@ const AcademicAssistant = () => {
     const params = oferta.soloOferta
       ? `?soloOferta=true&anio=${oferta.anio}&cuatrimestre=${oferta.cuatrimestre}`
       : "";
-    const [d, f, a, i, p] = await Promise.all([
+    const [d, f, a, i, p, r, saved] = await Promise.all([
       api.get(`/academico/disponibles${params}`),
       api.get("/finales/pendientes"),
       api.get("/academico/avance"),
       api.get("/academico/inscripciones-activas"),
-      api.get(`/academico/planificador?horasPorSemana=${horasPorSemana}`)
+      api.get(`/academico/planificador?horasPorSemana=${horasPorSemana}`),
+      api.get("/academico/rendimiento-plan"),
+      api.get("/academico/planes-guardados")
     ]);
     setDisponibles(d.data);
     setFinales(f.data);
     setAvance(a.data);
     setMateriasCursando(i.data.map((row: { materia: Subject }) => row.materia).filter(Boolean));
     setPlanificador(p.data.periodos || []);
+    setRendimiento(r.data);
+    setPlanesGuardados(saved.data);
     setLoading(false);
   }, [oferta, horasPorSemana]);
 
@@ -143,6 +168,23 @@ const AcademicAssistant = () => {
     setSimulacion(res.data.desbloqueadas || []);
   };
 
+  const guardarPlanificador = async () => {
+    setError("");
+    setSuccess("");
+    try {
+      await api.post("/academico/planes-guardados", {
+        nombre: nombrePlan,
+        horasPorSemana,
+        periodos: planificador
+      });
+      setSuccess("Planificacion guardada");
+      await fetchAll();
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { mensaje?: string } } };
+      setError(ax.response?.data?.mensaje || "Error al guardar la planificacion");
+    }
+  };
+
   const filteredDisponibles = disponibles
     .filter((s) => filterAnio === "todos" || s.anio.toString() === filterAnio)
     .filter((s) => {
@@ -180,6 +222,35 @@ const AcademicAssistant = () => {
               <small>Ingles requerido: {avance.nivelInglesRequerido}</small>
             </div>
           </div>
+        </div>
+      )}
+
+      {rendimiento && (
+        <div className="section">
+          <h3>Rendimiento vs plan</h3>
+          <div className="projection">
+            <strong>{rendimiento.plan || "Plan actual"}</strong>
+            <p>
+              Esperadas aprobadas: {rendimiento.materiasEsperadasAprobadas} · Aprobadas: {rendimiento.materiasAprobadasEsperadas}
+            </p>
+            <p>
+              Cumplimiento: {rendimiento.porcentajeCumplimiento}% · Estado: {rendimiento.estado.replace("-", " ")}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {avance && Object.keys(avance.avancePorAnio).length > 0 && (
+        <div className="section">
+          <h3>Avance por anio</h3>
+          {Object.entries(avance.avancePorAnio)
+            .sort(([a], [b]) => Number(a) - Number(b))
+            .map(([anio, row]) => (
+              <div key={anio} className="projection">
+                <strong>Anio {anio}</strong>
+                <p>Aprobadas: {row.aprobadas} · Regulares: {row.regulares} · Cursando: {row.cursando} · Total: {row.total ?? "-"}</p>
+              </div>
+            ))}
         </div>
       )}
 
@@ -252,12 +323,20 @@ const AcademicAssistant = () => {
         <h3>Planificador por horas semanales</h3>
         <label>Horas por semana </label>
         <input type="number" min={1} value={horasPorSemana} onChange={(e) => setHorasPorSemana(Number(e.target.value))} />
+        <input value={nombrePlan} onChange={(e) => setNombrePlan(e.target.value)} placeholder="Nombre del plan" style={{ marginLeft: 8 }} />
+        <button className="btn-primary" onClick={guardarPlanificador} style={{ marginLeft: 8 }} disabled={planificador.length === 0}>Guardar plan</button>
         {planificador.map((periodo) => (
           <div key={`${periodo.anio}-${periodo.cuatrimestre}`} className="projection">
             <h4>{periodo.anio} - {periodo.cuatrimestre === 0 ? "Anual" : `${periodo.cuatrimestre}C`} ({periodo.horasUsadas} h/sem)</h4>
-            <ul>{periodo.materias.map((m) => <li key={m._id}>{m.nombre} ({m.creditos} cr.)</li>)}</ul>
+            <ul>{periodo.materias.map((m) => <li key={m._id}>{m.nombre} ({m.creditos} cr., {m.horasSemanalesEstimadas ?? m.creditos} h/sem)</li>)}</ul>
           </div>
         ))}
+        {planesGuardados.length > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <strong>Planes guardados</strong>
+            <ul>{planesGuardados.map((plan) => <li key={plan._id}>{plan.nombre} ({plan.horasPorSemana} h/sem, {plan.periodos.length} periodos)</li>)}</ul>
+          </div>
+        )}
       </div>
 
       <div className="section">
