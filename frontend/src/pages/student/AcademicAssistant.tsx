@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import api from "../../services/api";
 import "../../styles/AcademicAssistant.css";
 
@@ -47,10 +47,7 @@ const AcademicAssistant = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  useEffect(() => { fetchAll(); }, []);
-
-  const fetchAll = async () => {
-    setLoading(true);
+  const fetchAll = useCallback(async () => {
     try {
       const [d, f, p, a] = await Promise.all([
         api.get("/academico/disponibles"),
@@ -67,7 +64,14 @@ const AcademicAssistant = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      fetchAll();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchAll]);
 
   const inscribirseCursada = async (materiaId: string) => {
     setError(""); setSuccess("");

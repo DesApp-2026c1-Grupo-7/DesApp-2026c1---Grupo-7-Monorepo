@@ -70,7 +70,7 @@ const importSituationExcel = async (req, res) => {
       const grade = await Grade.findOneAndUpdate(
         { estudiante: userId, materia: subject._id },
         update,
-        { new: true, upsert: true }
+        { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
       );
       procesados.push({ codigo, estado: grade.estado });
     }

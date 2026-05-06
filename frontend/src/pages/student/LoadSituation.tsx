@@ -151,7 +151,7 @@ const LoadSituation = () => {
           <h3>Carga manual de materias</h3>
           {rows.map((row, idx) => (
             <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 0.6fr 0.7fr 0.8fr auto', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-              <select value={row.materiaId} onChange={(e) => updateRow(idx, 'materiaId', e.target.value)} required>
+              <select value={row.materiaId} onChange={(e) => updateRow(idx, 'materiaId', e.target.value)}>
                 <option value="">-- Materia --</option>
                 {subjects.map((s) => <option key={s._id} value={s._id}>{s.nombre} ({s.codigo})</option>)}
               </select>

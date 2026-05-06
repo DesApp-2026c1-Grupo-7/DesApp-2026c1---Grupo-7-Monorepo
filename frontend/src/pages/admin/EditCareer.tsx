@@ -48,8 +48,9 @@ export default function EditCareer() {
         cantidadMaterias: Number(form.cantidadMaterias)
       });
       navigate("/admin/carreras");
-    } catch (err: any) {
-      setError(err.response?.data?.mensaje || "Error al actualizar la carrera");
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { mensaje?: string } } };
+      setError(ax.response?.data?.mensaje || "Error al actualizar la carrera");
     } finally {
       setLoading(false);
     }

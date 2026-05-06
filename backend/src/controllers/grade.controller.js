@@ -3,6 +3,14 @@ const Subject = require('../models/Subject');
 const User = require('../models/User');
 const StudyPlan = require('../models/StudyPlan');
 
+const sortBySubjectPosition = (items) => [...items].sort((a, b) => {
+  const materiaA = a.materia || {};
+  const materiaB = b.materia || {};
+  return (materiaA.anio || 0) - (materiaB.anio || 0) ||
+    (materiaA.cuatrimestre || 0) - (materiaB.cuatrimestre || 0) ||
+    (materiaA.nombre || '').localeCompare(materiaB.nombre || '');
+});
+
 // =====================================================
 // SITUACION ACADEMICA
 // =====================================================
@@ -11,10 +19,9 @@ const getStudentSituation = async (req, res) => {
   try {
     const userId = req.user.id;
     const situation = await Grade.find({ estudiante: userId })
-      .populate('materia')
-      .sort({ 'materia.anio': 1, 'materia.cuatrimestre': 1 });
+      .populate('materia');
 
-    res.json(situation);
+    res.json(sortBySubjectPosition(situation));
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al obtener situación académica', error: error.message });
   }
@@ -36,7 +43,7 @@ const updateGrade = async (req, res) => {
     const grade = await Grade.findOneAndUpdate(
       { estudiante: userId, materia: materiaId },
       update,
-      { new: true, upsert: true }
+      { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
     ).populate('materia');
 
     res.json({ mensaje: 'Situación actualizada', grade });
@@ -66,7 +73,7 @@ const bulkLoadSituation = async (req, res) => {
           anioCursada: r.anioCursada,
           fecha: Date.now()
         },
-        { new: true, upsert: true }
+        { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
       );
       results.push(grade);
     }
@@ -111,7 +118,7 @@ const inscribirseACursada = async (req, res) => {
         anioCursada,
         fecha: Date.now()
       },
-      { new: true, upsert: true }
+      { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
     ).populate('materia');
 
     res.json({ mensaje: 'Inscripción a cursada registrada', grade });
@@ -132,7 +139,7 @@ const cerrarCuatrimestre = async (req, res) => {
     const grade = await Grade.findOneAndUpdate(
       { estudiante: userId, materia: materiaId },
       { estado, nota, fecha: Date.now() },
-      { new: true }
+      { new: true, runValidators: true }
     ).populate('materia');
 
     if (!grade) {
@@ -258,6 +265,7 @@ const getAvanceCarrera = async (req, res) => {
     let creditosNecesarios = 0;
     let creditosOptativasNecesarios = 0;
     let nivelInglesRequerido = 'B1';
+    let materiasDelPlanOCarreraIds = [];
 
     if (user && user.planEstudio) {
       const plan = await StudyPlan.findById(user.planEstudio);
@@ -265,10 +273,13 @@ const getAvanceCarrera = async (req, res) => {
       creditosNecesarios = plan.creditosNecesarios;
       creditosOptativasNecesarios = plan.creditosOptativasNecesarios;
       nivelInglesRequerido = plan.nivelInglesRequerido;
+      materiasDelPlanOCarreraIds = plan.materias.map((id) => id.toString());
     } else if (user && user.carrera) {
       totalMaterias = user.carrera.cantidadMaterias;
       creditosNecesarios = user.carrera.creditosNecesarios;
       nivelInglesRequerido = user.carrera.nivelInglesRequerido;
+      const materiasCarrera = await Subject.find({ carrera: user.carrera._id }).select('_id');
+      materiasDelPlanOCarreraIds = materiasCarrera.map((m) => m._id.toString());
     }
 
     const aprobadas = grades.filter((g) => ['Aprobada', 'Promocion'].includes(g.estado));
@@ -283,10 +294,17 @@ const getAvanceCarrera = async (req, res) => {
       .filter((g) => g.materia?.esOptativa)
       .reduce((sum, g) => sum + (g.materia?.creditos || 0), 0);
 
-    const materiasUnahurFaltantes = await Subject.countDocuments({
+    const materiasUnahurFilter = {
       esUnahur: true,
       _id: { $nin: aprobadas.map((g) => g.materia._id) }
-    });
+    };
+    if (materiasDelPlanOCarreraIds.length > 0) {
+      materiasUnahurFilter._id = {
+        $in: materiasDelPlanOCarreraIds,
+        $nin: aprobadas.map((g) => g.materia._id)
+      };
+    }
+    const materiasUnahurFaltantes = await Subject.countDocuments(materiasUnahurFilter);
 
     // Avance por año
     const avancePorAnio = {};

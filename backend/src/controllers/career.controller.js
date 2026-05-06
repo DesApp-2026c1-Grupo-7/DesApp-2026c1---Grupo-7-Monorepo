@@ -14,8 +14,8 @@ const getCareers = async (req, res) => {
         const cantidadEstudiantes = await User.countDocuments({ carrera: c._id, role: 'student' });
         return {
           ...c.toObject(),
-          cantidadMaterias: cantidadMaterias || c.cantidadMaterias,
-          cantidadEstudiantes: cantidadEstudiantes || c.cantidadEstudiantes
+          cantidadMaterias: cantidadMaterias ?? c.cantidadMaterias,
+          cantidadEstudiantes: cantidadEstudiantes ?? c.cantidadEstudiantes
         };
       })
     );

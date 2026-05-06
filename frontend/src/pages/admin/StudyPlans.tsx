@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import "../../styles/StudyPlans.css";
@@ -23,16 +23,20 @@ const StudyPlans = () => {
   const [careerFilter, setCareerFilter] = useState("todas");
   const [error, setError] = useState("");
 
-  useEffect(() => { fetchPlans(); }, []);
-
-  const fetchPlans = async () => {
-    setLoading(true);
+  const fetchPlans = useCallback(async () => {
     try {
       const r = await api.get("/planes");
       setPlans(r.data);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
-  };
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      fetchPlans();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchPlans]);
 
   const handleDelete = async (id: string, nombre: string) => {
     if (!confirm(`¿Eliminar el plan "${nombre}"?`)) return;

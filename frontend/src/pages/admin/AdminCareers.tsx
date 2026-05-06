@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import "../../styles/AdminCareers.css";
@@ -20,16 +20,20 @@ export default function AdminCareers() {
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
 
-  useEffect(() => { fetchCareers(); }, []);
-
-  const fetchCareers = async () => {
-    setLoading(true);
+  const fetchCareers = useCallback(async () => {
     try {
       const r = await api.get("/carreras");
       setCareers(r.data);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
-  };
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      fetchCareers();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchCareers]);
 
   const handleDelete = async (id: string, nombre: string) => {
     if (!confirm(`¿Eliminar la carrera "${nombre}"?`)) return;

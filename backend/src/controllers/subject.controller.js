@@ -65,9 +65,27 @@ const createSubject = async (req, res) => {
 
 const updateSubject = async (req, res) => {
   try {
+    const allowedFields = [
+      'nombre',
+      'codigo',
+      'anio',
+      'cuatrimestre',
+      'creditos',
+      'carrera',
+      'correlativas',
+      'esOptativa',
+      'esUnahur'
+    ];
+    const update = {};
+    for (const field of allowedFields) {
+      if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+        update[field] = req.body[field];
+      }
+    }
+
     const subject = await Subject.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      update,
       { new: true, runValidators: true }
     );
     if (!subject) {
@@ -75,6 +93,9 @@ const updateSubject = async (req, res) => {
     }
     res.json({ mensaje: 'Materia actualizada', subject });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ mensaje: 'El código de materia ya existe' });
+    }
     res.status(500).json({ mensaje: 'Error al actualizar materia', error: error.message });
   }
 };

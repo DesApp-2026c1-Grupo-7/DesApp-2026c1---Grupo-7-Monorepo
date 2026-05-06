@@ -48,6 +48,15 @@ const inscribirseAFinal = async (req, res) => {
       return res.status(400).json({ mensaje: 'Para rendir final debe estar regular en la materia' });
     }
 
+    const finalPendiente = await Final.findOne({
+      estudiante: userId,
+      materia: materiaId,
+      estado: 'Pendiente'
+    });
+    if (finalPendiente) {
+      return res.status(409).json({ mensaje: 'Ya existe una inscripción pendiente para ese final' });
+    }
+
     const final = new Final({
       estudiante: userId,
       materia: materiaId,
@@ -68,7 +77,7 @@ const registrarResultadoFinal = async (req, res) => {
     const final = await Final.findOneAndUpdate(
       { _id: req.params.id, estudiante: req.user.id },
       { estado, nota },
-      { new: true }
+      { new: true, runValidators: true }
     );
     if (!final) {
       return res.status(404).json({ mensaje: 'Final no encontrado' });
@@ -78,7 +87,8 @@ const registrarResultadoFinal = async (req, res) => {
     if (estado === 'Aprobado') {
       await Grade.findOneAndUpdate(
         { estudiante: req.user.id, materia: final.materia },
-        { estado: 'Aprobada', nota }
+        { estado: 'Aprobada', nota },
+        { runValidators: true }
       );
     }
 

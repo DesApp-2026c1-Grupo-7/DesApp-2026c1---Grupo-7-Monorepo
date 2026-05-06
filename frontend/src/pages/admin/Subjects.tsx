@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import "../../styles/Subjects.css";
@@ -32,12 +32,7 @@ export default function Subjects() {
   const [yearFilter, setYearFilter] = useState("todos");
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
-
-  const fetchAll = async () => {
-    setLoading(true);
+  const fetchAll = useCallback(async () => {
     try {
       const [subRes, carRes] = await Promise.all([
         api.get("/materias"),
@@ -47,7 +42,14 @@ export default function Subjects() {
       setCareers(carRes.data);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
-  };
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      fetchAll();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchAll]);
 
   const handleDelete = async (id: string, nombre: string) => {
     if (!confirm(`¿Eliminar la materia "${nombre}"?`)) return;
