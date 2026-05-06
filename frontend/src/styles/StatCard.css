@@ -32,4 +32,7 @@
 .stat.green { border-top: 4px solid var(--success); }
 .stat.blue { border-top: 4px solid var(--primary); }
 .stat.orange { border-top: 4px solid var(--warning); }
-.stat.pink { border-top: 4px solid #db2777; }
+@media (max-width: 480px) {
+  .stat { padding: 1rem; }
+  .stat h2 { font-size: 1.25rem; }
+}

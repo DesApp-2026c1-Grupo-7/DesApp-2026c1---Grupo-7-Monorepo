@@ -14,6 +14,7 @@ export default function EditCareer() {
     instituto: "",
     duracionAnios: 5,
     creditosNecesarios: 0,
+    materiasUnahurRequeridas: 0,
     nivelInglesRequerido: "B1",
     cantidadMaterias: 0
   });
@@ -33,6 +34,7 @@ export default function EditCareer() {
           instituto: c.instituto || "",
           duracionAnios: c.duracionAnios || 5,
           creditosNecesarios: c.creditosNecesarios || 0,
+          materiasUnahurRequeridas: c.materiasUnahurRequeridas || 0,
           nivelInglesRequerido: c.nivelInglesRequerido || "B1",
           cantidadMaterias: c.cantidadMaterias || 0
         });
@@ -54,6 +56,7 @@ export default function EditCareer() {
         ...form,
         duracionAnios: Number(form.duracionAnios),
         creditosNecesarios: Number(form.creditosNecesarios),
+        materiasUnahurRequeridas: Number(form.materiasUnahurRequeridas),
         cantidadMaterias: Number(form.cantidadMaterias)
       });
       navigate("/admin/carreras");
@@ -99,6 +102,11 @@ export default function EditCareer() {
           <div className="form-group">
             <label>Cantidad de materias</label>
             <input type="number" min={0} value={form.cantidadMaterias} onChange={(e) => onChange("cantidadMaterias", Number(e.target.value))} disabled={loading} />
+          </div>
+
+          <div className="form-group">
+            <label>Cantidad de materias UNAHUR</label>
+            <input type="number" min={0} value={form.materiasUnahurRequeridas} onChange={(e) => onChange("materiasUnahurRequeridas", Number(e.target.value))} disabled={loading} />
           </div>
 
           <div className="form-group">

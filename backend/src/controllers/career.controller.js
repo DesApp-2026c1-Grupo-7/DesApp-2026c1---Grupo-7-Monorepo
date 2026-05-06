@@ -48,6 +48,7 @@ const createCareer = async (req, res) => {
       instituto,
       duracionAnios,
       cantidadMaterias,
+      materiasUnahurRequeridas,
       creditosNecesarios,
       nivelInglesRequerido
     } = req.body;
@@ -65,6 +66,7 @@ const createCareer = async (req, res) => {
       instituto,
       duracionAnios,
       cantidadMaterias: cantidadMaterias || 0,
+      materiasUnahurRequeridas: materiasUnahurRequeridas || 0,
       creditosNecesarios: creditosNecesarios || 0,
       nivelInglesRequerido: nivelInglesRequerido || 'B1'
     });
@@ -86,6 +88,7 @@ const updateCareer = async (req, res) => {
       instituto,
       duracionAnios,
       cantidadMaterias,
+      materiasUnahurRequeridas,
       creditosNecesarios,
       nivelInglesRequerido
     } = req.body;
@@ -100,6 +103,7 @@ const updateCareer = async (req, res) => {
         instituto,
         duracionAnios,
         cantidadMaterias,
+        materiasUnahurRequeridas,
         creditosNecesarios,
         nivelInglesRequerido
       },

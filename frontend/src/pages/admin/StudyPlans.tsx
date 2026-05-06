@@ -115,6 +115,8 @@ const StudyPlans = () => {
                 <div><span className="label">Año</span><p>{plan.anio}</p></div>
                 <div><span className="label">Materias</span><p>{plan.materias.length}</p></div>
                 <div><span className="label">Créditos</span><p>{plan.creditosNecesarios || 0}</p></div>
+                <div><span className="label">UNAHUR</span><p>{plan.materiasUnahurRequeridas || 0}</p></div>
+                <div><span className="label">Inglés</span><p>{plan.nivelInglesRequerido || '-'}</p></div>
               </div>
 
               <div className="plan-actions">

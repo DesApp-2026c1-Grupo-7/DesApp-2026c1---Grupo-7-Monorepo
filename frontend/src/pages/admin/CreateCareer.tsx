@@ -1,23 +1,37 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import "../../styles/CreateCareer.css";
 
+interface StudyPlan {
+  _id: string;
+  nombre: string;
+  anio: number;
+  carrera?: { nombre: string };
+  materias: Array<{ _id: string; nombre: string; codigo: string }>;
+  creditosNecesarios: number;
+  materiasUnahurRequeridas: number;
+  nivelInglesRequerido: string;
+}
+
 export default function CreateCareerPage() {
   const navigate = useNavigate();
+  const [plans, setPlans] = useState<StudyPlan[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState("");
   const [form, setForm] = useState({
     nombre: "",
     codigo: "",
     descripcion: "",
     titulo: "",
     instituto: "",
-    duracionAnios: 5,
-    creditosNecesarios: 0,
-    nivelInglesRequerido: "B1",
-    cantidadMaterias: 0
+    duracionAnios: 5
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    api.get("/planes").then((r) => setPlans(r.data)).catch(console.error);
+  }, []);
 
   const onChange = (key: string, value: string | number) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -25,14 +39,24 @@ export default function CreateCareerPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedPlanId) {
+      setError("Debes seleccionar un plan de estudio base");
+      return;
+    }
+
+    const plan = plans.find(p => p._id === selectedPlanId);
+    if (!plan) return;
+
     setLoading(true);
     setError("");
     try {
       await api.post("/carreras", {
         ...form,
         duracionAnios: Number(form.duracionAnios),
-        creditosNecesarios: Number(form.creditosNecesarios),
-        cantidadMaterias: Number(form.cantidadMaterias)
+        cantidadMaterias: plan.materias.length,
+        materiasUnahurRequeridas: plan.materiasUnahurRequeridas,
+        creditosNecesarios: plan.creditosNecesarios,
+        nivelInglesRequerido: plan.nivelInglesRequerido
       });
       navigate("/admin/carreras");
     } catch (err: unknown) {
@@ -81,22 +105,28 @@ export default function CreateCareerPage() {
           </div>
 
           <div className="form-group">
-            <label>Cantidad de materias</label>
-            <input type="number" min={0} value={form.cantidadMaterias} onChange={(e) => onChange("cantidadMaterias", Number(e.target.value))} disabled={loading} />
-          </div>
-
-          <div className="form-group">
-            <label>Creditos necesarios</label>
-            <input type="number" min={0} value={form.creditosNecesarios} onChange={(e) => onChange("creditosNecesarios", Number(e.target.value))} disabled={loading} />
-          </div>
-
-          <div className="form-group">
-            <label>Nivel de ingles requerido</label>
-            <select value={form.nivelInglesRequerido} onChange={(e) => onChange("nivelInglesRequerido", e.target.value)} disabled={loading}>
-              {["Ninguno", "A1", "A2", "B1", "B2", "C1", "C2"].map((nivel) => (
-                <option key={nivel} value={nivel}>{nivel}</option>
+            <label>Seleccionar Plan de Estudio Base</label>
+            <select 
+              value={selectedPlanId} 
+              onChange={(e) => setSelectedPlanId(e.target.value)} 
+              required 
+              disabled={loading}
+            >
+              <option value="">-- Seleccionar Plan --</option>
+              {plans.map((p) => (
+                <option key={p._id} value={p._id}>
+                  {p.carrera?.nombre || 'Plan'} - {p.nombre} ({p.anio})
+                </option>
               ))}
             </select>
+            {selectedPlanId && (
+              <div style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--text-muted)', background: 'var(--bg-main)', padding: '0.75rem', borderRadius: '8px' }}>
+                <p>Materias: {plans.find(p => p._id === selectedPlanId)?.materias.length}</p>
+                <p>UNAHUR: {plans.find(p => p._id === selectedPlanId)?.materiasUnahurRequeridas}</p>
+                <p>Créditos: {plans.find(p => p._id === selectedPlanId)?.creditosNecesarios}</p>
+                <p>Inglés: {plans.find(p => p._id === selectedPlanId)?.nivelInglesRequerido}</p>
+              </div>
+            )}
           </div>
 
           <div className="form-actions">

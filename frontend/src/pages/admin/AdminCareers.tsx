@@ -9,6 +9,7 @@ interface Career {
   codigo: string;
   cantidadEstudiantes: number;
   cantidadMaterias: number;
+  materiasUnahurRequeridas?: number;
   creditosNecesarios?: number;
   nivelInglesRequerido?: string;
 }
@@ -89,6 +90,7 @@ export default function AdminCareers() {
                 <th>Código</th>
                 <th>Estudiantes</th>
                 <th>Materias</th>
+                <th>UNAHUR</th>
                 <th>Créditos</th>
                 <th>Inglés</th>
                 <th>Acciones</th>
@@ -101,6 +103,7 @@ export default function AdminCareers() {
                   <td className="code">{c.codigo}</td>
                   <td>{c.cantidadEstudiantes}</td>
                   <td>{c.cantidadMaterias}</td>
+                  <td>{c.materiasUnahurRequeridas || 0}</td>
                   <td>{c.creditosNecesarios || 0}</td>
                   <td>{c.nivelInglesRequerido || '-'}</td>
                   <td className="actions">
