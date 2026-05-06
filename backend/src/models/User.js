@@ -22,6 +22,14 @@ const userSchema = new mongoose.Schema({
     enum: ['student', 'admin'],
     default: 'student'
   },
+  suspendido: {
+    type: Boolean,
+    default: false
+  },
+  motivoSuspension: {
+    type: String,
+    trim: true
+  },
   carrera: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Career'

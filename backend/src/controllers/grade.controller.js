@@ -2,6 +2,8 @@ const Grade = require('../models/Grade');
 const Subject = require('../models/Subject');
 const User = require('../models/User');
 const StudyPlan = require('../models/StudyPlan');
+const CreditActivity = require('../models/CreditActivity');
+const AcademicOffer = require('../models/AcademicOffer');
 
 const sortBySubjectPosition = (items) => [...items].sort((a, b) => {
   const materiaA = a.materia || {};
@@ -10,6 +12,34 @@ const sortBySubjectPosition = (items) => [...items].sort((a, b) => {
     (materiaA.cuatrimestre || 0) - (materiaB.cuatrimestre || 0) ||
     (materiaA.nombre || '').localeCompare(materiaB.nombre || '');
 });
+
+const APPROVED_STATES = ['Aprobada', 'Promocion'];
+const REGULAR_YEARS = 2;
+
+const addYears = (date, years) => {
+  const result = new Date(date);
+  result.setFullYear(result.getFullYear() + years);
+  return result;
+};
+
+const getPlanSubjectsForUser = async (userId) => {
+  const user = await User.findById(userId).populate('planEstudio').populate('carrera');
+  if (user?.planEstudio) {
+    const plan = await StudyPlan.findById(user.planEstudio).populate('materias');
+    const materias = await Subject.find({ _id: { $in: plan.materias.map((m) => m._id) } })
+      .populate('correlativas');
+    return { user, plan, materias };
+  }
+
+  const filter = user?.carrera ? { carrera: user.carrera._id } : {};
+  const materias = await Subject.find(filter).populate('correlativas');
+  return { user, plan: null, materias };
+};
+
+const getUnlockedSubjects = (materias, approvedIds, blockedIds = new Set()) => materias
+  .filter((m) => !approvedIds.has(m._id.toString()))
+  .filter((m) => !blockedIds.has(m._id.toString()))
+  .filter((m) => (m.correlativas || []).every((c) => approvedIds.has(c._id.toString())));
 
 // =====================================================
 // SITUACION ACADEMICA
@@ -172,25 +202,12 @@ const getInscripcionesActivas = async (req, res) => {
 const getMateriasDisponibles = async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findById(userId).populate('planEstudio');
-
-    // Materias del plan del estudiante (o todas si no tiene plan)
-    let materias;
-    if (user && user.planEstudio) {
-      const plan = await StudyPlan.findById(user.planEstudio).populate('materias');
-      materias = plan.materias;
-    } else {
-      materias = await Subject.find().populate('correlativas');
-    }
-
-    // Cargar correlativas si no estan populadas
-    materias = await Subject.find({ _id: { $in: materias.map((m) => m._id) } })
-      .populate('correlativas');
+    const { materias } = await getPlanSubjectsForUser(userId);
 
     // Materias ya aprobadas/promocionadas
     const grades = await Grade.find({ estudiante: userId });
     const aprobadasIds = new Set(
-      grades.filter((g) => ['Aprobada', 'Promocion'].includes(g.estado))
+      grades.filter((g) => APPROVED_STATES.includes(g.estado))
         .map((g) => g.materia.toString())
     );
     const yaInscriptaIds = new Set(
@@ -198,14 +215,17 @@ const getMateriasDisponibles = async (req, res) => {
         .map((g) => g.materia.toString())
     );
 
-    const disponibles = materias
-      .filter((m) => !aprobadasIds.has(m._id.toString()))
-      .filter((m) => !yaInscriptaIds.has(m._id.toString()))
-      .filter((m) => {
-        // Cumple todas las correlativas
-        const correlIds = (m.correlativas || []).map((c) => c._id.toString());
-        return correlIds.every((cid) => aprobadasIds.has(cid));
+    let disponibles = getUnlockedSubjects(materias, aprobadasIds, yaInscriptaIds);
+
+    const { anio, cuatrimestre, soloOferta } = req.query;
+    if (soloOferta === 'true' && anio && cuatrimestre !== undefined) {
+      const offer = await AcademicOffer.findOne({
+        anio: Number(anio),
+        cuatrimestre: Number(cuatrimestre)
       });
+      const offeredIds = new Set((offer?.materias || []).map((id) => id.toString()));
+      disponibles = disponibles.filter((m) => offeredIds.has(m._id.toString()));
+    }
 
     res.json(disponibles);
   } catch (error) {
@@ -282,14 +302,18 @@ const getAvanceCarrera = async (req, res) => {
       materiasDelPlanOCarreraIds = materiasCarrera.map((m) => m._id.toString());
     }
 
-    const aprobadas = grades.filter((g) => ['Aprobada', 'Promocion'].includes(g.estado));
+    const actividades = await CreditActivity.find({ estudiante: userId });
+    const creditosActividades = actividades.reduce((sum, a) => sum + a.creditos, 0);
+
+    const aprobadas = grades.filter((g) => APPROVED_STATES.includes(g.estado));
     const regularizadas = grades.filter((g) => g.estado === 'Regular');
     const cursando = grades.filter((g) => ['Inscripto', 'Cursando'].includes(g.estado));
 
-    const creditosAprobados = aprobadas.reduce(
+    const creditosMateriasAprobadas = aprobadas.reduce(
       (sum, g) => sum + (g.materia?.creditos || 0),
       0
     );
+    const creditosAprobados = creditosMateriasAprobadas + creditosActividades;
     const creditosOptativasAprobados = aprobadas
       .filter((g) => g.materia?.esOptativa)
       .reduce((sum, g) => sum + (g.materia?.creditos || 0), 0);
@@ -326,6 +350,8 @@ const getAvanceCarrera = async (req, res) => {
       cursando: cursando.length,
       pendientes: Math.max(0, totalMaterias - aprobadas.length - regularizadas.length - cursando.length),
       creditosAprobados,
+      creditosMateriasAprobadas,
+      creditosActividades,
       creditosNecesarios,
       creditosOptativasAprobados,
       creditosOptativasNecesarios,
@@ -339,6 +365,131 @@ const getAvanceCarrera = async (req, res) => {
   }
 };
 
+const listCreditActivities = async (req, res) => {
+  try {
+    const actividades = await CreditActivity.find({ estudiante: req.user.id }).sort({ fecha: -1 });
+    res.json(actividades);
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al listar actividades con creditos', error: error.message });
+  }
+};
+
+const createCreditActivity = async (req, res) => {
+  try {
+    const { nombre, descripcion, creditos, fecha } = req.body;
+    const actividad = await CreditActivity.create({
+      estudiante: req.user.id,
+      nombre,
+      descripcion,
+      creditos,
+      fecha: fecha || Date.now()
+    });
+    res.status(201).json({ mensaje: 'Actividad con creditos registrada', actividad });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al registrar actividad con creditos', error: error.message });
+  }
+};
+
+const getQuePasaSi = async (req, res) => {
+  try {
+    const { materias = [] } = req.body;
+    const materiasSimuladas = Array.isArray(materias) ? materias : [];
+    const { materias: planSubjects } = await getPlanSubjectsForUser(req.user.id);
+    const grades = await Grade.find({ estudiante: req.user.id });
+
+    const approvedIds = new Set(
+      grades.filter((g) => APPROVED_STATES.includes(g.estado)).map((g) => g.materia.toString())
+    );
+    const blockedBefore = new Set(
+      grades.filter((g) => ['Inscripto', 'Cursando', 'Regular'].includes(g.estado))
+        .map((g) => g.materia.toString())
+    );
+
+    const disponiblesActuales = getUnlockedSubjects(planSubjects, approvedIds, blockedBefore);
+    materiasSimuladas.forEach((id) => approvedIds.add(id.toString()));
+
+    const blockedAfter = new Set(
+      [...blockedBefore].filter((id) => !approvedIds.has(id))
+    );
+    const disponiblesSimuladas = getUnlockedSubjects(planSubjects, approvedIds, blockedAfter);
+    const actualesIds = new Set(disponiblesActuales.map((m) => m._id.toString()));
+    const desbloqueadas = disponiblesSimuladas.filter((m) => !actualesIds.has(m._id.toString()));
+
+    res.json({ disponiblesActuales, disponiblesSimuladas, desbloqueadas });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al simular escenario', error: error.message });
+  }
+};
+
+const getPlanificador = async (req, res) => {
+  try {
+    const horasPorSemana = Math.max(1, Number(req.query.horasPorSemana || 12));
+    const { materias: planSubjects } = await getPlanSubjectsForUser(req.user.id);
+    const grades = await Grade.find({ estudiante: req.user.id });
+    const approvedIds = new Set(
+      grades.filter((g) => APPROVED_STATES.includes(g.estado)).map((g) => g.materia.toString())
+    );
+
+    const pending = new Map(
+      planSubjects
+        .filter((m) => !approvedIds.has(m._id.toString()))
+        .map((m) => [m._id.toString(), m])
+    );
+    const periodos = [];
+    let anio = new Date().getFullYear();
+    let cuatrimestre = 1;
+    let guard = 0;
+
+    while (pending.size > 0 && guard < 30) {
+      guard++;
+      const disponibles = [...pending.values()]
+        .filter((m) => (m.correlativas || []).every((c) => approvedIds.has(c._id.toString())))
+        .sort((a, b) => a.anio - b.anio || a.cuatrimestre - b.cuatrimestre || a.nombre.localeCompare(b.nombre));
+
+      const materiasPeriodo = [];
+      let horasUsadas = 0;
+      for (const materia of disponibles) {
+        const horasMateria = Math.max(2, materia.creditos || 4);
+        if (materiasPeriodo.length > 0 && horasUsadas + horasMateria > horasPorSemana) continue;
+        materiasPeriodo.push({
+          _id: materia._id,
+          nombre: materia.nombre,
+          codigo: materia.codigo,
+          creditos: materia.creditos,
+          horasSemanalesEstimadas: horasMateria,
+          anio: materia.anio,
+          cuatrimestre: materia.cuatrimestre
+        });
+        horasUsadas += horasMateria;
+      }
+
+      if (materiasPeriodo.length === 0) {
+        break;
+      }
+
+      periodos.push({ anio, cuatrimestre, horasUsadas, materias: materiasPeriodo });
+      materiasPeriodo.forEach((m) => {
+        approvedIds.add(m._id.toString());
+        pending.delete(m._id.toString());
+      });
+      cuatrimestre = cuatrimestre === 1 ? 2 : 1;
+      if (cuatrimestre === 1) anio++;
+    }
+
+    res.json({
+      horasPorSemana,
+      periodos,
+      pendientesNoPlanificadas: [...pending.values()].map((m) => ({
+        _id: m._id,
+        nombre: m.nombre,
+        codigo: m.codigo
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al generar planificador', error: error.message });
+  }
+};
+
 module.exports = {
   getStudentSituation,
   updateGrade,
@@ -348,5 +499,9 @@ module.exports = {
   getInscripcionesActivas,
   getMateriasDisponibles,
   getProyeccionCursada,
-  getAvanceCarrera
+  getAvanceCarrera,
+  listCreditActivities,
+  createCreditActivity,
+  getQuePasaSi,
+  getPlanificador
 };

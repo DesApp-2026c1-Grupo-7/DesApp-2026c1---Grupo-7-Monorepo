@@ -17,7 +17,7 @@ export default function CreateStudyPlan() {
     creditosNecesarios: 0,
     creditosOptativasNecesarios: 0,
     nivelInglesRequerido: "B1",
-    activo: true
+    estado: "Vigente"
   });
   const [materias, setMaterias] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,7 +28,7 @@ export default function CreateStudyPlan() {
       .then(([c, s]) => { setCareers(c.data); setAllSubjects(s.data); });
   }, []);
 
-  const onChange = (k: string, v: string | number | boolean) => setForm((s) => ({ ...s, [k]: v }));
+  const onChange = (k: string, v: string | number) => setForm((s) => ({ ...s, [k]: v }));
   const toggleMateria = (id: string) => {
     setMaterias((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   };
@@ -105,10 +105,12 @@ export default function CreateStudyPlan() {
           </div>
 
           <div className="form-group">
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input type="checkbox" checked={form.activo} onChange={(e) => onChange('activo', e.target.checked)} />
-              Plan Activo (Vigente)
-            </label>
+            <label>Estado del plan</label>
+            <select value={form.estado} onChange={(e) => onChange('estado', e.target.value)} disabled={loading}>
+              <option value="Vigente">Vigente</option>
+              <option value="En transicion">En transicion</option>
+              <option value="Discontinuado">Discontinuado</option>
+            </select>
           </div>
 
           <div className="form-group">

@@ -10,14 +10,13 @@ interface Subject {
   cuatrimestre: number;
   creditos: number;
   esOptativa?: boolean;
-  esUnahur?: boolean;
 }
 
 interface FinalPendiente {
   materia: { _id: string; nombre: string; codigo: string; creditos: number };
-  cuatrimestre?: number;
-  anioCursada?: number;
   fechaRegular: string;
+  intentosPrevios?: number;
+  venceRegularidad?: string;
 }
 
 interface Avance {
@@ -25,8 +24,9 @@ interface Avance {
   aprobadas: number;
   regularizadas: number;
   cursando: number;
-  pendientes: number;
   creditosAprobados: number;
+  creditosMateriasAprobadas?: number;
+  creditosActividades?: number;
   creditosNecesarios: number;
   creditosOptativasAprobados: number;
   creditosOptativasNecesarios: number;
@@ -36,71 +36,111 @@ interface Avance {
   porcentajeAvance: number;
 }
 
+interface PlanPeriodo {
+  anio: number;
+  cuatrimestre: number;
+  horasUsadas: number;
+  materias: Subject[];
+}
+
 const AcademicAssistant = () => {
   const [disponibles, setDisponibles] = useState<Subject[]>([]);
   const [finales, setFinales] = useState<FinalPendiente[]>([]);
-  const [proyeccion, setProyeccion] = useState<Record<string, Subject[]>>({});
   const [avance, setAvance] = useState<Avance | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [filterAnio, setFilterAnio] = useState<string>("todos");
+  const [planificador, setPlanificador] = useState<PlanPeriodo[]>([]);
+  const [simulacion, setSimulacion] = useState<Subject[]>([]);
+  const [materiasCursando, setMateriasCursando] = useState<Subject[]>([]);
+  const [seleccionQuePasaSi, setSeleccionQuePasaSi] = useState<string[]>([]);
+  const [horasPorSemana, setHorasPorSemana] = useState(12);
+  const [actividad, setActividad] = useState({ nombre: "", creditos: 1 });
+  const [oferta, setOferta] = useState({
+    anio: new Date().getFullYear(),
+    cuatrimestre: new Date().getMonth() < 7 ? 1 : 2,
+    soloOferta: false
+  });
+  const [filterAnio, setFilterAnio] = useState("todos");
   const [showOptativas, setShowOptativas] = useState<"todas" | "obligatorias" | "optativas">("todas");
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
   const fetchAll = useCallback(async () => {
-    try {
-      const [d, f, p, a] = await Promise.all([
-        api.get("/academico/disponibles"),
-        api.get("/finales/pendientes"),
-        api.get("/academico/proyeccion"),
-        api.get("/academico/avance")
-      ]);
-      setDisponibles(d.data);
-      setFinales(f.data);
-      setProyeccion(p.data);
-      setAvance(a.data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    const params = oferta.soloOferta
+      ? `?soloOferta=true&anio=${oferta.anio}&cuatrimestre=${oferta.cuatrimestre}`
+      : "";
+    const [d, f, a, i, p] = await Promise.all([
+      api.get(`/academico/disponibles${params}`),
+      api.get("/finales/pendientes"),
+      api.get("/academico/avance"),
+      api.get("/academico/inscripciones-activas"),
+      api.get(`/academico/planificador?horasPorSemana=${horasPorSemana}`)
+    ]);
+    setDisponibles(d.data);
+    setFinales(f.data);
+    setAvance(a.data);
+    setMateriasCursando(i.data.map((row: { materia: Subject }) => row.materia).filter(Boolean));
+    setPlanificador(p.data.periodos || []);
+    setLoading(false);
+  }, [oferta, horasPorSemana]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      fetchAll();
+      fetchAll().catch(() => {
+        setError("No se pudieron cargar los datos del asistente");
+        setLoading(false);
+      });
     }, 0);
     return () => window.clearTimeout(timer);
   }, [fetchAll]);
 
   const inscribirseCursada = async (materiaId: string) => {
-    setError(""); setSuccess("");
+    setError("");
+    setSuccess("");
     try {
-      const now = new Date();
-      const cuatri = now.getMonth() < 7 ? 1 : 2;
       await api.post("/academico/inscripciones", {
         materiaId,
-        cuatrimestre: cuatri,
-        anioCursada: now.getFullYear()
+        cuatrimestre: oferta.cuatrimestre,
+        anioCursada: oferta.anio
       });
-      setSuccess("¡Inscripción a cursada registrada!");
+      setSuccess("Inscripcion a cursada registrada");
       await fetchAll();
-    } catch (e: unknown) {
-      const ax = e as { response?: { data?: { mensaje?: string } } };
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { mensaje?: string } } };
       setError(ax.response?.data?.mensaje || "Error al inscribirse");
     }
   };
 
   const inscribirseFinal = async (materiaId: string) => {
-    setError(""); setSuccess("");
+    setError("");
+    setSuccess("");
     try {
       await api.post("/finales", { materiaId, fecha: new Date().toISOString() });
-      setSuccess("¡Inscripción a final registrada!");
+      setSuccess("Inscripcion a final registrada");
       await fetchAll();
-    } catch (e: unknown) {
-      const ax = e as { response?: { data?: { mensaje?: string } } };
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { mensaje?: string } } };
       setError(ax.response?.data?.mensaje || "Error al inscribirse al final");
     }
+  };
+
+  const guardarActividad = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    try {
+      await api.post("/academico/actividades-creditos", actividad);
+      setActividad({ nombre: "", creditos: 1 });
+      setSuccess("Actividad con creditos registrada");
+      await fetchAll();
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { mensaje?: string } } };
+      setError(ax.response?.data?.mensaje || "Error al registrar actividad");
+    }
+  };
+
+  const simular = async () => {
+    const res = await api.post("/academico/que-pasa-si", { materias: seleccionQuePasaSi });
+    setSimulacion(res.data.desbloqueadas || []);
   };
 
   const filteredDisponibles = disponibles
@@ -113,134 +153,120 @@ const AcademicAssistant = () => {
 
   return (
     <div className="assistant">
-      <h1>Asistente Académico</h1>
-      <p className="subtitle">Planifica tu cursada y optimiza tu avance</p>
+      <h1>Asistente Academico</h1>
+      <p className="subtitle">Analisis actual, oferta, simulaciones y planificador.</p>
 
-      {error && <div style={{ padding: '12px 16px', background: '#fee', color: '#c33', borderRadius: 8, margin: '16px 0' }}>{error}</div>}
-      {success && <div style={{ padding: '12px 16px', background: '#dfd', color: '#363', borderRadius: 8, margin: '16px 0' }}>{success}</div>}
-
+      {error && <div style={{ padding: 12, background: "#fee", color: "#c33", borderRadius: 8 }}>{error}</div>}
+      {success && <div style={{ padding: 12, background: "#dfd", color: "#363", borderRadius: 8 }}>{success}</div>}
       {loading && <p>Cargando datos...</p>}
 
-      {/* AVANCE */}
       {avance && (
-        <div className="section" style={{ background: '#fff', padding: 16, borderRadius: 12, border: '1px solid #e5e7eb' }}>
-          <h3>📊 Tu Avance</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginTop: 12 }}>
-            <div style={{ padding: 12, background: '#eff6ff', borderRadius: 8 }}>
+        <div className="section" style={{ background: "#fff", padding: 16, borderRadius: 12, border: "1px solid #e5e7eb" }}>
+          <h3>Tu avance</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
+            <div style={{ padding: 12, background: "#eff6ff", borderRadius: 8 }}>
               <strong>Avance general</strong>
-              <div style={{ fontSize: 24, fontWeight: 700, color: '#2563eb' }}>{avance.porcentajeAvance}%</div>
+              <div style={{ fontSize: 24, fontWeight: 700 }}>{avance.porcentajeAvance}%</div>
               <small>{avance.aprobadas} de {avance.totalMaterias} materias</small>
             </div>
-            <div style={{ padding: 12, background: '#f0fdf4', borderRadius: 8 }}>
-              <strong>Créditos</strong>
-              <div style={{ fontSize: 24, fontWeight: 700, color: '#16a34a' }}>
-                {avance.creditosAprobados}/{avance.creditosNecesarios}
-              </div>
-              <small>Optativos: {avance.creditosOptativasAprobados}/{avance.creditosOptativasNecesarios}</small>
+            <div style={{ padding: 12, background: "#f0fdf4", borderRadius: 8 }}>
+              <strong>Creditos</strong>
+              <div style={{ fontSize: 24, fontWeight: 700 }}>{avance.creditosAprobados}/{avance.creditosNecesarios}</div>
+              <small>Materias: {avance.creditosMateriasAprobadas ?? avance.creditosAprobados} · Actividades: {avance.creditosActividades ?? 0}</small>
             </div>
-            <div style={{ padding: 12, background: '#fef3c7', borderRadius: 8 }}>
-              <strong>Materias UNAHUR faltantes</strong>
-              <div style={{ fontSize: 24, fontWeight: 700, color: '#d97706' }}>{avance.materiasUnahurFaltantes}</div>
-              <small>Inglés requerido: {avance.nivelInglesRequerido}</small>
-            </div>
-            <div style={{ padding: 12, background: '#fce7f3', borderRadius: 8 }}>
-              <strong>Cursando ahora</strong>
-              <div style={{ fontSize: 24, fontWeight: 700, color: '#be185d' }}>{avance.cursando}</div>
-              <small>Regulares: {avance.regularizadas}</small>
+            <div style={{ padding: 12, background: "#fef3c7", borderRadius: 8 }}>
+              <strong>UNAHUR faltantes</strong>
+              <div style={{ fontSize: 24, fontWeight: 700 }}>{avance.materiasUnahurFaltantes}</div>
+              <small>Ingles requerido: {avance.nivelInglesRequerido}</small>
             </div>
           </div>
-
-          <details style={{ marginTop: 16 }}>
-            <summary style={{ cursor: 'pointer', fontWeight: 600 }}>Análisis por año de cursada</summary>
-            <div style={{ marginTop: 8 }}>
-              {Object.keys(avance.avancePorAnio).sort().map((y) => {
-                const d = avance.avancePorAnio[y];
-                return (
-                  <div key={y} style={{ padding: 8, borderBottom: '1px solid #eee' }}>
-                    <strong>Año {y}:</strong>{" "}
-                    {d.aprobadas} aprobadas, {d.regulares} regulares, {d.cursando} cursando
-                  </div>
-                );
-              })}
-            </div>
-          </details>
         </div>
       )}
 
-      {/* DISPONIBLES */}
       <div className="section">
-        <h3>📘 Materias Disponibles para Cursar</h3>
-        <div style={{ display: 'flex', gap: 8, margin: '12px 0' }}>
+        <h3>Materias disponibles</h3>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "12px 0" }}>
           <select value={filterAnio} onChange={(e) => setFilterAnio(e.target.value)}>
-            <option value="todos">Todos los años</option>
-            {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{y}° año</option>)}
+            <option value="todos">Todos los anios</option>
+            {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{y} anio</option>)}
           </select>
           <select value={showOptativas} onChange={(e) => setShowOptativas(e.target.value as "todas" | "obligatorias" | "optativas")}>
             <option value="todas">Todas</option>
             <option value="obligatorias">Obligatorias</option>
             <option value="optativas">Optativas</option>
           </select>
+          <input type="number" value={oferta.anio} onChange={(e) => setOferta((s) => ({ ...s, anio: Number(e.target.value) }))} />
+          <select value={oferta.cuatrimestre} onChange={(e) => setOferta((s) => ({ ...s, cuatrimestre: Number(e.target.value) }))}>
+            <option value={1}>1C</option>
+            <option value={2}>2C</option>
+            <option value={0}>Anual</option>
+          </select>
+          <label><input type="checkbox" checked={oferta.soloOferta} onChange={(e) => setOferta((s) => ({ ...s, soloOferta: e.target.checked }))} /> Filtrar por oferta</label>
         </div>
-        {filteredDisponibles.length === 0 ? (
-          <p style={{ padding: 12, color: '#666' }}>No hay materias disponibles para cursar (verifica tu situación académica).</p>
-        ) : (
-          filteredDisponibles.map((s) => (
-            <div key={s._id} className="subject success">
-              <div>
-                <strong>{s.nombre}</strong>
-                <p>Año {s.anio} · {s.cuatrimestre === 0 ? 'Anual' : `${s.cuatrimestre}°C`} · {s.creditos} créditos</p>
-                {s.esOptativa && <small style={{ color: '#92400e' }}>⭐ Optativa</small>}
-              </div>
-              <button onClick={() => inscribirseCursada(s._id)} className="btn-primary" style={{ padding: '6px 12px' }}>
-                Inscribirse
-              </button>
+        {filteredDisponibles.map((s) => (
+          <div key={s._id} className="subject success">
+            <div>
+              <strong>{s.nombre}</strong>
+              <p>{s.codigo} · {s.creditos} creditos</p>
             </div>
-          ))
+            <button onClick={() => inscribirseCursada(s._id)} className="btn-primary">Inscribirse</button>
+          </div>
+        ))}
+      </div>
+
+      <div className="section">
+        <h3>Finales pendientes</h3>
+        {finales.map((f) => (
+          <div key={f.materia._id} className="final-card">
+            <div>
+              <strong>{f.materia.nombre}</strong>
+              <p>Regularizada: {new Date(f.fechaRegular).toLocaleDateString()} · Intentos: {f.intentosPrevios ?? 0}</p>
+              {f.venceRegularidad && <small>Vence: {new Date(f.venceRegularidad).toLocaleDateString()}</small>}
+            </div>
+            <button onClick={() => inscribirseFinal(f.materia._id)} className="btn-primary">Inscribirse</button>
+          </div>
+        ))}
+      </div>
+
+      <div className="section">
+        <h3>Que pasa si regularizo...</h3>
+        <div style={{ display: "grid", gap: 6 }}>
+          {materiasCursando.map((materia) => (
+            <label key={materia._id}>
+              <input
+                type="checkbox"
+                checked={seleccionQuePasaSi.includes(materia._id)}
+                onChange={() => setSeleccionQuePasaSi((prev) => prev.includes(materia._id) ? prev.filter((id) => id !== materia._id) : [...prev, materia._id])}
+              />
+              {materia.nombre}
+            </label>
+          ))}
+        </div>
+        <button className="btn-primary" onClick={simular} style={{ marginTop: 8 }}>Simular</button>
+        {simulacion.length > 0 && (
+          <ul>{simulacion.map((m) => <li key={m._id}>{m.nombre} ({m.codigo})</li>)}</ul>
         )}
       </div>
 
-      {/* FINALES */}
       <div className="section">
-        <h3>📅 Finales Pendientes</h3>
-        {finales.length === 0 ? (
-          <p style={{ padding: 12, color: '#666' }}>No tienes finales pendientes.</p>
-        ) : (
-          finales.map((f) => (
-            <div key={f.materia._id} className="final-card">
-              <div>
-                <strong>{f.materia.nombre}</strong>
-                <p>Regularizada: {new Date(f.fechaRegular).toLocaleDateString()}</p>
-                <small>{f.materia.creditos} créditos</small>
-              </div>
-              <button onClick={() => inscribirseFinal(f.materia._id)} className="btn-primary">
-                Inscribirse
-              </button>
-            </div>
-          ))
-        )}
+        <h3>Planificador por horas semanales</h3>
+        <label>Horas por semana </label>
+        <input type="number" min={1} value={horasPorSemana} onChange={(e) => setHorasPorSemana(Number(e.target.value))} />
+        {planificador.map((periodo) => (
+          <div key={`${periodo.anio}-${periodo.cuatrimestre}`} className="projection">
+            <h4>{periodo.anio} - {periodo.cuatrimestre === 0 ? "Anual" : `${periodo.cuatrimestre}C`} ({periodo.horasUsadas} h/sem)</h4>
+            <ul>{periodo.materias.map((m) => <li key={m._id}>{m.nombre} ({m.creditos} cr.)</li>)}</ul>
+          </div>
+        ))}
       </div>
 
-      {/* PROYECCION */}
       <div className="section">
-        <h3>📈 Proyección de Cursada Sugerida</h3>
-        <p className="small">Basado en las materias del plan que aún no aprobaste</p>
-        {Object.keys(proyeccion).length === 0 ? (
-          <p style={{ padding: 12, color: '#666' }}>¡Felicitaciones! No hay materias pendientes en tu proyección.</p>
-        ) : (
-          Object.keys(proyeccion).sort().map((key) => (
-            <div key={key} className="projection">
-              <h4>{key}</h4>
-              <ul>
-                {proyeccion[key].map((m) => (
-                  <li key={m._id}>{m.nombre} <small>({m.codigo}, {m.creditos} cr.)</small></li>
-                ))}
-              </ul>
-            </div>
-          ))
-        )}
-        <div className="note">
-          Esta es una proyección basada en tu plan de estudio. El planificador detallado considera correlatividades.
-        </div>
+        <h3>Actividades con creditos</h3>
+        <form onSubmit={guardarActividad} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input placeholder="Actividad" value={actividad.nombre} onChange={(e) => setActividad((s) => ({ ...s, nombre: e.target.value }))} required />
+          <input type="number" min={1} value={actividad.creditos} onChange={(e) => setActividad((s) => ({ ...s, creditos: Number(e.target.value) }))} required />
+          <button className="btn-primary" type="submit">Registrar</button>
+        </form>
       </div>
     </div>
   );

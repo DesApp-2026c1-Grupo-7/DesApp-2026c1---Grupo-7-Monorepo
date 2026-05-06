@@ -10,6 +10,7 @@ router.use('/materias', require('./subject.routes'));
 router.use('/planes', require('./studyPlan.routes'));
 router.use('/academico', require('./grade.routes'));
 router.use('/finales', require('./final.routes'));
-// router.use('/usuarios', require('./usuarios.routes'));
+router.use('/usuarios', require('./user.routes'));
+router.use('/ofertas', require('./academicOffer.routes'));
 
 module.exports = router;

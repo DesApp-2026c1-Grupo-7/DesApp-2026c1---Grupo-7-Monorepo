@@ -14,6 +14,8 @@ const upload = multer({
 router.get('/situacion', auth, gradeController.getStudentSituation);
 router.post('/situacion', auth, gradeController.updateGrade);
 router.post('/situacion/bulk', auth, gradeController.bulkLoadSituation);
+router.post('/situacion/preview-excel', auth, upload.single('file'), importController.previewSituationExcel);
+router.post('/situacion/confirm-excel', auth, importController.confirmSituationExcel);
 router.post('/situacion/import-excel', auth, upload.single('file'), importController.importSituationExcel);
 
 // Inscripciones a cursada
@@ -25,5 +27,9 @@ router.get('/inscripciones-activas', auth, gradeController.getInscripcionesActiv
 router.get('/disponibles', auth, gradeController.getMateriasDisponibles);
 router.get('/proyeccion', auth, gradeController.getProyeccionCursada);
 router.get('/avance', auth, gradeController.getAvanceCarrera);
+router.post('/que-pasa-si', auth, gradeController.getQuePasaSi);
+router.get('/planificador', auth, gradeController.getPlanificador);
+router.get('/actividades-creditos', auth, gradeController.listCreditActivities);
+router.post('/actividades-creditos', auth, gradeController.createCreditActivity);
 
 module.exports = router;

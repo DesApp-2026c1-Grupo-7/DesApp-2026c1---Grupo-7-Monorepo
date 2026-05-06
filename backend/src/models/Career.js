@@ -18,6 +18,21 @@ const careerSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  titulo: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  instituto: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  duracionAnios: {
+    type: Number,
+    required: true,
+    min: 1
+  },
   cantidadEstudiantes: {
     type: Number,
     default: 0

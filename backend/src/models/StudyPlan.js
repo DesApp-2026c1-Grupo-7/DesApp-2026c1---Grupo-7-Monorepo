@@ -32,6 +32,11 @@ const studyPlanSchema = new mongoose.Schema({
     enum: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Ninguno'],
     default: 'B1'
   },
+  estado: {
+    type: String,
+    enum: ['Vigente', 'En transicion', 'Discontinuado'],
+    default: 'Vigente'
+  },
   activo: {
     type: Boolean,
     default: true

@@ -1,77 +1,19 @@
-# PR #10 — Descripción actualizada sugerida
+# PR #10 - Registro post-merge
 
-## Título sugerido
+PR #10 fue mergeado a `dev` el 06/05/2026 y dejo la base funcional preliminar de puntos 1 a 4.
 
-`feat(sprint1): cierre funcional preliminar puntos 1-4`
+La deuda que habia quedado despues del merge se cierra en la rama `feature/cerrar-deuda-puntos-1-4`:
 
-## Body sugerido
+- Admin crea otros admins.
+- Admin lista cuentas.
+- Admin suspende/reactiva estudiantes.
+- Carrera incluye titulo, instituto y duracion.
+- Plan incluye estado `Vigente`, `En transicion`, `Discontinuado`.
+- Excel tiene preview, errores visibles, correccion y confirmacion.
+- Actividades con creditos impactan en avance.
+- Oferta academica filtra materias inscribibles.
+- Finales pendientes muestran intentos y vencimiento de regularidad.
+- Asistente incluye que-pasa-si y planificador por horas semanales.
+- Backend tiene tests reales con Mongo en memoria.
 
-Este PR deja de tratarse como "Sprint 2": al revisar la **Ficha principio de sprint 1**, el alcance original del Sprint 1 incluía una versión preliminar funcional hasta el **punto 4** del TP. Por eso este PR corresponde al cierre funcional preliminar de Sprint 1, todavía pendiente de review/CI/tests para considerarse cerrado.
-
-### Qué cubre de la ficha de Sprint 1
-
-#### Punto 1 — Gestión de usuarios
-
-- `User` con roles `student` / `admin`.
-- Registro de estudiante y login con JWT.
-- Seed de admin inicial.
-- Guards frontend por rol y middlewares backend de auth/autorización.
-
-Pendiente para cierre completo: alta de otros admins, listado de cuentas, suspensión/reactivación, tests y decidir/documentar si se mantiene `role` en lugar de discriminators.
-
-#### Punto 2 — Configuración académica
-
-- CRUD de carreras, planes y materias.
-- Relación carrera → planes.
-- Materias por año/cuatrimestre/anual.
-- Correlatividades.
-- Créditos, materias UNAHUR, optativas y nivel de inglés.
-- Pantallas admin de crear/editar/detalle.
-
-Pendiente: alinear campos exactos de la consigna (`titulo`, `instituto`, `duracionAnios`, estado de plan `Vigente/En transición/Discontinuado`) y tests.
-
-#### Punto 3 — Situación académica
-
-- Modelo `Grade` por estudiante/materia.
-- Carga manual.
-- Import Excel/CSV con feedback.
-- Inscripción a cursada.
-- Cierre de cuatrimestre.
-- Modelo/endpoints de finales.
-
-Pendiente: preview real antes de confirmar Excel, corrección de filas antes de persistir, actividades con créditos y tests.
-
-#### Punto 4 — Asistente académico
-
-- Materias disponibles según correlatividades.
-- Finales pendientes.
-- Créditos faltantes y materias UNAHUR faltantes.
-- Análisis por año.
-- Porcentaje de avance.
-- Proyección básica agrupada por año/cuatrimestre.
-- UI conectada al backend.
-
-Pendiente: vencimiento de regularidad, oferta académica, "qué pasa si", planificador por horas/semana, movimiento manual de materias y tests de algoritmos.
-
-### Documentación actualizada en esta rama
-
-- `AGENTS.md`: estado real y backlog re-marcado.
-- `docs/sprint-1/cierre-sprint-1.md`: auditoría de lo hecho vs ficha original.
-- `docs/sprint-1/trello-ajustes.md`: checklist sugerido para corregir Trello.
-- `docs/sprint-2/ficha.md` a `docs/sprint-5/ficha.md`: sprints replanificados según lo realmente hecho.
-- `README.md` y `docs/arquitectura.md`: alcance de sprints y nota de replanificación.
-
-### Plan de prueba sugerido
-
-1. Levantar backend (`cd backend && npm install && npm run dev`).
-2. Levantar frontend (`cd frontend && npm install && npm run dev`).
-3. Login admin: `admin@universidad.edu` / `admin123`.
-4. Crear/editar carrera, materia con correlativas y plan.
-5. Login estudiante: `estudiante@universidad.edu` / `estudiante123`.
-6. Cargar situación manual o importar CSV/Excel.
-7. Ver asistente: disponibles, avance, análisis por año y finales pendientes.
-8. Verificar que endpoints protegidos rechazan requests sin token.
-
-### Nota de cierre
-
-Este PR todavía no debe contarse como Sprint 1 cerrado hasta resolver review, CI, merge a `dev` y tests básicos reales.
+Este archivo queda como registro historico. La descripcion vigente del cierre esta en `docs/sprint-1/cierre-sprint-1.md`.

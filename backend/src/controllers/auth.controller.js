@@ -7,7 +7,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 const register = async (req, res) => {
   try {
-    const { nombre, email, password, role } = req.body;
+    const { nombre, email, password, carrera, planEstudio } = req.body;
     
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -21,7 +21,9 @@ const register = async (req, res) => {
       nombre, 
       email, 
       password: hashedPassword, 
-      role: role || 'student' 
+      role: 'student',
+      carrera,
+      planEstudio
     });
     
     await user.save();
@@ -47,6 +49,10 @@ const login = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ mensaje: 'Credenciales inválidas' });
+    }
+
+    if (user.suspendido) {
+      return res.status(403).json({ mensaje: 'La cuenta se encuentra suspendida' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);

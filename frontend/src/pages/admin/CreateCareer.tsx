@@ -5,14 +5,23 @@ import "../../styles/CreateCareer.css";
 
 export default function CreateCareerPage() {
   const navigate = useNavigate();
-  const [nombre, setNombre] = useState("");
-  const [codigo, setCodigo] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [creditosNecesarios, setCreditosNecesarios] = useState<number>(0);
-  const [nivelInglesRequerido, setNivelInglesRequerido] = useState("B1");
-  const [cantidadMaterias, setCantidadMaterias] = useState<number>(0);
+  const [form, setForm] = useState({
+    nombre: "",
+    codigo: "",
+    descripcion: "",
+    titulo: "",
+    instituto: "",
+    duracionAnios: 5,
+    creditosNecesarios: 0,
+    nivelInglesRequerido: "B1",
+    cantidadMaterias: 0
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const onChange = (key: string, value: string | number) => {
+    setForm((current) => ({ ...current, [key]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,10 +29,10 @@ export default function CreateCareerPage() {
     setError("");
     try {
       await api.post("/carreras", {
-        nombre, codigo, descripcion,
-        creditosNecesarios: Number(creditosNecesarios),
-        nivelInglesRequerido,
-        cantidadMaterias: Number(cantidadMaterias)
+        ...form,
+        duracionAnios: Number(form.duracionAnios),
+        creditosNecesarios: Number(form.creditosNecesarios),
+        cantidadMaterias: Number(form.cantidadMaterias)
       });
       navigate("/admin/carreras");
     } catch (err: unknown) {
@@ -39,53 +48,60 @@ export default function CreateCareerPage() {
       <div className="create-career-container">
         <h1>Nueva Carrera</h1>
         <form className="create-career-form" onSubmit={handleSubmit}>
-          {error && <p style={{ color: 'var(--error)', marginBottom: '1rem' }}>{error}</p>}
+          {error && <p style={{ color: "var(--error)", marginBottom: "1rem" }}>{error}</p>}
 
           <div className="form-group">
-            <label>Nombre de la Carrera</label>
-            <input value={nombre} onChange={(e) => setNombre(e.target.value)} required disabled={loading} placeholder="Ej: Ingeniería en Sistemas" />
+            <label>Nombre de la carrera</label>
+            <input value={form.nombre} onChange={(e) => onChange("nombre", e.target.value)} required disabled={loading} />
           </div>
 
           <div className="form-group">
-            <label>Código</label>
-            <input value={codigo} onChange={(e) => setCodigo(e.target.value)} required disabled={loading} placeholder="Ej: INGSIST" />
+            <label>Codigo</label>
+            <input value={form.codigo} onChange={(e) => onChange("codigo", e.target.value)} required disabled={loading} />
           </div>
 
           <div className="form-group">
-            <label>Descripción</label>
-            <textarea rows={3} value={descripcion} onChange={(e) => setDescripcion(e.target.value)} disabled={loading} />
+            <label>Titulo que otorga</label>
+            <input value={form.titulo} onChange={(e) => onChange("titulo", e.target.value)} required disabled={loading} />
           </div>
 
           <div className="form-group">
-            <label>Cantidad de Materias</label>
-            <input type="number" min={0} value={cantidadMaterias} onChange={(e) => setCantidadMaterias(Number(e.target.value))} disabled={loading} />
+            <label>Instituto</label>
+            <input value={form.instituto} onChange={(e) => onChange("instituto", e.target.value)} required disabled={loading} />
           </div>
 
           <div className="form-group">
-            <label>Créditos Necesarios</label>
-            <input type="number" min={0} value={creditosNecesarios} onChange={(e) => setCreditosNecesarios(Number(e.target.value))} disabled={loading} />
+            <label>Descripcion</label>
+            <textarea rows={3} value={form.descripcion} onChange={(e) => onChange("descripcion", e.target.value)} disabled={loading} />
           </div>
 
           <div className="form-group">
-            <label>Nivel de Inglés Requerido</label>
-            <select value={nivelInglesRequerido} onChange={(e) => setNivelInglesRequerido(e.target.value)} disabled={loading}>
-              <option value="Ninguno">Ninguno</option>
-              <option value="A1">A1</option>
-              <option value="A2">A2</option>
-              <option value="B1">B1</option>
-              <option value="B2">B2</option>
-              <option value="C1">C1</option>
-              <option value="C2">C2</option>
+            <label>Duracion estimada (anios)</label>
+            <input type="number" min={1} value={form.duracionAnios} onChange={(e) => onChange("duracionAnios", Number(e.target.value))} disabled={loading} />
+          </div>
+
+          <div className="form-group">
+            <label>Cantidad de materias</label>
+            <input type="number" min={0} value={form.cantidadMaterias} onChange={(e) => onChange("cantidadMaterias", Number(e.target.value))} disabled={loading} />
+          </div>
+
+          <div className="form-group">
+            <label>Creditos necesarios</label>
+            <input type="number" min={0} value={form.creditosNecesarios} onChange={(e) => onChange("creditosNecesarios", Number(e.target.value))} disabled={loading} />
+          </div>
+
+          <div className="form-group">
+            <label>Nivel de ingles requerido</label>
+            <select value={form.nivelInglesRequerido} onChange={(e) => onChange("nivelInglesRequerido", e.target.value)} disabled={loading}>
+              {["Ninguno", "A1", "A2", "B1", "B2", "C1", "C2"].map((nivel) => (
+                <option key={nivel} value={nivel}>{nivel}</option>
+              ))}
             </select>
           </div>
 
           <div className="form-actions">
-            <button type="button" className="btn-secondary" onClick={() => navigate("/admin/carreras")} disabled={loading}>
-              Cancelar
-            </button>
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? "Creando..." : "Crear"}
-            </button>
+            <button type="button" className="btn-secondary" onClick={() => navigate("/admin/carreras")} disabled={loading}>Cancelar</button>
+            <button type="submit" className="btn-primary" disabled={loading}>{loading ? "Creando..." : "Crear"}</button>
           </div>
         </form>
       </div>

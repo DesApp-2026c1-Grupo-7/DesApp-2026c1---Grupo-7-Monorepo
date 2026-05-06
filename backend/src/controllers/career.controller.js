@@ -40,7 +40,17 @@ const getCareerById = async (req, res) => {
 
 const createCareer = async (req, res) => {
   try {
-    const { nombre, codigo, descripcion, cantidadMaterias, creditosNecesarios, nivelInglesRequerido } = req.body;
+    const {
+      nombre,
+      codigo,
+      descripcion,
+      titulo,
+      instituto,
+      duracionAnios,
+      cantidadMaterias,
+      creditosNecesarios,
+      nivelInglesRequerido
+    } = req.body;
 
     const existingCareer = await Career.findOne({ $or: [{ nombre }, { codigo }] });
     if (existingCareer) {
@@ -51,6 +61,9 @@ const createCareer = async (req, res) => {
       nombre,
       codigo,
       descripcion,
+      titulo,
+      instituto,
+      duracionAnios,
       cantidadMaterias: cantidadMaterias || 0,
       creditosNecesarios: creditosNecesarios || 0,
       nivelInglesRequerido: nivelInglesRequerido || 'B1'
@@ -65,11 +78,31 @@ const createCareer = async (req, res) => {
 
 const updateCareer = async (req, res) => {
   try {
-    const { nombre, codigo, descripcion, cantidadMaterias, creditosNecesarios, nivelInglesRequerido } = req.body;
+    const {
+      nombre,
+      codigo,
+      descripcion,
+      titulo,
+      instituto,
+      duracionAnios,
+      cantidadMaterias,
+      creditosNecesarios,
+      nivelInglesRequerido
+    } = req.body;
 
     const career = await Career.findByIdAndUpdate(
       req.params.id,
-      { nombre, codigo, descripcion, cantidadMaterias, creditosNecesarios, nivelInglesRequerido },
+      {
+        nombre,
+        codigo,
+        descripcion,
+        titulo,
+        instituto,
+        duracionAnios,
+        cantidadMaterias,
+        creditosNecesarios,
+        nivelInglesRequerido
+      },
       { new: true, runValidators: true }
     );
 

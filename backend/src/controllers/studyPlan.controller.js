@@ -31,7 +31,17 @@ const getStudyPlanById = async (req, res) => {
 
 const createStudyPlan = async (req, res) => {
   try {
-    const { nombre, anio, carrera, materias, creditosNecesarios, creditosOptativasNecesarios, nivelInglesRequerido, activo } = req.body;
+    const {
+      nombre,
+      anio,
+      carrera,
+      materias,
+      creditosNecesarios,
+      creditosOptativasNecesarios,
+      nivelInglesRequerido,
+      estado,
+      activo
+    } = req.body;
 
     const plan = new StudyPlan({
       nombre,
@@ -41,7 +51,8 @@ const createStudyPlan = async (req, res) => {
       creditosNecesarios: creditosNecesarios || 0,
       creditosOptativasNecesarios: creditosOptativasNecesarios || 0,
       nivelInglesRequerido: nivelInglesRequerido || 'B1',
-      activo: activo !== false
+      estado: estado || (activo === false ? 'Discontinuado' : 'Vigente'),
+      activo: activo !== false && estado !== 'Discontinuado'
     });
     await plan.save();
 
@@ -53,9 +64,13 @@ const createStudyPlan = async (req, res) => {
 
 const updateStudyPlan = async (req, res) => {
   try {
+    const update = { ...req.body };
+    if (update.estado) {
+      update.activo = update.estado !== 'Discontinuado';
+    }
     const plan = await StudyPlan.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      update,
       { new: true, runValidators: true }
     ).populate('carrera', 'nombre codigo')
      .populate('materias', 'nombre codigo anio cuatrimestre creditos esOptativa');

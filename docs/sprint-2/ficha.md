@@ -1,63 +1,57 @@
-# Sprint 2 — 07/05 → 21/05
+# Sprint 2 - 07/05 -> 21/05
 
-**Objetivo:** cerrar bien los puntos 1 a 4 que quedaron adelantados en el PR #10, convertir la demo preliminar en funcionalidad confiable y dejar la base académica lista para empezar social/sesiones.
+**Objetivo actualizado:** con la deuda de puntos 1 a 4 cerrada en `feature/cerrar-deuda-puntos-1-4`, Sprint 2 puede empezar con punto 5 sin arrastrar trabajo fantasma.
 
-> Replanificado el 06/05/2026 después de revisar la ficha original de Sprint 1 y el PR #10. El trabajo de auth, CRUD académico, situación académica, Excel y asistente básico ya no se cuenta como "futuro": se considera avance de Sprint 1 pendiente de cerrar.
+## Base cerrada antes de avanzar
 
-## Alcance
+- PR #10 mergeado a `dev`.
+- Review comments del PR #10 resueltos.
+- Tests reales de backend con `node --test`, `supertest` y Mongo en memoria.
+- Punto 1 completo para el alcance inicial: registro, login, seed admin, admins creados por admin, listado de cuentas, suspension/reactivacion.
+- Punto 2 completo para el alcance inicial: carreras/planes/materias, correlativas, campos exactos de carrera y estado de plan.
+- Punto 3 completo para el alcance inicial: carga manual, Excel preview/correccion/confirmacion, cursadas, finales y actividades con creditos.
+- Punto 4 completo para el alcance inicial: inscribibles, finales con intentos/vencimiento, avance, oferta academica, que-pasa-si y planificador.
 
-1. **Cerrar PR #10**: resolver comentarios de review, CI verde, aprobación y merge a `dev`.
-2. **Tests básicos reales**: auth, CRUD académico, situación académica y asistente.
-3. **Usuarios admin**: alta de administradores, listado de cuentas, suspensión/reactivación.
-4. **Alinear modelos con la consigna**: carrera con título, instituto y duración; plan con estado `Vigente / En transición / Discontinuado`.
-5. **Excel con preview**: validar archivo, mostrar errores, permitir corrección antes de confirmar.
-6. **Actividades con créditos**: carga y cómputo dentro del avance.
-7. **Asistente faltante de punto 4**:
-   - Vencimiento de regularidad.
-   - Oferta académica por período y filtro de inscribibles.
-   - "¿Qué pasa si...?"
-   - Planificador por horas/semana.
+## Alcance Sprint 2
 
-## Distribución
+1. Perfil de estudiante:
+   - Datos personales.
+   - Carrera/s y situacion academica visible segun permisos.
+   - Foto.
+   - Privacidad publico/privado.
+   - Toggles para mostrar email, mostrar situacion academica y publicar eventos.
+2. Conexiones:
+   - Invitacion por email.
+   - Aceptar/rechazar por link.
+   - Login previo si hace falta.
+   - Aviso al invitador si el email no pertenece a un usuario registrado.
+   - Pantalla de contactos y solicitudes pendientes.
+3. Feed inicial:
+   - Eventos academicos de contactos.
+   - Posteos manuales.
+   - Respeto de privacidad/toggles.
+4. Servicio de email transaccional para invitaciones y futuros flujos.
+
+## Distribucion sugerida
 
 | Tarea | Owner | Entregable | Branch sugerida |
 |---|---|---|---|
-| Resolver review PR #10 + merge a `dev` | Thomas | PR #10 actualizado, aprobado y mergeado | `feature/sprint2-completo` |
-| Tests backend de auth + CRUD académico | Marcos | Tests con runner real, no placeholder | `test/auth-crud-academico` |
-| Gestión admin de usuarios | Thomas | Endpoints + UI mínima para admins/cuentas/suspensión | `feature/admin-usuarios` |
-| Ajuste modelos carrera/plan según consigna | Santino | Campos y migración/seed actualizados | `feature/modelos-consigna` |
-| Excel preview + corrección antes de confirmar | Thomas | Endpoint preview + UI de corrección + confirmación | `feature/excel-preview` |
-| Actividades con créditos | Santino | Modelo/endpoints + impacto en avance | `feature/actividades-creditos` |
-| Oferta académica + filtro de inscribibles | Santino | Modelo, CRUD admin y filtro del asistente | `feature/oferta-academica` |
-| "¿Qué pasa si...?" + planificador por horas | Thomas | Endpoints + tests de algoritmos | `feature/asistente-proyecciones` |
-| UI planificador y qué-pasa-si | Matías | Pantallas conectadas, carga horaria visible | `feature/asistente-proyecciones-ui` |
-| Documentación demo end-to-end | Marcos | README y checklist de demo actualizados | `docs/demo-sprint2` |
+| Modelo + endpoints de perfil y privacidad | Santino | Perfil y reglas de visibilidad | `feature/perfil-estudiante` |
+| UI perfil con foto y toggles | Matias | Pantalla perfil conectada | `feature/perfil-ui` |
+| Servicio de email dev | Thomas | Mailer configurable por `.env` | `feature/email-service` |
+| Invitaciones por email + aceptar/rechazar | Thomas | Endpoints con token de invitacion | `feature/invitaciones-email` |
+| Modelo + endpoints de contactos | Santino | Contactos y solicitudes | `feature/contactos` |
+| UI contactos y solicitudes | Matias | Pantalla mis contactos | `feature/contactos-ui` |
+| Feed/eventos/posteos | Santino | Modelo y endpoints | `feature/feed` |
+| UI feed | Matias | Feed conectado | `feature/feed-ui` |
+| Casos de prueba y demo | Marcos | Tests + checklist demo | `test/social-basico` |
 
 ## Definition of Done
 
-- [ ] PR #10 mergeado a `dev`.
+- [ ] Un estudiante puede editar perfil y privacidad.
+- [ ] Dos estudiantes pueden conectarse por invitacion de email.
+- [ ] Se pueden aceptar/rechazar solicitudes con login previo.
+- [ ] Feed muestra eventos academicos y posteos respetando privacidad/toggles.
+- [ ] Hay tests de endpoints principales.
 - [ ] CI verde.
-- [ ] Hay tests reales ejecutándose en backend.
-- [ ] Admin puede crear admins, listar cuentas y suspender/reactivar usuarios.
-- [ ] Admin puede configurar carreras/planes/materias con campos de la consigna.
-- [ ] Estudiante puede importar Excel con preview, corrección y confirmación.
-- [ ] El asistente cubre análisis actual y proyecciones principales del punto 4.
-- [ ] README explica cómo correr la demo end-to-end.
-- [ ] Trello refleja qué se cerró y qué quedó como pendiente explícito.
-
-## Riesgos
-
-- El PR #10 es grande y tiene comentarios de review: resolverlos antes de sumar más cambios evita arrastrar bugs.
-- El planificador puede crecer mucho; para Sprint 2 alcanza con una primera versión determinística y testeada.
-- Excel preview requiere separar validación de persistencia; no conviene seguir procesando directo.
-
-## Cronograma
-
-| Días | Foco |
-|---|---|
-| 1-2 | Resolver review PR #10, CI y merge. |
-| 3-5 | Tests reales + gestión admin de usuarios. |
-| 6-8 | Ajuste modelos consigna + Excel preview. |
-| 9-11 | Oferta académica, qué-pasa-si y planificador. |
-| 12-13 | UI, integración y bugfixes. |
-| 14 | Demo, Trello, retro y documentación. |
+- [ ] Trello refleja que puntos 1 a 4 quedaron cerrados y que Sprint 2 arranca en punto 5.
