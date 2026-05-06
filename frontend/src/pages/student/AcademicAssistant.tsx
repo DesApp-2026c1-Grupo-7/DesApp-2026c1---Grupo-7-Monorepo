@@ -30,7 +30,7 @@ interface Avance {
   creditosActividades?: number;
   creditosNecesarios: number;
   creditosOptativasAprobados: number;
-  creditosOptativasNecesarios: number;
+  materiasUnahurRequeridas: number;
   nivelInglesRequerido: string;
   materiasUnahurFaltantes: number;
   avancePorAnio: Record<string, { aprobadas: number; regulares: number; cursando: number; total?: number }>;

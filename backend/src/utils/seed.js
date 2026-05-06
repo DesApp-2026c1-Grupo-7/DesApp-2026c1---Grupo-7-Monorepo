@@ -105,7 +105,7 @@ async function seedStudyPlan(career, subjects) {
       carrera: career._id,
       materias: subjects.map((s) => s._id),
       creditosNecesarios: career.creditosNecesarios,
-      creditosOptativasNecesarios: 8,
+      materiasUnahurRequeridas: 8,
       nivelInglesRequerido: career.nivelInglesRequerido,
       estado: 'Vigente',
       activo: true
