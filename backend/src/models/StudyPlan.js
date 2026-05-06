@@ -19,6 +19,19 @@ const studyPlanSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Subject'
   }],
+  creditosNecesarios: {
+    type: Number,
+    default: 0
+  },
+  creditosOptativasNecesarios: {
+    type: Number,
+    default: 0
+  },
+  nivelInglesRequerido: {
+    type: String,
+    enum: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Ninguno'],
+    default: 'B1'
+  },
   activo: {
     type: Boolean,
     default: true

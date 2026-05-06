@@ -1,69 +1,77 @@
 # Sprint 5 — 25/06 → 16/07
 
-**Objetivo:** puntos 7, 8 y 9 — repositorio de materiales completo (con valoraciones, denuncias y moderación), notificaciones in-app y reportes admin + deploy.
-
-> Alineado con `AGENTS.md` — sección Sprint 5. Con este sprint quedan cubiertos los 9 puntos del TP.
+**Objetivo:** cerrar materiales avanzados, notificaciones, reportes, hardening, deploy y documentación final.
 
 ## Alcance
-1. **Materiales** (punto 7): subida de archivos (PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, JPG, PNG, ZIP — máx 25MB) y links externos. Tags/metadata. Valoración 👍/👎. Denuncias con motivos configurables + suspensión automática. Panel de moderación admin. **Discord card destacada** (ícono, estilos, botón "Unirse").
-2. **Notificaciones in-app** (punto 8): centro de notificaciones (campanita), disparadores de vencimiento de regularidad, eventos de sesiones y eventos de denuncias.
-3. **Reportes admin** (punto 9): dashboard con métricas de uso, materias más cursadas, tasa de aprobación, materiales más valorados, estadísticas sociales. Exportación CSV/PDF.
-4. **Hardening**: rate limiting, CORS estricto, helmet, validación con Zod en todos los endpoints.
-5. **Tests E2E** (Playwright) de los flujos críticos.
-6. **Deploy** + documentación de entrega.
+
+1. **Materiales avanzados**:
+   - Denuncias con motivos configurables y opción "otro".
+   - Mostrar denuncias pendientes/verificadas.
+   - Suspensión automática por N pendientes o M verificadas.
+   - Material suspendido: metadatos visibles, contenido bloqueado.
+   - Panel de moderación admin.
+   - Notificación al autor y denunciante.
+   - Discord card destacada.
+2. **Notificaciones in-app**:
+   - Centro de notificaciones.
+   - Vencimiento de regularidad.
+   - Eventos de sesiones.
+   - Eventos de denuncias/moderación.
+3. **Reportes y estadísticas admin**:
+   - Uso del sistema.
+   - Materias cursadas/aprobadas por alumno y carrera.
+   - Materiales y sesiones.
+   - Denuncias/moderación.
+   - Métricas sociales.
+4. **Cierre técnico**:
+   - Hardening de permisos, validaciones y errores.
+   - Tests E2E/smoke de flujos críticos.
+   - Seed de demo final.
+   - Deploy.
+   - Manual de usuario y documentación final.
 
 ## Distribución
 
-| Tarea | Owner | Entregable | Branch |
+| Tarea | Owner | Entregable | Branch sugerida |
 |---|---|---|---|
-| Storage de archivos (multer + S3/local, límite 25MB, formatos validados) | Thomas | `material.service.js` + `upload.middleware.js` | `feature/materiales-storage` |
-| CRUD materiales (archivos + links) con tags/metadata + búsqueda | Santino | `material.model.js` + `materiales.controller.js` | `feature/materiales-crud` |
-| Sistema de valoración 👍/👎 + ratio + sort | Santino | `valoracion.service.js` | `feature/materiales-valoracion` |
-| Sistema de denuncias + motivos configurables + suspensión automática | Thomas | `denuncia.model.js` + `moderacion.service.js` | `feature/materiales-denuncias` |
-| Panel de moderación admin | Santino | `moderacion.controller.js` + notificación al autor | `feature/moderacion-admin` |
-| UI repositorio de materiales (lista, filtros, ordenamiento, valoración, denuncia) | Matías | `/frontend/src/pages/materiales/*` | `feature/materiales-ui` |
-| **Discord card destacada** | Matías | componente `DiscordCard.tsx` con estilos temáticos | `feature/discord-card` |
-| Centro de notificaciones in-app (modelo + endpoints + UI campanita) | Santino | `notificacion.model.js` + `NotificacionesBell.tsx` | `feature/notificaciones-inapp` |
-| Agregaciones MongoDB (estadísticas) + endpoints reportes | Thomas | `estadisticas.service.js` + `/api/reportes/*` | `feature/stats-reportes` |
-| Dashboard admin UI (charts con Recharts) + exportación CSV/PDF | Matías | `/frontend/src/pages/admin/dashboard.tsx` | `feature/dashboard-admin` |
-| Hardening (helmet, rate-limit, Zod) | Thomas | middlewares + schemas en todos los endpoints | `feature/hardening` |
-| Tests E2E (Playwright) | Thomas | `/e2e/*` con flujos críticos | `feature/e2e-playwright` |
-| Deploy + docs entrega | Marcos | README final + URLs prod + manuales | `chore/deploy-y-docs-entrega` |
+| Denuncias + motivos configurables | Thomas | Modelos/endpoints + reglas de suspensión | `feature/materiales-denuncias` |
+| Panel moderación admin | Santino | Endpoints admin + estados denuncia | `feature/moderacion-admin` |
+| UI denuncias + moderación | Matías | Denunciar, ver estado, moderar | `feature/moderacion-ui` |
+| Discord card destacada | Matías | Componente visual y detección de link Discord | `feature/discord-card` |
+| Notificaciones in-app | Santino | Modelo/endpoints + campanita UI | `feature/notificaciones-inapp` |
+| Endpoints reportes | Thomas | Agregaciones Mongo para métricas | `feature/reportes-api` |
+| UI reportes admin | Matías | Tablas/gráficos básicos | `feature/reportes-ui` |
+| Hardening validaciones/permisos | Thomas | Validación, autorización y manejo de errores | `feature/hardening` |
+| QA integral + E2E/smoke | Marcos | Flujos críticos documentados y testeados | `test/e2e-smoke` |
+| Deploy + seed demo + docs finales | Marcos + Thomas | URL, README final y manuales | `chore/deploy-docs-finales` |
 
-## DoD del sprint y del proyecto
-- [ ] App desplegada y accesible públicamente.
-- [ ] Materiales: subida de archivos (todos los formatos, hasta 25MB) y links externos funcionales.
-- [ ] Valoraciones 👍/👎 y sistema de denuncias + panel de moderación funcionando.
-- [ ] Discord card con estilos temáticos y botón "Unirse".
-- [ ] Centro de notificaciones in-app con al menos 3 disparadores distintos.
-- [ ] Dashboard admin con al menos 4 gráficos significativos.
-- [ ] CSV y PDF de reportes descargables.
-- [ ] Suite E2E pasa los flujos críticos: registro → login → asistente → materiales → sesión → notificación → reporte admin.
-- [ ] Existe al menos 1 E2E que valida el dashboard admin y la exportación de reportes.
-- [ ] Existe al menos 1 prueba de hardening automatizada (autorización/validación/rate limiting).
-- [ ] README final con badges (CI, coverage, deploy).
-- [ ] Manual de usuario (`docs/manual-usuario.md`) con screenshots.
-- [ ] Manual técnico (`docs/manual-tecnico.md`) con diagramas y decisiones de arquitectura.
-- [ ] Presentación final lista (`docs/entrega-final/`).
+## Definition of Done del sprint y del proyecto
 
-## Cronograma (21 días)
-| Días | Foco |
-|---|---|
-| 1-5 | Materiales: storage, CRUD, valoraciones, denuncias. |
-| 6-9 | Moderación + Discord card + notificaciones in-app. |
-| 10-13 | Reportes + dashboard admin + exportación. |
-| 14-16 | Hardening + Tests E2E. |
-| 17-18 | Deploy + smoke tests en prod. |
-| 19-20 | Documentación final + manuales. |
-| 21 (16/07) | **Entrega final.** |
+- [ ] Denuncias y moderación funcionan end-to-end.
+- [ ] Suspensión automática de materiales probada.
+- [ ] Discord card se ve destacada.
+- [ ] Centro de notificaciones muestra al menos 3 disparadores.
+- [ ] Dashboard admin cubre uso, académico, materiales, sesiones y social.
+- [ ] Hay seed de demo final reproducible.
+- [ ] App desplegada y documentada.
+- [ ] Tests/smoke principales pasan.
+- [ ] README final, manual de usuario y manual técnico actualizados.
+- [ ] Trello está alineado con el estado final.
 
 ## Riesgos
-- Storage S3: configurar bucket + IAM con tiempo suficiente; si no, usar local con `MAX_FILE_SIZE` y limpieza periódica.
-- Atlas/Render free tier puede tener cold starts → documentar al evaluador.
-- Playwright en CI: si tarda mucho, correr E2E sólo en `main` (no en cada PR).
-- Última semana antes del recuperatorio (23/07): no agregar features, sólo bugfixes.
 
-## Post-entrega
-- Recuperatorio de parcial: 23/07. Equipo disponible para fix-ups si algo se rompió.
-- Retrospectiva del proyecto completo: documentar lecciones aprendidas en `docs/retrospectiva-final.md`.
+- Reportes pueden consumir tiempo si se busca demasiada precisión; priorizar métricas demostrables.
+- No dejar deploy para el último día.
+- La última semana debe ser bugfix, datos demo y documentación, no features nuevas.
 
+## Cronograma
+
+| Días | Foco |
+|---|---|
+| 1-4 | Denuncias, moderación y Discord card. |
+| 5-7 | Notificaciones in-app. |
+| 8-11 | Reportes API + dashboard admin. |
+| 12-14 | Hardening + tests/smoke. |
+| 15-17 | Deploy + seed demo. |
+| 18-20 | Documentación final, manuales y bug bash. |
+| 21 | Review final del sprint. |

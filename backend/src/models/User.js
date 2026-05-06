@@ -21,6 +21,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['student', 'admin'],
     default: 'student'
+  },
+  carrera: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Career'
+  },
+  planEstudio: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'StudyPlan'
   }
 }, {
   timestamps: true

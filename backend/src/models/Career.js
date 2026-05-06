@@ -25,6 +25,15 @@ const careerSchema = new mongoose.Schema({
   cantidadMaterias: {
     type: Number,
     default: 0
+  },
+  creditosNecesarios: {
+    type: Number,
+    default: 0
+  },
+  nivelInglesRequerido: {
+    type: String,
+    enum: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Ninguno'],
+    default: 'B1'
   }
 }, {
   timestamps: true

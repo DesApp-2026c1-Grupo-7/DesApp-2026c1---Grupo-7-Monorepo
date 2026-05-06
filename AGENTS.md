@@ -4,304 +4,275 @@
 
 ---
 
-## RULE 0 — Cerrar lo que se hace (regla obligatoria para agentes)
+## RULE 0 — Cerrar lo que se hace
 
-Cada vez que un agente termine una tarea, **antes de devolver el control al usuario debe**:
+Cada vez que un agente termine una tarea, antes de devolver el control al usuario debe:
 
-1. **Marcar la card de Trello como hecha**: mover a la lista `Hecho en este sprint` y marcar todos los ítems del checklist "Definition of Done" como `complete`. Board: https://trello.com/b/aUEcBwaC/desapp-2026c1-grupo-7
-2. **Abrir o actualizar el PR hacia `dev`** (no a `main`), dejarlo con CI verde, **pedir review y esperar la aprobación requerida antes de mergear**, siguiendo el flujo oficial definido en `CONTRIBUTING.md`.
-3. **Actualizar este archivo** si la tarea cambió el plan: tachar lo cerrado en el backlog, anotar lo que quedó pendiente.
+1. **Marcar la card de Trello como hecha**: mover a `Hecho en este sprint` y marcar todos los ítems del checklist "Definition of Done" como `complete`. Board: https://trello.com/b/aUEcBwaC/desapp-2026c1-grupo-7
+2. **Abrir o actualizar el PR hacia `dev`** (no a `main`), dejarlo con CI verde, pedir review y esperar la aprobación requerida antes de mergear, siguiendo `CONTRIBUTING.md`.
+3. **Actualizar este archivo** si la tarea cambió el plan: tachar lo cerrado en el backlog, anotar lo pendiente.
 4. **Hacer push** del trabajo al remoto antes de cerrar la sesión.
 
-Si una tarea no se cerró del todo, marcar **explícitamente** qué quedó pendiente y crear una card nueva — nunca dejar trabajo "fantasma".
+Si una tarea no se cerró del todo, marcar explícitamente qué quedó pendiente y crear/actualizar una card nueva. No dejar trabajo "fantasma".
 
 ---
 
-## Cronograma del cuatrimestre (cátedra)
+## Cronograma del cuatrimestre
 
 | Fecha | Hito |
 |---|---|
 | 07/05 | **Sprint 1 review + Sprint 2 planning** |
 | 21/05 | **Sprint 2 review + Sprint 3 planning** |
 | 04/06 | **Sprint 3 review + Sprint 4 planning** |
-| 11/06 | 🎯 **Presentación medio término** |
+| 11/06 | **Presentación medio término** |
 | 25/06 | **Sprint 4 review + Sprint 5 planning** |
 | 16/07 | **Sprint 5 review** |
-| 23/07 | 🎯 **Presentación final** |
-
-5 sprints de ~2 semanas. El plan asume ~10h/persona/sprint = 40h/equipo/sprint = ~200h totales.
+| 23/07 | **Presentación final** |
 
 ---
 
-## Equipo y responsabilidades por defecto
+## Equipo
 
 | Integrante | GitHub | Foco principal | Backup |
 |---|---|---|---|
-| **Thomas Casco** | @ThomasCasco | Backend + coordinación + DevOps | Frontend |
-| **Santino Galdín** | @SantinoGaldin1 | Backend + modelado de datos | Backend |
-| **Matías López** | @Matias1345 | Frontend (React) | Frontend |
-| **Marcos Bejarano** | @Marcos0129 | Análisis + UX + frontend liviano | Docs |
+| Thomas Casco | @ThomasCasco | Backend + coordinación + DevOps | Frontend |
+| Santino Galdín | @SantinoGaldin1 | Backend + modelado de datos | Backend |
+| Matías López | @Matias1345 | Frontend (React) | Frontend |
+| Marcos Bejarano | @Marcos0129 | Análisis + UX + frontend liviano | Docs |
 
 Reglas de asignación:
-- Cada card de Trello tiene **un dueño único**.
+- Cada card de Trello tiene un dueño único.
 - Si alguien queda sin tarea, toma la siguiente del backlog priorizado.
 - Bloqueos se avisan en el grupo el mismo día.
 
 ---
 
-## Estado actual (al cierre de Sprint 1, 2026-05-05)
+## Estado actual al 06/05/2026
 
-✅ Setup técnico (CI, branching, CONTRIBUTING, README, arquitectura)
-✅ Actores y funcionalidades (Marcos)
-✅ DER definitivo (Santino)
-✅ Frontend skeleton con navegación + login/registro dummy (Matías)
-✅ Backend skeleton con `/api/health` y conexión Mongo (Thomas)
+La ficha original de Sprint 1 pedía llegar a una versión preliminar funcional hasta el punto 4 del TP. Por eso el PR #10, aunque estaba nombrado como Sprint 2, en realidad corresponde al cierre funcional de Sprint 1.
 
-**Estado del código:** sin lógica de negocio. Todo lo que sigue es construir la app.
+### Ya mergeado
+
+- Setup técnico: CI, branching, CONTRIBUTING, README, arquitectura.
+- Actores y funcionalidades.
+- DER definitivo.
+- Frontend skeleton con navegación, login/registro y layout.
+- Backend skeleton con `/api/health` y conexión Mongo.
+- Auth real y guards de navegación por rol en PR #8/#9.
+
+### Hecho pero pendiente de cierre
+
+- PR #10 abierto contra `dev`: CRUD académico completo, situación académica, import Excel/CSV, inscripciones, finales y asistente académico básico.
+- Review de Copilot con comentarios a resolver.
+- Falta mergear PR #10 para que el trabajo cuente como cerrado.
+
+### Pendiente crítico de Sprint 1
+
+- Tests reales. Hoy `backend npm test` sigue siendo placeholder.
+- Ajustes de integridad detectados en review del PR #10.
+- Actualizar Trello para que la card de Sprint 1 refleje "parcialmente completo hasta merge + tests".
+
+Ver detalle en `docs/sprint-1/cierre-sprint-1.md`.
 
 ---
 
-## Backlog completo (los 9 puntos del TP)
+## Backlog por punto del TP
 
 ### Punto 1 — Gestión de Usuarios
-- [ ] Modelo `User` + discriminators `Estudiante` / `Administrador`
-- [ ] Registro de estudiante (autoinscripción)
-- [ ] Login con JWT (estudiante y admin)
-- [ ] Seed del admin inicial al arrancar la app
-- [ ] Admin da de alta otros admins
-- [ ] Admin lista todas las cuentas
-- [ ] Admin suspende/reactiva cuentas
 
-### Punto 2 — Configuración Académica (admin)
-**2.1 Carreras y Planes**
-- [ ] CRUD Carreras (nombre, título, instituto, duración en años)
-- [ ] CRUD Planes de estudio (nombre, estado: Vigente/En transición/Discontinuado)
-- [ ] Una carrera puede tener varios planes
+- [x] Modelo `User` con roles `student` / `admin`.
+- [x] Registro de estudiante.
+- [x] Login con JWT.
+- [x] Seed del admin inicial.
+- [x] Guards frontend por rol.
+- [ ] Discriminators `Estudiante` / `Administrador`, o decisión documentada de usar `role`.
+- [ ] Admin da de alta otros admins.
+- [ ] Admin lista todas las cuentas.
+- [ ] Admin suspende/reactiva cuentas.
+- [ ] Tests de auth/autorización.
 
-**2.2 Plan de Estudios**
-- [ ] Carga de materias en un plan (año, anual/cuatrimestral)
-- [ ] Condiciones especiales: materias UNaHur, niveles de inglés, créditos
-- [ ] Materias optativas para créditos
-- [ ] Definición de **correlatividades** (materias requisito)
+### Punto 2 — Configuración Académica
 
-### Punto 3 — Gestión de Situación Académica (estudiante)
-- [ ] Modelo `SituacionMateria` por estudiante (aprobada / regularizada / cursando, año, cuatrimestre)
-- [ ] Carga inicial **manual** desde la UI
-- [ ] Carga inicial **desde Excel** con preview + corrección antes de confirmar
-- [ ] Validación y errores visibles en el preview del Excel
-- [ ] Inscripción a materias de cada cuatrimestre (al inicio)
-- [ ] Registro de resultado de cuatrimestre (al final)
-- [ ] Registro de presentaciones a finales (intentos)
-- [ ] Carga de actividades con créditos
+- [x] CRUD Carreras.
+- [x] CRUD Planes de estudio.
+- [x] Una carrera puede tener varios planes.
+- [x] Carga de materias en un plan.
+- [x] Materias con año y cuatrimestre/anual.
+- [x] Correlatividades.
+- [x] Créditos, materias UNAHUR y optativas.
+- [x] Nivel de inglés requerido.
+- [ ] Campos exactos de carrera: título, instituto, duración estimada.
+- [ ] Estado de plan exacto: Vigente, En transición, Discontinuado.
+- [ ] Tests de CRUD académico y correlatividades.
+
+### Punto 3 — Gestión de Situación Académica
+
+- [x] Modelo de situación por estudiante y materia (`Grade`).
+- [x] Carga manual desde UI.
+- [x] Carga desde Excel/CSV.
+- [x] Inscripción a materias al inicio de cuatrimestre.
+- [x] Registro de resultado de cuatrimestre.
+- [x] Registro de presentaciones a finales.
+- [ ] Preview real del Excel antes de confirmar.
+- [ ] Corrección de filas del Excel antes de confirmar.
+- [ ] Actividades con créditos.
+- [ ] Tests de situación, importación, inscripción y finales.
 
 ### Punto 4 — Asistente Académico
-**4.1 Análisis de situación actual**
-- [ ] Materias en las que puede inscribirse (respetando correlatividades)
-- [ ] Finales pendientes con intentos previos y vencimiento de regularidad
-- [ ] Otras condiciones para recibirse: créditos faltantes, materias UNaHur faltantes
-- [ ] Análisis por año de cursada (aprobadas / regularizadas / faltantes por año)
-- [ ] Porcentaje de avance en la carrera
-- [ ] **Plus**: filtro por oferta académica del período (admin carga la oferta)
 
-**4.2 Proyecciones**
-- [ ] "¿Qué pasa si...?" — qué desbloquea regularizar materias del cuatri actual
-- [ ] Planificador de cursada según horas/semana, hasta recibirse, respetando correlatividades
-- [ ] El estudiante puede mover materias en el planificador y ver carga horaria
-- [ ] **Plus**: comparar rendimiento real vs plan
-- [ ] **Plus**: guardar varios planes
+- [x] Materias en las que puede inscribirse respetando correlatividades.
+- [x] Finales pendientes.
+- [x] Créditos faltantes y materias UNAHUR faltantes.
+- [x] Análisis por año.
+- [x] Porcentaje de avance.
+- [x] Proyección básica agrupada por año/cuatrimestre.
+- [ ] Vencimiento de regularidad en finales pendientes.
+- [ ] Oferta académica por período y filtro de inscribibles.
+- [ ] "¿Qué pasa si...?"
+- [ ] Planificador de cursada por horas/semana hasta recibirse.
+- [ ] Movimiento manual de materias y carga horaria por cuatrimestre.
+- [ ] Plus: comparar rendimiento real vs plan.
+- [ ] Plus: guardar varios planes.
+- [ ] Tests de algoritmos del asistente.
 
 ### Punto 5 — Red Social Académica
-**5.1 Perfil**
-- [ ] Datos personales + carrera/s + situación académica + foto
-- [ ] Privacidad: público / privado
-- [ ] Toggles: mostrar email, mostrar situación académica, publicar eventos
 
-**5.2 Conexiones**
-- [ ] Invitación por email (mail desde la app)
-- [ ] Aceptar/rechazar via link (con login previo si hace falta)
-- [ ] Si el destinatario no está registrado, avisar al invitador
-- [ ] Pantalla "mis contactos" + solicitudes pendientes
-
-**5.3 Feed**
-- [ ] Eventos académicos de contactos (inscripción, regularización, aprobación)
-- [ ] Posteos manuales de estudiantes
-- [ ] Toggle por estudiante de qué eventos publicar
+- [ ] Perfil de estudiante con datos, carrera/s, situación y foto.
+- [ ] Privacidad público/privado.
+- [ ] Toggles de email, situación académica y publicación de eventos.
+- [ ] Invitaciones por email.
+- [ ] Aceptar/rechazar vía link con login previo.
+- [ ] Aviso si destinatario no está registrado.
+- [ ] Mis contactos y solicitudes pendientes.
+- [ ] Feed de eventos académicos y posteos manuales.
 
 ### Punto 6 — Sesiones de Estudio Colaborativo
-- [ ] Crear sesión: materia, tema, tipo (virtual/presencial), fecha, duración, cupos, descripción, requiere aprobación
-- [ ] Visibilidad según perfil del creador (público = todos, privado = sólo contactos)
-- [ ] Filtros de búsqueda
-- [ ] Inscripción de estudiantes
-- [ ] Aprobación manual del creador (si corresponde)
-- [ ] Email de confirmación al inscripto
-- [ ] Editar / cancelar sesión (con notificación a inscriptos)
-- [ ] Recordatorio automático 24h antes (job)
 
-### Punto 7 — Repositorio de Materiales por Materia
-**7.1 Publicación**
-- [ ] Subida de archivos (PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, JPG, PNG, ZIP — máx 25MB)
-- [ ] Carga de links externos (YouTube, Drive, Dropbox, web, Discord, GitHub)
-- [ ] Tags / metadata para búsqueda
-- [ ] Listado y filtros para consulta
+- [ ] Crear sesión con todos los campos de la consigna.
+- [ ] Visibilidad según privacidad del creador.
+- [ ] Filtros de búsqueda.
+- [ ] Inscripción de estudiantes.
+- [ ] Aprobación manual del creador.
+- [ ] Email de confirmación.
+- [ ] Editar/cancelar con notificación.
+- [ ] Recordatorio automático 24h antes.
 
-**7.2 Valoración**
-- [ ] 👍 / 👎 por estudiante
-- [ ] Totales y ratio en listado
-- [ ] Ordenar por valoración
+### Punto 7 — Repositorio de Materiales
 
-**7.3 Denuncias**
-- [ ] Motivos configurables por admin + opción "otro" con texto libre
-- [ ] Mostrar en listado si hay denuncias pendientes/verificadas
-- [ ] Suspensión automática si supera N pendientes o M verificadas (N y M configurables por admin)
-- [ ] Material suspendido: se ven metadatos pero no el contenido
+- [ ] Subida de archivos permitidos hasta 25MB.
+- [ ] Links externos.
+- [ ] Tags/metadata.
+- [ ] Listado y filtros.
+- [ ] Valoración pulgar arriba/abajo, totales, ratio y ordenamiento.
+- [ ] Denuncias, motivos configurables, suspensión automática.
+- [ ] Panel de moderación admin.
+- [ ] Discord card destacada.
 
-**7.4 Panel de moderación (admin)**
-- [ ] Listado de denuncias con filtros
-- [ ] Acceso al material denunciado/suspendido
-- [ ] Confirmar / rechazar denuncia
-- [ ] Notificar al autor del material y al denunciante
+### Punto 8 — Notificaciones
 
-**7.5 Discord destacado**
-- [ ] Visualización especial: ícono Discord, nombre del servidor, descripción del canal, estilos Discord, botón "Unirse"
+- [ ] Centro de notificaciones in-app.
+- [ ] Vencimiento de regularidad.
+- [ ] Eventos de sesiones.
+- [ ] Eventos de denuncias.
 
-### Punto 8 — Notificaciones in-app
-- [ ] Centro de notificaciones dentro de la app (mismo contenido que el email)
-- [ ] Disparadores: vencimiento de regularidad, eventos de sesiones, eventos de denuncias
+### Punto 9 — Reportes y Estadísticas
 
-### Punto 9 — Reportes y Estadísticas (admin)
-**Uso del sistema**
-- [ ] Usuarios activos
-- [ ] Distribución de materias cursadas/aprobadas por alumno
-- [ ] Materias cursadas/aprobadas por carrera
-- [ ] Materias con más materiales compartidos
-- [ ] Sesiones creadas por período
-- [ ] Materiales más valorados por materia
-- [ ] Estadísticas de denuncias y moderación
-
-**Sociales**
-- [ ] Conexiones por estudiante
-- [ ] Utilización de sesiones
-- [ ] Carreras con comunidad más activa
+- [ ] Usuarios activos.
+- [ ] Materias cursadas/aprobadas por alumno.
+- [ ] Materias cursadas/aprobadas por carrera.
+- [ ] Materias con más materiales compartidos.
+- [ ] Sesiones creadas por período.
+- [ ] Materiales más valorados por materia.
+- [ ] Estadísticas de denuncias/moderación.
+- [ ] Conexiones por estudiante.
+- [ ] Utilización de sesiones.
+- [ ] Carreras con comunidad más activa.
 
 ---
 
-## Plan por sprint
+## Plan por sprint actualizado
 
-### 🚀 Sprint 2 (07/05 → 21/05) — Núcleo académico hasta el asistente
+### Sprint 2 (07/05 → 21/05) — Cerrar puntos 1 a 4
 
-**Objetivo de demo:** un admin crea una carrera con un plan y materias con correlatividades, un estudiante se registra, carga su situación académica manual, y el asistente le muestra a qué materias se puede inscribir + % avance.
+Objetivo de demo: puntos 1 a 4 funcionando con tests básicos y PR #10 cerrado.
 
-**Asignación tentativa:**
+Tareas principales:
+- Resolver review, CI y merge de PR #10.
+- Tests reales de auth, CRUD académico, situación y asistente.
+- Admin crea admins, lista cuentas y suspende/reactiva.
+- Alinear carrera/plan con campos exactos de la consigna.
+- Excel con preview, errores y corrección antes de confirmar.
+- Actividades con créditos.
+- Oferta académica, "qué pasa si" y planificador por horas.
 
-| Tarea | Owner | Backup |
-|---|---|---|
-| Auth: modelo User+discriminators, registro estudiante, login, seed admin inicial | **Thomas** | Santino |
-| CRUD Carreras + Planes (back + endpoints) | **Santino** | Thomas |
-| CRUD Materias en plan + correlatividades (back) | **Santino** | Thomas |
-| Pantallas admin: gestión de carreras / planes / materias / correlatividades | **Matías** | Marcos |
-| Pantalla estudiante: carga de situación académica manual | **Matías** | Marcos |
-| Endpoints situación académica (CRUD `SituacionMateria`) | **Thomas** | Santino |
-| Asistente — endpoints: inscribibles, finales pendientes, % avance, análisis por año | **Thomas** | Santino |
-| Pantalla asistente: dashboard con análisis de situación actual | **Matías** | Marcos |
-| Documentación de endpoints (Postman / OpenAPI rápido) y casos de uso del sprint | **Marcos** | Thomas |
+Detalle: `docs/sprint-2/ficha.md`.
 
-**Fuera de scope del sprint 2** (queda para 3): Excel import, "qué pasa si", planificador, oferta académica.
+### Sprint 3 (21/05 → 04/06) — Red social académica
 
-**Definition of Done del sprint:**
-- Todos los endpoints con tests de humo (al menos 1 happy path)
-- Frontend conectado al backend, no mocks
-- README actualizado con cómo correr la demo end-to-end
+Objetivo de demo: dos estudiantes editan perfil, se conectan por invitación y ven feed.
 
----
+Tareas principales:
+- Perfil, foto, privacidad y toggles.
+- Servicio de email.
+- Invitaciones, contactos y solicitudes.
+- Feed de eventos académicos y posteos.
+- Tests y documentación de demo.
 
-### 🚀 Sprint 3 (21/05 → 04/06) — Cierre del asistente + arranque social
+Detalle: `docs/sprint-3/ficha.md`.
 
-**Objetivo de demo:** asistente completo (con planificador y "qué pasa si"), import de Excel para situación académica, perfiles de estudiante con privacidad.
+### Sprint 4 (04/06 → 25/06) — Sesiones + materiales base
 
-| Tarea | Owner | Backup |
-|---|---|---|
-| Excel import de situación académica con preview + errores | **Thomas** | Santino |
-| Endpoints + lógica "¿Qué pasa si...?" | **Santino** | Thomas |
-| Endpoint planificador de cursada por horas/semana | **Santino** | Thomas |
-| UI planificador (drag de materias, carga horaria por cuatri) | **Matías** | Thomas |
-| Oferta académica por período (admin) — modelo + CRUD | **Thomas** | Santino |
-| Filtro de inscribibles por oferta académica | **Thomas** | Santino |
-| Perfil de estudiante: datos, foto, privacidad | **Matías** | Marcos |
-| Endpoints perfil con visibilidad pública/privada | **Santino** | Thomas |
-| Validación, manejo de errores y polish para presentación medio término | **Marcos** | Todos |
+Objetivo de demo: sesiones de estudio colaborativo funcionando y repositorio de materiales con valoración.
 
----
+Tareas principales:
+- Crear/listar/filtrar sesiones.
+- Inscripción, aprobación, emails y recordatorio 24h.
+- Storage de materiales, links, tags y búsqueda.
+- Valoraciones y orden por valoración.
 
-### 🚀 Sprint 4 (04/06 → 25/06) — Red social + sesiones (post-presentación medio término 11/06)
+Detalle: `docs/sprint-4/ficha.md`.
 
-**Objetivo de demo:** dos estudiantes se conectan, ven feed con eventos, y crean/se inscriben a una sesión de estudio con email de confirmación.
+### Sprint 5 (25/06 → 16/07) — Moderación, notificaciones, reportes y cierre
 
-| Tarea | Owner | Backup |
-|---|---|---|
-| Sistema de invitaciones por email + aceptar/rechazar | **Thomas** | Santino |
-| Modelo + endpoints de contactos | **Santino** | Thomas |
-| UI de contactos + solicitudes pendientes | **Matías** | Marcos |
-| Modelo + endpoints `EventoFeed` (inscripciones, regularizaciones, aprobaciones, posteos) | **Santino** | Thomas |
-| UI feed de novedades + posteos | **Matías** | Marcos |
-| Sesiones de estudio: modelo + CRUD + visibilidad por privacidad del creador | **Thomas** | Santino |
-| Inscripción a sesión + aprobación manual + email de confirmación | **Thomas** | Santino |
-| UI sesiones: crear, listar con filtros, inscribirse, gestionar | **Matías** | Marcos |
-| Storage de archivos (definir: filesystem local, S3, Cloudinary) y subida con límite 25MB | **Thomas** | Santino |
-| CRUD materiales (archivos + links) con tags/metadata + búsqueda + validación de formatos permitidos | **Santino** | Thomas |
-| Casos de prueba de los flujos sociales, sesiones y materiales | **Marcos** | Todos |
+Objetivo de demo: app end-to-end estable, desplegada y lista para final.
 
----
+Tareas principales:
+- Denuncias y panel de moderación.
+- Discord card destacada.
+- Notificaciones in-app.
+- Reportes admin.
+- Hardening, tests/smoke, seed demo, deploy y documentación final.
 
-### 🚀 Sprint 5 (25/06 → 16/07) — Reportes + cierre
+Detalle: `docs/sprint-5/ficha.md`.
 
-**Objetivo de demo:** cerrar la app end-to-end, estabilizar lo entregado y llegar a la review final con reportes, métricas y flujos completos validados.
+### Cierre (16/07 → 23/07)
 
-| Tarea | Owner | Backup |
-|---|---|---|
-| Reportes operativos y métricas finales para la demo | **Santino** | Thomas |
-| QA integral de flujos end-to-end + corrección de bugs de cierre | **Marcos** | Todos |
-| Hardening de permisos, validaciones y manejo de errores | **Thomas** | Santino |
-| Ajustes finales de UX/UI y consistencia entre pantallas | **Matías** | Marcos |
-| Preparación de demo, datos semilla y recorrido de presentación | **Matías** | Marcos |
-| Cierre técnico: documentación, smoke tests y checklist final de entrega | **Thomas** | Santino |
-| Panel de moderación (admin) | **Santino** | Thomas |
-| UI repositorio de materiales por materia + filtros + ordenamiento | **Matías** | Marcos |
-| UI denuncias (estudiante) + UI moderación (admin) | **Matías** | Marcos |
-| **Discord card destacada** (icono, estilos, botón Unirse) | **Matías** | Marcos |
-| Centro de notificaciones in-app (modelo + endpoints + UI campanita) | **Santino** | Matías |
-| Endpoints de reportes (uso del sistema + sociales) | **Thomas** | Santino |
-| UI reportes admin con tablas/gráficos básicos | **Matías** | Marcos |
-| Documentación final + manual de usuario + README de la presentación | **Marcos** | Todos |
-
----
-
-### 🏁 Cierre (16/07 → 23/07) — Pulido y presentación final
-
-- [ ] Bug bash de todo el equipo
-- [ ] Seed de datos de demo (1 admin, 2-3 estudiantes con relaciones, 1 carrera con plan completo)
-- [ ] Deploy a algún servicio (definir: Render, Railway, Fly, etc.)
-- [ ] Slides de la presentación final
-- [ ] Ensayo de la demo
+- [ ] Bug bash de todo el equipo.
+- [ ] Seed de datos de demo final.
+- [ ] Deploy verificado.
+- [ ] Slides de presentación final.
+- [ ] Ensayo de demo.
 
 ---
 
 ## Convenciones técnicas
 
-Todo lo que sigue está documentado en detalle en `CONTRIBUTING.md`, `docs/arquitectura.md` y `README.md`. Resumen para agentes:
-
-- **Branching**: `main` ← `dev` ← `feature/*` / `fix/*` / `docs/*`. Nunca PR directo a `main`.
-- **Commits**: Conventional Commits en español (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`).
-- **PRs**: contra `dev`, con plantilla, CODEOWNERS aprueba, CI tiene que estar verde.
-- **Backend**: Node 20 + Express 5 + Mongoose. Estructura `src/{config,controllers,services,models,routes,middlewares,utils}`.
-- **Frontend**: React 19 + Vite + TypeScript. Estructura `src/{pages,components,hooks,services,layouts,styles}`.
-- **Variables de entorno**: nunca commitear `.env`. Mantener `.env.example` actualizado.
+- Branching: `main` ← `dev` ← `feature/*` / `fix/*` / `docs/*`.
+- Nunca PR directo a `main`.
+- Commits: Conventional Commits en español (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`).
+- PRs contra `dev`, con plantilla, CODEOWNERS y CI verde.
+- Backend: Node 20 + Express 5 + Mongoose.
+- Frontend: React 19 + Vite + TypeScript.
+- Variables de entorno: nunca commitear `.env`; mantener `.env.example` actualizado.
 
 ---
 
-## Cómo agregar/cerrar trabajo (recordatorio para agentes)
+## Cómo agregar/cerrar trabajo
 
-1. Antes de empezar: leer este archivo, leer `docs/arquitectura.md`, mirar la card de Trello asignada.
+1. Leer este archivo, `docs/arquitectura.md` y la card de Trello asignada.
 2. Crear branch desde `dev`: `git checkout dev && git pull && git checkout -b feature/nombre-descriptivo`.
-3. Trabajar, commitear, pushear.
-4. PR contra `dev`, esperar CI, mergear.
-5. **Aplicar RULE 0** (mover card, marcar checklist, actualizar este archivo, push).
+3. Trabajar, testear, commitear y pushear.
+4. Abrir PR contra `dev`.
+5. Esperar CI verde y review aprobada.
+6. Mergear.
+7. Aplicar RULE 0.

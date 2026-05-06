@@ -1,55 +1,67 @@
 # Sprint 3 — 21/05 → 04/06
 
-**Objetivo:** completar el **punto 4 del TP** (algoritmos §3 y §4 del asistente, Excel import) y arrancar el **punto 5** con el perfil de estudiante.
+**Objetivo:** arrancar y dejar demostrable el punto 5, Red Social Académica, más una base de email reutilizable para conexiones y sesiones.
 
-> Alineado con `AGENTS.md` — sección Sprint 3. Este sprint llega al parcial con el asistente completo.
+> Este sprint asume que Sprint 2 cerró los puntos 1 a 4. Si queda deuda crítica del asistente o tests, entra como bugfix/hardening, no como feature nueva.
 
 ## Alcance
-1. **Excel import** de situación académica (con preview + validación de errores antes de confirmar).
-2. **Algoritmo §3** — "¿Qué pasa si...?": qué materias desbloquea regularizar el cuatri actual.
-3. **Algoritmo §4** — Planificador de cursada según horas/semana, hasta recibirse, respetando correlatividades.
-4. **Oferta académica por período** (admin carga las materias ofrecidas): modelo + CRUD + filtro en §1.
-5. **Perfil de estudiante**: datos personales, foto, privacidad (público/privado), toggles de visibilidad.
-6. **Tests de integración** (supertest contra API real) y pulido UX del asistente (feedback de sprint 2).
+
+1. **Perfil de estudiante**:
+   - Datos personales.
+   - Carrera/s y situación académica visible según permisos.
+   - Foto.
+   - Privacidad público/privado.
+   - Toggles para mostrar email, mostrar situación académica y publicar eventos.
+2. **Conexiones**:
+   - Invitación por email.
+   - Aceptar/rechazar por link.
+   - Login previo si el usuario no está autenticado.
+   - Aviso al invitador si el email no pertenece a un usuario registrado.
+   - Pantalla de contactos y solicitudes pendientes.
+3. **Feed inicial**:
+   - Eventos académicos de contactos: inscripción, regularización, aprobación.
+   - Posteos manuales de estudiantes.
+   - Respeto de toggles de publicación.
+4. **Email transaccional base**:
+   - Servicio de mail en dev con Ethereal/Mailtrap.
+   - Templates simples para invitaciones y avisos.
 
 ## Distribución
 
-| Tarea | Owner | Entregable | Branch |
+| Tarea | Owner | Entregable | Branch sugerida |
 |---|---|---|---|
-| Excel import con preview + errores | Thomas | `POST /api/situacion/import` + parser con `xlsx` (SheetJS) | `feature/excel-import` |
-| Algoritmo §3 ("¿qué pasa si...?") endpoint + tests | Santino | `quePasaSi.service.js` + tests | `feature/asistente-que-pasa-si` |
-| Algoritmo §4 (planificador) endpoint + tests | Santino | `planificador.service.js` + tests | `feature/asistente-planificador` |
-| UI planificador (materias por cuatri, carga horaria) | Matías | `/frontend/src/pages/asistente/Planificador.tsx` | `feature/asistente-planificador-ui` |
-| UI "¿qué pasa si?" | Matías | `/frontend/src/pages/asistente/QuePasaSi.tsx` | `feature/asistente-que-pasa-si-ui` |
-| Oferta académica por período (modelo + CRUD admin) | Thomas | `oferta.model.js` + endpoints | `feature/oferta-academica` |
-| Perfil de estudiante (modelo + endpoints + privacidad) | Santino | `perfil.controller.js` + middleware visibilidad | `feature/perfil-estudiante` |
-| UI perfil (foto, datos, toggles de privacidad) | Matías | `/frontend/src/pages/perfil/*` | `feature/perfil-ui` |
-| Tests de integración (supertest) + polish UX | Marcos | `/backend/tests/integration/*` | `feature/tests-integracion` |
+| Modelo + endpoints de perfil y privacidad | Santino | `perfil.controller.js`, reglas de visibilidad | `feature/perfil-estudiante` |
+| UI perfil con foto y toggles | Matías | Pantalla perfil conectada | `feature/perfil-ui` |
+| Servicio de email dev + templates | Thomas | `email.service.js` configurado por `.env` | `feature/email-service` |
+| Invitaciones por email + aceptar/rechazar | Thomas | Endpoints + tokens de invitación | `feature/invitaciones-email` |
+| Modelo + endpoints de contactos | Santino | Contactos y solicitudes pendientes | `feature/contactos` |
+| UI contactos y solicitudes | Matías | Pantalla "mis contactos" | `feature/contactos-ui` |
+| Modelo + endpoints feed/eventos/posteos | Santino | `EventoFeed` + endpoints | `feature/feed` |
+| UI feed | Matías | Feed con eventos y posteos | `feature/feed-ui` |
+| Casos de uso y pruebas sociales | Marcos | Tests + documentación de demo | `test/social-basico` |
 
-## DoD
-- [ ] Estudiante puede importar situación desde Excel, con preview de errores antes de confirmar.
-- [ ] "¿Qué pasa si...?" muestra correctamente qué materias nuevas se desbloquean.
-- [ ] Planificador genera un plan cuatrimestre a cuatrimestre hasta recibirse dado un límite de horas/semana.
-- [ ] Admin puede gestionar la oferta académica del período y el filtro de inscribibles la respeta.
-- [ ] Perfil de estudiante con privacidad funcional.
-- [ ] Cobertura de tests backend > 60%.
+## Definition of Done
+
+- [ ] Un estudiante puede editar perfil y privacidad.
+- [ ] Dos estudiantes pueden conectarse por invitación de email.
+- [ ] Se pueden aceptar/rechazar solicitudes con login previo si hace falta.
+- [ ] Feed muestra eventos académicos y posteos respetando privacidad/toggles.
+- [ ] Hay tests de los endpoints principales.
 - [ ] CI verde.
-
-## Pre-medio término (11/06)
-La cátedra evalúa parcialito el 11/06. Sprint 3 cierra el 04/06 — el equipo estudia con el asistente completo andando como referencia.
-
-## Cronograma (14 días)
-| Días | Foco |
-|---|---|
-| 1-3 | Excel import + algoritmo §3 con tests. |
-| 4-7 | Algoritmo §4 (planificador) + oferta académica. |
-| 8-10 | UI planificador + UI "¿qué pasa si?". |
-| 11-12 | Perfil de estudiante (back + front). |
-| 13 | Tests de integración + bugfix. |
-| 14 | Demo + retro. |
+- [ ] Demo preparada para antes de la presentación de medio término.
 
 ## Riesgos
-- Parser de Excel puede consumir tiempo: usar `xlsx` (SheetJS), no reinventar.
-- Algoritmo del planificador tiene casos borde no triviales — destinar 2 días completos a esto.
-- Frontend del planificador con drag & drop: usar `@dnd-kit/core`.
 
+- Email puede trabarse por configuración externa; usar proveedor de desarrollo desde el día 1.
+- Privacidad cruza perfil, contactos y feed; definir reglas simples antes de implementar.
+- Si el punto 4 queda incompleto, priorizar estabilidad antes de sumar feed avanzado.
+
+## Cronograma
+
+| Días | Foco |
+|---|---|
+| 1-3 | Perfil, privacidad y servicio de email. |
+| 4-6 | Invitaciones y contactos. |
+| 7-9 | Feed y eventos académicos. |
+| 10-12 | UI completa + pruebas. |
+| 13-14 | Demo, bugfixes y documentación. |

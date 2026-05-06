@@ -21,8 +21,14 @@ import Notifications from "./pages/student/Notifications";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminCareers from "./pages/admin/AdminCareers";
 import CreateCareer from "./pages/admin/CreateCareer";
+import EditCareer from "./pages/admin/EditCareer";
 import StudyPlans from "./pages/admin/StudyPlans";
+import CreateStudyPlan from "./pages/admin/CreateStudyPlan";
+import EditStudyPlan from "./pages/admin/EditStudyPlan";
+import StudyPlanDetail from "./pages/admin/StudyPlanDetail";
 import Subjects from "./pages/admin/Subjects";
+import CreateSubject from "./pages/admin/CreateSubject";
+import EditSubject from "./pages/admin/EditSubject";
 import Moderation from "./pages/admin/Moderation";
 
 const getActiveUser = (): { role?: string } | null => {
@@ -91,8 +97,14 @@ const App = () => {
           <Route index element={<AdminDashboard />} />
           <Route path="carreras" element={<AdminCareers />} />
           <Route path="carreras/nueva" element={<CreateCareer />} />
+          <Route path="carreras/editar/:id" element={<EditCareer />} />
           <Route path="studyplans" element={<StudyPlans />} />
+          <Route path="studyplans/nuevo" element={<CreateStudyPlan />} />
+          <Route path="studyplans/editar/:id" element={<EditStudyPlan />} />
+          <Route path="studyplans/:id" element={<StudyPlanDetail />} />
           <Route path="subjects" element={<Subjects />} />
+          <Route path="subjects/nueva" element={<CreateSubject />} />
+          <Route path="subjects/editar/:id" element={<EditSubject />} />
           <Route path="moderation" element={<Moderation />} />
         </Route>
       </Routes>
