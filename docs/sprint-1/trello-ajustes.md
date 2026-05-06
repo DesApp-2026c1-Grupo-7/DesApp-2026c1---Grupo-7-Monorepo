@@ -1,65 +1,25 @@
-# Ajustes sugeridos para Trello — Sprint 1
-
-> No se actualizó Trello desde el repo. Este documento deja el estado que debería reflejar el board.
+# Ajustes sugeridos para Trello - Sprint 1
 
 ## Card Sprint 1
 
-Estado sugerido: **Hecho en este sprint**, con deuda trasladada a Sprint 2.
-
-Motivo:
-- La ficha pedía versión preliminar funcional hasta el punto 4.
-- El trabajo quedó mergeado a `dev` en PR #10 el 06/05/2026.
-- CI quedó verde en backend y frontend.
-- Faltan tests básicos reales y partes completas de la consigna; eso no debe quedar invisible, sino pasar a una card de Sprint 2.
-
-Checklist recomendado:
-
-- [x] Actores y funcionalidades.
-- [x] DER.
-- [x] Arquitectura, repo, CI y flujo de trabajo.
-- [x] Navegación básica estudiante/admin.
-- [x] Backend skeleton + healthcheck.
-- [x] Auth real + guards por rol.
-- [x] CRUD académico preliminar.
-- [x] Situación académica preliminar.
-- [x] Asistente académico básico.
-- [x] PR #10 mergeado a `dev`.
-- [x] CI verde después del merge.
-- [x] README y docs finales de Sprint 1 actualizados.
-- [ ] Tests básicos reales de puntos 1 a 4. Mover a card Sprint 2.
-
-## Nueva card sugerida
-
-Título: **Cierre puntos 1-4: deuda Sprint 1 / Sprint 2**
-
-Descripción:
-Cerrar los faltantes detectados después de revisar la ficha original de Sprint 1 y PR #10. La demo preliminar existe, pero faltan tests, ajustes de consigna y proyecciones completas.
+Estado sugerido: **Hecho en este sprint**.
 
 Checklist:
-- [ ] Tests de auth y autorización.
-- [ ] Tests de CRUD académico.
-- [ ] Tests de situación académica/importación.
-- [ ] Tests de asistente académico.
-- [ ] Admin crea otros admins.
-- [ ] Admin lista cuentas.
-- [ ] Admin suspende/reactiva usuarios.
-- [ ] Carrera: agregar título, instituto y duración.
-- [ ] Plan: usar estado Vigente / En transición / Discontinuado.
-- [ ] Excel: preview con errores antes de confirmar.
-- [ ] Excel: corrección de filas antes de confirmar.
-- [ ] Actividades con créditos.
-- [ ] Oferta académica por período.
-- [ ] "¿Qué pasa si...?"
-- [ ] Planificador por horas/semana.
-- [ ] Vencimiento de regularidad en finales pendientes.
 
-## Cards que no deberían darse por hechas todavía
+- [x] Actores, DER, arquitectura y navegacion.
+- [x] Backend skeleton + healthcheck.
+- [x] Puntos 1 a 4 funcionales para alcance inicial.
+- [x] Plus punto 4: rendimiento vs plan y planes guardados.
+- [x] Excel de prueba para carga de situacion.
+- [x] Tests reales de backend.
+- [x] Frontend lint/build verde.
 
-- Red social académica.
-- Sesiones de estudio.
-- Materiales.
-- Denuncias y moderación.
-- Notificaciones in-app.
-- Reportes.
+## Card Sprint 2
 
-Hoy existen pantallas placeholder o navegación para algunas de esas áreas, pero no funcionalidad backend/frontend completa según la consigna.
+Crear/ajustar card **Sprint 2 - Red social academica**:
+
+- [ ] Perfil de estudiante.
+- [ ] Privacidad y toggles.
+- [ ] Invitaciones por email.
+- [ ] Contactos y solicitudes.
+- [ ] Feed de eventos y posteos.

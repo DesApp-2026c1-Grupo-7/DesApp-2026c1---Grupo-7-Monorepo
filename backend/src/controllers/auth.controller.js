@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const StudyPlan = require('../models/StudyPlan');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
@@ -7,7 +8,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 const register = async (req, res) => {
   try {
-    const { nombre, email, password, role } = req.body;
+    const { nombre, email, password, carrera, planEstudio } = req.body;
     
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -17,11 +18,19 @@ const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const user = new User({ 
+    let selectedPlan = planEstudio;
+    if (carrera && !selectedPlan) {
+      const activePlan = await StudyPlan.findOne({ carrera, activo: true }).sort({ anio: -1 });
+      selectedPlan = activePlan?._id;
+    }
+
+    const user = new User({
       nombre, 
       email, 
       password: hashedPassword, 
-      role: role || 'student' 
+      role: 'student',
+      carrera,
+      planEstudio: selectedPlan
     });
     
     await user.save();
@@ -32,7 +41,14 @@ const register = async (req, res) => {
 
     res.status(201).json({
       mensaje: 'Usuario registrado con éxito',
-      user: { id: user._id, nombre: user.nombre, email: user.email, role: user.role },
+      user: {
+        id: user._id,
+        nombre: user.nombre,
+        email: user.email,
+        role: user.role,
+        carrera: user.carrera,
+        planEstudio: user.planEstudio
+      },
       token
     });
   } catch (error) {
@@ -44,9 +60,13 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).populate('carrera', 'nombre codigo').populate('planEstudio', 'nombre estado');
     if (!user) {
       return res.status(401).json({ mensaje: 'Credenciales inválidas' });
+    }
+
+    if (user.suspendido) {
+      return res.status(403).json({ mensaje: 'La cuenta se encuentra suspendida' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -60,7 +80,14 @@ const login = async (req, res) => {
 
     res.json({
       mensaje: 'Login exitoso',
-      user: { id: user._id, nombre: user.nombre, email: user.email, role: user.role },
+      user: {
+        id: user._id,
+        nombre: user.nombre,
+        email: user.email,
+        role: user.role,
+        carrera: user.carrera,
+        planEstudio: user.planEstudio
+      },
       token
     });
   } catch (error) {

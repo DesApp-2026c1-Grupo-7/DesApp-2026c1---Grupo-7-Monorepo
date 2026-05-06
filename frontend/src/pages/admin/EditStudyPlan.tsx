@@ -14,7 +14,7 @@ export default function EditStudyPlan() {
   const [form, setForm] = useState({
     nombre: "", anio: 2023, carrera: "",
     creditosNecesarios: 0, creditosOptativasNecesarios: 0,
-    nivelInglesRequerido: "B1", activo: true
+    nivelInglesRequerido: "B1", estado: "Vigente"
   });
   const [materias, setMaterias] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -39,7 +39,7 @@ export default function EditStudyPlan() {
           creditosNecesarios: p.creditosNecesarios || 0,
           creditosOptativasNecesarios: p.creditosOptativasNecesarios || 0,
           nivelInglesRequerido: p.nivelInglesRequerido || "B1",
-          activo: p.activo
+          estado: p.estado || (p.activo === false ? "Discontinuado" : "Vigente")
         });
         setMaterias((p.materias || []).map((m: { _id?: string } | string) =>
           typeof m === "string" ? m : m._id || ""
@@ -53,7 +53,7 @@ export default function EditStudyPlan() {
     })();
   }, [id]);
 
-  const onChange = (k: string, v: string | number | boolean) => setForm((s) => ({ ...s, [k]: v }));
+  const onChange = (k: string, v: string | number) => setForm((s) => ({ ...s, [k]: v }));
   const toggleMateria = (mid: string) => {
     setMaterias((prev) => prev.includes(mid) ? prev.filter((x) => x !== mid) : [...prev, mid]);
   };
@@ -128,10 +128,12 @@ export default function EditStudyPlan() {
           </div>
 
           <div className="form-group">
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input type="checkbox" checked={form.activo} onChange={(e) => onChange('activo', e.target.checked)} />
-              Plan Activo (Vigente)
-            </label>
+            <label>Estado del plan</label>
+            <select value={form.estado} onChange={(e) => onChange('estado', e.target.value)} disabled={loading}>
+              <option value="Vigente">Vigente</option>
+              <option value="En transicion">En transicion</option>
+              <option value="Discontinuado">Discontinuado</option>
+            </select>
           </div>
 
           <div className="form-group">

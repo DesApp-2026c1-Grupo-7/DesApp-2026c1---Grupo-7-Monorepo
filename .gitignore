@@ -27,6 +27,7 @@ dist-ssr
 # Documentos internos del equipo (no se versionan)
 *.docx
 *.xlsx
+!docs/sprint-1/situacion-academica-ejemplo.xlsx
 *.pdf
 
 # Variables de entorno

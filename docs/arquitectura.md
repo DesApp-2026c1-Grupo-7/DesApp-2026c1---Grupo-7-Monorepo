@@ -74,7 +74,7 @@ Mapeo a los puntos del enunciado:
 8. **Notificaciones** — in-app y email.
 9. **Reportes** — para administradores.
 
-> Nota de planificación (06/05/2026): la ficha original de Sprint 1 pedía una versión preliminar funcional hasta el punto 4. El PR #10 ya fue mergeado a `dev` con auth, CRUD académico, situación académica y asistente básico. Sprint 2 queda replanificado para cerrar deuda, tests y faltantes de puntos 1 a 4.
+> Nota de planificacion (06/05/2026): la ficha original de Sprint 1 pedia una version preliminar funcional hasta el punto 4. PR #10 dejo la base mergeada y `feature/cerrar-deuda-puntos-1-4` cierra la deuda restante: usuarios admin, campos exactos, Excel preview/correccion, actividades con creditos, oferta academica, que-pasa-si, planificador y tests reales. Sprint 2 queda liberado para comenzar punto 5.
 
 ## 5. Decisiones (ADR resumido)
 

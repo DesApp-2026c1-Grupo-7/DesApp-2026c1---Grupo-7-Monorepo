@@ -19,6 +19,8 @@ import Notifications from "./pages/student/Notifications";
 
 // admin
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AcademicOffers from "./pages/admin/AcademicOffers";
 import AdminCareers from "./pages/admin/AdminCareers";
 import CreateCareer from "./pages/admin/CreateCareer";
 import EditCareer from "./pages/admin/EditCareer";
@@ -95,6 +97,7 @@ const App = () => {
           }
         >
           <Route index element={<AdminDashboard />} />
+          <Route path="usuarios" element={<AdminUsers />} />
           <Route path="carreras" element={<AdminCareers />} />
           <Route path="carreras/nueva" element={<CreateCareer />} />
           <Route path="carreras/editar/:id" element={<EditCareer />} />
@@ -105,6 +108,7 @@ const App = () => {
           <Route path="subjects" element={<Subjects />} />
           <Route path="subjects/nueva" element={<CreateSubject />} />
           <Route path="subjects/editar/:id" element={<EditSubject />} />
+          <Route path="ofertas" element={<AcademicOffers />} />
           <Route path="moderation" element={<Moderation />} />
         </Route>
       </Routes>

@@ -1,6 +1,14 @@
 const Final = require('../models/Final');
 const Grade = require('../models/Grade');
 
+const REGULAR_YEARS = 2;
+
+const addYears = (date, years) => {
+  const result = new Date(date);
+  result.setFullYear(result.getFullYear() + years);
+  return result;
+};
+
 const getFinales = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -22,12 +30,24 @@ const getFinalesPendientes = async (req, res) => {
       estado: 'Regular'
     }).populate('materia', 'nombre codigo creditos');
 
-    res.json(regulares.map((g) => ({
-      materia: g.materia,
-      cuatrimestre: g.cuatrimestre,
-      anioCursada: g.anioCursada,
-      fechaRegular: g.fecha
-    })));
+    const pendientes = [];
+    for (const g of regulares) {
+      const intentosPrevios = await Final.countDocuments({
+        estudiante: userId,
+        materia: g.materia._id,
+        estado: { $in: ['Aprobado', 'Desaprobado', 'Ausente'] }
+      });
+      pendientes.push({
+        materia: g.materia,
+        cuatrimestre: g.cuatrimestre,
+        anioCursada: g.anioCursada,
+        fechaRegular: g.fecha,
+        intentosPrevios,
+        venceRegularidad: addYears(g.fecha, REGULAR_YEARS)
+      });
+    }
+
+    res.json(pendientes);
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al obtener finales pendientes', error: error.message });
   }
