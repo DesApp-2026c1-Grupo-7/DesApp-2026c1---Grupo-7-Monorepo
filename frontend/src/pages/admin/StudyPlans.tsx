@@ -10,7 +10,7 @@ interface StudyPlan {
   carrera?: { _id: string; nombre: string; };
   materias: Array<{ _id: string; nombre: string; codigo: string }>;
   creditosNecesarios?: number;
-  creditosOptativasNecesarios?: number;
+  materiasUnahurRequeridas?: number;
   nivelInglesRequerido?: string;
   activo: boolean;
 }

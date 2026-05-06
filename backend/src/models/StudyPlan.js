@@ -23,7 +23,7 @@ const studyPlanSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  creditosOptativasNecesarios: {
+  materiasUnahurRequeridas: {
     type: Number,
     default: 0
   },

@@ -73,7 +73,7 @@ test.before(async () => {
       carrera: careerId,
       materias: Object.values(subjectIds),
       creditosNecesarios: 12,
-      creditosOptativasNecesarios: 0,
+      materiasUnahurRequeridas: 0,
       nivelInglesRequerido: 'B1',
       estado: 'Vigente'
     });

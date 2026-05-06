@@ -21,7 +21,7 @@ interface Plan {
   carrera?: { nombre: string; codigo: string };
   materias: Subject[];
   creditosNecesarios?: number;
-  creditosOptativasNecesarios?: number;
+  materiasUnahurRequeridas?: number;
   nivelInglesRequerido?: string;
   activo: boolean;
 }
@@ -64,7 +64,7 @@ export default function StudyPlanDetail() {
           <strong>Créditos Necesarios:</strong> {plan.creditosNecesarios || 0}
         </div>
         <div style={{ padding: '12px 16px', background: '#f3f4f6', borderRadius: 8 }}>
-          <strong>Créditos Optativas:</strong> {plan.creditosOptativasNecesarios || 0}
+          <strong>Materias UNAHUR:</strong> {plan.materiasUnahurRequeridas || 0}
         </div>
         <div style={{ padding: '12px 16px', background: '#f3f4f6', borderRadius: 8 }}>
           <strong>Nivel Inglés:</strong> {plan.nivelInglesRequerido || '-'}

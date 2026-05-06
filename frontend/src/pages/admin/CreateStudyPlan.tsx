@@ -15,7 +15,7 @@ export default function CreateStudyPlan() {
     anio: new Date().getFullYear(),
     carrera: "",
     creditosNecesarios: 0,
-    creditosOptativasNecesarios: 0,
+    materiasUnahurRequeridas: 0,
     nivelInglesRequerido: "B1",
     estado: "Vigente"
   });
@@ -43,7 +43,7 @@ export default function CreateStudyPlan() {
         ...form,
         anio: Number(form.anio),
         creditosNecesarios: Number(form.creditosNecesarios),
-        creditosOptativasNecesarios: Number(form.creditosOptativasNecesarios),
+        materiasUnahurRequeridas: Number(form.materiasUnahurRequeridas),
         materias
       });
       navigate("/admin/studyplans");
@@ -87,8 +87,8 @@ export default function CreateStudyPlan() {
               <input type="number" min={0} value={form.creditosNecesarios} onChange={(e) => onChange('creditosNecesarios', Number(e.target.value))} disabled={loading} />
             </div>
             <div className="form-group">
-              <label>Créditos Optativas</label>
-              <input type="number" min={0} value={form.creditosOptativasNecesarios} onChange={(e) => onChange('creditosOptativasNecesarios', Number(e.target.value))} disabled={loading} />
+              <label>Materias UNAHUR requeridas</label>
+              <input type="number" min={0} value={form.materiasUnahurRequeridas} onChange={(e) => onChange('materiasUnahurRequeridas', Number(e.target.value))} disabled={loading} />
             </div>
             <div className="form-group">
               <label>Nivel de Inglés</label>

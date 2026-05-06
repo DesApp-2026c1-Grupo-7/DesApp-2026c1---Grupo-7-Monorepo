@@ -37,7 +37,7 @@ const createStudyPlan = async (req, res) => {
       carrera,
       materias,
       creditosNecesarios,
-      creditosOptativasNecesarios,
+      materiasUnahurRequeridas,
       nivelInglesRequerido,
       estado,
       activo
@@ -49,7 +49,7 @@ const createStudyPlan = async (req, res) => {
       carrera,
       materias: materias || [],
       creditosNecesarios: creditosNecesarios || 0,
-      creditosOptativasNecesarios: creditosOptativasNecesarios || 0,
+      materiasUnahurRequeridas: materiasUnahurRequeridas || 0,
       nivelInglesRequerido: nivelInglesRequerido || 'B1',
       estado: estado || (activo === false ? 'Discontinuado' : 'Vigente'),
       activo: activo !== false && estado !== 'Discontinuado'

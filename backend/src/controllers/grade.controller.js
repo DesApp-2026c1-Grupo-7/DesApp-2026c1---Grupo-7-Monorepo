@@ -284,7 +284,7 @@ const getAvanceCarrera = async (req, res) => {
 
     let totalMaterias = 0;
     let creditosNecesarios = 0;
-    let creditosOptativasNecesarios = 0;
+    let materiasUnahurRequeridas = 0;
     let nivelInglesRequerido = 'B1';
     let materiasDelPlanOCarreraIds = [];
 
@@ -292,7 +292,7 @@ const getAvanceCarrera = async (req, res) => {
       const plan = await StudyPlan.findById(user.planEstudio);
       totalMaterias = plan.materias.length;
       creditosNecesarios = plan.creditosNecesarios;
-      creditosOptativasNecesarios = plan.creditosOptativasNecesarios;
+      materiasUnahurRequeridas = plan.materiasUnahurRequeridas;
       nivelInglesRequerido = plan.nivelInglesRequerido;
       materiasDelPlanOCarreraIds = plan.materias.map((id) => id.toString());
     } else if (user && user.carrera) {
@@ -370,7 +370,7 @@ const getAvanceCarrera = async (req, res) => {
       creditosActividades,
       creditosNecesarios,
       creditosOptativasAprobados,
-      creditosOptativasNecesarios,
+      materiasUnahurRequeridas,
       nivelInglesRequerido,
       materiasUnahurFaltantes,
       avancePorAnio,

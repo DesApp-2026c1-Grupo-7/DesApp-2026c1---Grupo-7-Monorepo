@@ -13,7 +13,7 @@ export default function EditStudyPlan() {
   const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
   const [form, setForm] = useState({
     nombre: "", anio: 2023, carrera: "",
-    creditosNecesarios: 0, creditosOptativasNecesarios: 0,
+    creditosNecesarios: 0, materiasUnahurRequeridas: 0,
     nivelInglesRequerido: "B1", estado: "Vigente"
   });
   const [materias, setMaterias] = useState<string[]>([]);
@@ -37,7 +37,7 @@ export default function EditStudyPlan() {
           anio: p.anio,
           carrera: p.carrera?._id || p.carrera || "",
           creditosNecesarios: p.creditosNecesarios || 0,
-          creditosOptativasNecesarios: p.creditosOptativasNecesarios || 0,
+          materiasUnahurRequeridas: p.materiasUnahurRequeridas || 0,
           nivelInglesRequerido: p.nivelInglesRequerido || "B1",
           estado: p.estado || (p.activo === false ? "Discontinuado" : "Vigente")
         });
@@ -67,7 +67,7 @@ export default function EditStudyPlan() {
         ...form,
         anio: Number(form.anio),
         creditosNecesarios: Number(form.creditosNecesarios),
-        creditosOptativasNecesarios: Number(form.creditosOptativasNecesarios),
+        materiasUnahurRequeridas: Number(form.materiasUnahurRequeridas),
         materias
       });
       navigate("/admin/studyplans");
@@ -113,8 +113,8 @@ export default function EditStudyPlan() {
               <input type="number" min={0} value={form.creditosNecesarios} onChange={(e) => onChange('creditosNecesarios', Number(e.target.value))} disabled={loading} />
             </div>
             <div className="form-group">
-              <label>Créditos Optativas</label>
-              <input type="number" min={0} value={form.creditosOptativasNecesarios} onChange={(e) => onChange('creditosOptativasNecesarios', Number(e.target.value))} disabled={loading} />
+              <label>Materias UNAHUR requeridas</label>
+              <input type="number" min={0} value={form.materiasUnahurRequeridas} onChange={(e) => onChange('materiasUnahurRequeridas', Number(e.target.value))} disabled={loading} />
             </div>
             <div className="form-group">
               <label>Nivel de Inglés</label>
