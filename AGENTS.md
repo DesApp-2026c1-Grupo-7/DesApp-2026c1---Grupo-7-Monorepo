@@ -47,7 +47,7 @@ Reglas de asignación:
 
 ---
 
-## Estado actual al 06/05/2026
+## Estado actual al 06/05/2026, post-merge PR #10
 
 La ficha original de Sprint 1 pedía llegar a una versión preliminar funcional hasta el punto 4 del TP. Por eso el PR #10, aunque estaba nombrado como Sprint 2, en realidad corresponde al cierre funcional de Sprint 1.
 
@@ -59,18 +59,15 @@ La ficha original de Sprint 1 pedía llegar a una versión preliminar funcional 
 - Frontend skeleton con navegación, login/registro y layout.
 - Backend skeleton con `/api/health` y conexión Mongo.
 - Auth real y guards de navegación por rol en PR #8/#9.
-
-### Hecho pero pendiente de cierre
-
-- PR #10 abierto contra `dev`: CRUD académico completo, situación académica, import Excel/CSV, inscripciones, finales y asistente académico básico.
-- Review de Copilot con comentarios a resolver.
-- Falta mergear PR #10 para que el trabajo cuente como cerrado.
+- PR #10 mergeado a `dev`: CRUD académico completo, situación académica, import Excel/CSV, inscripciones, finales y asistente académico básico.
+- Comentarios de review del PR #10 corregidos y threads resueltos.
+- CI verde en backend y frontend para el merge de PR #10.
 
 ### Pendiente crítico de Sprint 1
 
 - Tests reales. Hoy `backend npm test` sigue siendo placeholder.
-- Ajustes de integridad detectados en review del PR #10.
-- Actualizar Trello para que la card de Sprint 1 refleje "parcialmente completo hasta merge + tests".
+- Actualizar Trello para reflejar que el PR #10 ya fue mergeado, pero que los tests reales y faltantes de puntos 1 a 4 pasan a Sprint 2.
+- Crear cards separadas para deuda de Sprint 2: tests, admin de usuarios, campos exactos de consigna, Excel preview/corrección, actividades con créditos, oferta académica, "qué pasa si" y planificador.
 
 Ver detalle en `docs/sprint-1/cierre-sprint-1.md`.
 
@@ -192,18 +189,18 @@ Ver detalle en `docs/sprint-1/cierre-sprint-1.md`.
 
 ## Plan por sprint actualizado
 
-### Sprint 2 (07/05 → 21/05) — Cerrar puntos 1 a 4
+### Sprint 2 (07/05 → 21/05) — Completar deuda de puntos 1 a 4
 
-Objetivo de demo: puntos 1 a 4 funcionando con tests básicos y PR #10 cerrado.
+Objetivo de demo: puntos 1 a 4 funcionando con tests básicos reales y con los faltantes de consigna cerrados sobre la base ya mergeada en PR #10.
 
 Tareas principales:
-- Resolver review, CI y merge de PR #10.
 - Tests reales de auth, CRUD académico, situación y asistente.
 - Admin crea admins, lista cuentas y suspende/reactiva.
 - Alinear carrera/plan con campos exactos de la consigna.
 - Excel con preview, errores y corrección antes de confirmar.
 - Actividades con créditos.
 - Oferta académica, "qué pasa si" y planificador por horas.
+- Actualizar Trello y README de demo end-to-end.
 
 Detalle: `docs/sprint-2/ficha.md`.
 

@@ -4,12 +4,13 @@
 
 ## Card Sprint 1
 
-Estado sugerido: **En revisión / pendiente de cierre**, no "Hecho" todavía.
+Estado sugerido: **Hecho en este sprint**, con deuda trasladada a Sprint 2.
 
 Motivo:
 - La ficha pedía versión preliminar funcional hasta el punto 4.
-- El trabajo existe en PR #10, pero al 06/05/2026 el PR sigue abierto.
-- Faltan tests básicos reales.
+- El trabajo quedó mergeado a `dev` en PR #10 el 06/05/2026.
+- CI quedó verde en backend y frontend.
+- Faltan tests básicos reales y partes completas de la consigna; eso no debe quedar invisible, sino pasar a una card de Sprint 2.
 
 Checklist recomendado:
 
@@ -22,10 +23,10 @@ Checklist recomendado:
 - [x] CRUD académico preliminar.
 - [x] Situación académica preliminar.
 - [x] Asistente académico básico.
-- [ ] PR #10 mergeado a `dev`.
-- [ ] CI verde después del merge.
-- [ ] Tests básicos reales de puntos 1 a 4.
-- [ ] README y docs finales de Sprint 1 actualizados.
+- [x] PR #10 mergeado a `dev`.
+- [x] CI verde después del merge.
+- [x] README y docs finales de Sprint 1 actualizados.
+- [ ] Tests básicos reales de puntos 1 a 4. Mover a card Sprint 2.
 
 ## Nueva card sugerida
 
@@ -35,8 +36,6 @@ Descripción:
 Cerrar los faltantes detectados después de revisar la ficha original de Sprint 1 y PR #10. La demo preliminar existe, pero faltan tests, ajustes de consigna y proyecciones completas.
 
 Checklist:
-- [ ] Resolver comentarios del review del PR #10.
-- [ ] Mergear PR #10 a `dev` con CI verde.
 - [ ] Tests de auth y autorización.
 - [ ] Tests de CRUD académico.
 - [ ] Tests de situación académica/importación.

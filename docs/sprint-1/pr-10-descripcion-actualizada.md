@@ -1,12 +1,14 @@
-# PR #10 — Descripción actualizada sugerida
+# PR #10 — Cierre post-merge
 
-## Título sugerido
+## Estado
+
+PR mergeado a `dev` el 06/05/2026.
+
+Título final recomendado/mantenido:
 
 `feat(sprint1): cierre funcional preliminar puntos 1-4`
 
-## Body sugerido
-
-Este PR deja de tratarse como "Sprint 2": al revisar la **Ficha principio de sprint 1**, el alcance original del Sprint 1 incluía una versión preliminar funcional hasta el **punto 4** del TP. Por eso este PR corresponde al cierre funcional preliminar de Sprint 1, todavía pendiente de review/CI/tests para considerarse cerrado.
+Este archivo ya no es una descripción sugerida para un PR abierto. Queda como registro de cierre: el PR #10 dejó de tratarse como "Sprint 2" porque, al revisar la **Ficha principio de sprint 1**, el alcance original del Sprint 1 incluía una versión preliminar funcional hasta el **punto 4** del TP.
 
 ### Qué cubre de la ficha de Sprint 1
 
@@ -17,7 +19,7 @@ Este PR deja de tratarse como "Sprint 2": al revisar la **Ficha principio de spr
 - Seed de admin inicial.
 - Guards frontend por rol y middlewares backend de auth/autorización.
 
-Pendiente para cierre completo: alta de otros admins, listado de cuentas, suspensión/reactivación, tests y decidir/documentar si se mantiene `role` en lugar de discriminators.
+Pendiente para Sprint 2: alta de otros admins, listado de cuentas, suspensión/reactivación, tests y decidir/documentar si se mantiene `role` en lugar de discriminators.
 
 #### Punto 2 — Configuración académica
 
@@ -28,7 +30,7 @@ Pendiente para cierre completo: alta de otros admins, listado de cuentas, suspen
 - Créditos, materias UNAHUR, optativas y nivel de inglés.
 - Pantallas admin de crear/editar/detalle.
 
-Pendiente: alinear campos exactos de la consigna (`titulo`, `instituto`, `duracionAnios`, estado de plan `Vigente/En transición/Discontinuado`) y tests.
+Pendiente para Sprint 2: alinear campos exactos de la consigna (`titulo`, `instituto`, `duracionAnios`, estado de plan `Vigente/En transición/Discontinuado`) y tests.
 
 #### Punto 3 — Situación académica
 
@@ -39,7 +41,7 @@ Pendiente: alinear campos exactos de la consigna (`titulo`, `instituto`, `duraci
 - Cierre de cuatrimestre.
 - Modelo/endpoints de finales.
 
-Pendiente: preview real antes de confirmar Excel, corrección de filas antes de persistir, actividades con créditos y tests.
+Pendiente para Sprint 2: preview real antes de confirmar Excel, corrección de filas antes de persistir, actividades con créditos y tests.
 
 #### Punto 4 — Asistente académico
 
@@ -51,9 +53,9 @@ Pendiente: preview real antes de confirmar Excel, corrección de filas antes de 
 - Proyección básica agrupada por año/cuatrimestre.
 - UI conectada al backend.
 
-Pendiente: vencimiento de regularidad, oferta académica, "qué pasa si", planificador por horas/semana, movimiento manual de materias y tests de algoritmos.
+Pendiente para Sprint 2: vencimiento de regularidad, oferta académica, "qué pasa si", planificador por horas/semana, movimiento manual de materias y tests de algoritmos.
 
-### Documentación actualizada en esta rama
+### Documentación actualizada
 
 - `AGENTS.md`: estado real y backlog re-marcado.
 - `docs/sprint-1/cierre-sprint-1.md`: auditoría de lo hecho vs ficha original.
@@ -72,6 +74,6 @@ Pendiente: vencimiento de regularidad, oferta académica, "qué pasa si", planif
 7. Ver asistente: disponibles, avance, análisis por año y finales pendientes.
 8. Verificar que endpoints protegidos rechazan requests sin token.
 
-### Nota de cierre
+### Nota de cierre post-merge
 
-Este PR todavía no debe contarse como Sprint 1 cerrado hasta resolver review, CI, merge a `dev` y tests básicos reales.
+El PR #10 ya puede contarse como mergeado y con review comments corregidos. No alcanza para dar por completo todo el punto 1 a 4 de la consigna: los tests reales y los faltantes funcionales quedan planificados en Sprint 2.

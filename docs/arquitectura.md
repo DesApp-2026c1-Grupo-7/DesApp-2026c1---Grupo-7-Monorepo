@@ -74,7 +74,7 @@ Mapeo a los puntos del enunciado:
 8. **Notificaciones** — in-app y email.
 9. **Reportes** — para administradores.
 
-> Nota de planificación (06/05/2026): la ficha original de Sprint 1 pedía una versión preliminar funcional hasta el punto 4. El PR #10 adelanta esa implementación (auth, CRUD académico, situación y asistente básico), por lo que Sprint 2 queda replanificado para cerrar deuda, tests y faltantes de puntos 1 a 4.
+> Nota de planificación (06/05/2026): la ficha original de Sprint 1 pedía una versión preliminar funcional hasta el punto 4. El PR #10 ya fue mergeado a `dev` con auth, CRUD académico, situación académica y asistente básico. Sprint 2 queda replanificado para cerrar deuda, tests y faltantes de puntos 1 a 4.
 
 ## 5. Decisiones (ADR resumido)
 

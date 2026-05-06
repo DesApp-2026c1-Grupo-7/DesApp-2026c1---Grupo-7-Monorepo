@@ -14,9 +14,9 @@ La ficha de principio de sprint definió estos objetivos:
    - Asistente académico, situación actual y proyecciones de cursada.
 5. Implementar tests unitarios básicos para entidades y funcionalidades principales.
 
-## Estado real al 06/05/2026
+## Estado real al 06/05/2026, post-merge PR #10
 
-El Sprint 1 no quedó solamente en documentación y skeleton: además de lo planificado originalmente, se avanzó fuerte en implementación funcional hasta el punto 4. Ese avance está concentrado en el PR #10, que todavía está abierto contra `dev`.
+El Sprint 1 no quedó solamente en documentación y skeleton: además de lo planificado originalmente, se avanzó fuerte en implementación funcional hasta el punto 4. Ese avance quedó mergeado a `dev` en el PR #10 el 06/05/2026.
 
 | Frente | Estado | Evidencia |
 |---|---|---|
@@ -26,9 +26,9 @@ El Sprint 1 no quedó solamente en documentación y skeleton: además de lo plan
 | Navegación básica y frontend skeleton | Hecho | PR #1, #5, #6 |
 | Backend skeleton con Mongo y healthcheck | Hecho | PR backend skeleton, `/api/health` |
 | Auth real + guards por rol | Hecho parcial | PR #8/#9, modelo `User`, JWT, seed admin, `ProtectedRoute` |
-| Configuración académica | Hecho parcial | PR #10: carreras, materias, planes, correlativas, créditos, inglés, optativas/UNAHUR |
-| Situación académica | Hecho parcial | PR #10: `Grade`, carga manual, import Excel/CSV, inscripción, cierre de cuatri |
-| Asistente académico | Hecho parcial | PR #10: disponibles, avance, finales pendientes, análisis por año, proyección básica |
+| Configuración académica | Hecho parcial y mergeado | PR #10: carreras, materias, planes, correlativas, créditos, inglés, optativas/UNAHUR |
+| Situación académica | Hecho parcial y mergeado | PR #10: `Grade`, carga manual, import Excel/CSV, inscripción, cierre de cuatri |
+| Asistente académico | Hecho parcial y mergeado | PR #10: disponibles, avance, finales pendientes, análisis por año, proyección básica |
 | Tests unitarios básicos | Pendiente | No hay suite real; `backend npm test` todavía es placeholder |
 
 ## Qué se hizo de los puntos 1 a 4
@@ -81,7 +81,6 @@ Pendiente:
 - Preview real antes de confirmar importación Excel; hoy el import procesa directo.
 - Corrección manual de filas en el preview antes de confirmar.
 - Actividades con créditos.
-- Evitar duplicados de finales pendientes.
 - Tests de importación, inscripción, cierre y finales.
 
 ### Punto 4 — Asistente académico
@@ -118,13 +117,12 @@ El plan anterior decía que Excel, finales/cierre y proyecciones quedaban para S
 
 Esto no es trabajo de puntos 5 a 9; sigue estando dentro de los puntos 1 a 4, pero estaba mal ubicado en la planificación anterior.
 
-## Bloqueantes antes de dar Sprint 1 por cerrado
+## Pendientes trasladados a Sprint 2
 
-1. Resolver o decidir los comentarios del review de PR #10.
-2. Agregar tests básicos reales para auth, CRUD académico y asistente.
-3. Actualizar el PR #10 para que diga "Sprint 1" y no "Sprint 2".
-4. Actualizar Trello: la card de Sprint 1 debe quedar como parcialmente completa hasta que PR #10 esté mergeado y los tests existan.
-5. Mover a una card nueva los pendientes explícitos de "Cierre puntos 1-4".
+1. Agregar tests básicos reales para auth, CRUD académico, situación académica y asistente.
+2. Actualizar Trello: la card de Sprint 1 debe reflejar que el PR #10 fue mergeado, pero que la deuda técnica y funcional pasa a Sprint 2.
+3. Mover a cards nuevas los pendientes explícitos de "Completar deuda puntos 1-4".
+4. Cerrar faltantes de consigna: admin de usuarios, campos exactos de carrera/plan, Excel preview/corrección, actividades con créditos, oferta académica, "qué pasa si" y planificador.
 
 ## Demo Sprint 1 actualizada
 
@@ -135,7 +133,7 @@ Esto no es trabajo de puntos 5 a 9; sigue estando dentro de los puntos 1 a 4, pe
 5. Login como estudiante seed.
 6. Cargar situación académica manual o por archivo.
 7. Ver asistente: disponibles, avance, análisis por año y finales pendientes.
-8. Mostrar en GitHub que PR #10 está abierto contra `dev` con reviewers solicitados.
+8. Mostrar en GitHub que PR #10 fue mergeado a `dev` con CI verde.
 
 ## Retrospectiva
 
