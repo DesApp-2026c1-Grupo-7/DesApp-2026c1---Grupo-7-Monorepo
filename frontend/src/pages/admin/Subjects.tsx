@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
-import "../../styles/Subjects.css";
+import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import "../../styles/Subjects.css";
+
+interface Career {
+  _id: string;
+  nombre: string;
+  codigo: string;
+}
 
 interface Subject {
   _id: string;
@@ -9,64 +16,91 @@ interface Subject {
   anio: number;
   cuatrimestre: number;
   creditos: number;
+  carrera?: Career;
+  esOptativa?: boolean;
+  esUnahur?: boolean;
+  correlativas?: { nombre: string; codigo: string }[];
 }
 
 export default function Subjects() {
+  const navigate = useNavigate();
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [careers, setCareers] = useState<Career[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [careerFilter, setCareerFilter] = useState("todas");
   const [yearFilter, setYearFilter] = useState("todos");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    api.get("/materias")
-      .then((response) => { setSubjects(response.data); })
-      .catch((error) => { console.error("Error al obtener materias:", error); })
-      .finally(() => { setLoading(false); });
+    fetchAll();
   }, []);
 
-  const filteredSubjects = subjects.filter((subject) => {
-    const matchesSearch = subject.nombre
-      .toLowerCase()
-      .includes(search.toLowerCase());
+  const fetchAll = async () => {
+    setLoading(true);
+    try {
+      const [subRes, carRes] = await Promise.all([
+        api.get("/materias"),
+        api.get("/carreras")
+      ]);
+      setSubjects(subRes.data);
+      setCareers(carRes.data);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
 
-    const matchesYear =
-      yearFilter === "todos" || subject.anio.toString() === yearFilter;
+  const handleDelete = async (id: string, nombre: string) => {
+    if (!confirm(`¿Eliminar la materia "${nombre}"?`)) return;
+    try {
+      await api.delete(`/materias/${id}`);
+      await fetchAll();
+      setError("");
+    } catch (e: unknown) {
+      const ax = e as { response?: { data?: { mensaje?: string } } };
+      setError(ax.response?.data?.mensaje || "Error al eliminar materia");
+    }
+  };
 
-    return matchesSearch && matchesYear;
+  const filtered = subjects.filter((s) => {
+    const matchSearch = s.nombre.toLowerCase().includes(search.toLowerCase()) ||
+      s.codigo.toLowerCase().includes(search.toLowerCase());
+    const matchCareer = careerFilter === "todas" || s.carrera?._id === careerFilter;
+    const matchYear = yearFilter === "todos" || s.anio.toString() === yearFilter;
+    return matchSearch && matchCareer && matchYear;
   });
+
+  const cuatriLabel = (c: number) => c === 0 ? "Anual" : `${c}°C`;
 
   return (
     <div className="subjects-container">
-      {/* HEADER */}
       <div className="subjects-header">
         <div>
           <h2>Gestión de Materias</h2>
-          <p>Administra materias y correlatividades</p>
+          <p>Administra materias, planes y correlatividades</p>
         </div>
-
-        <button className="btn-primary">+ Nueva Materia</button>
+        <button className="btn-primary" onClick={() => navigate("/admin/subjects/nueva")}>
+          + Nueva Materia
+        </button>
       </div>
 
-      {/* FILTROS */}
-      <div className="subjects-filters">
-        <input
-          type="text"
-          placeholder="Buscar materia..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      {error && (
+        <div style={{ padding: '12px 16px', background: '#fee', color: '#c33', borderRadius: 8, margin: '16px 0' }}>
+          {error}
+        </div>
+      )}
 
-        <select onChange={(e) => setYearFilter(e.target.value)}>
+      <div className="subjects-filters">
+        <input type="text" placeholder="Buscar materia..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        <select value={careerFilter} onChange={(e) => setCareerFilter(e.target.value)}>
+          <option value="todas">Todas las carreras</option>
+          {careers.map((c) => <option key={c._id} value={c._id}>{c.nombre}</option>)}
+        </select>
+        <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)}>
           <option value="todos">Todos los años</option>
-          <option value="1">1°</option>
-          <option value="2">2°</option>
-          <option value="3">3°</option>
-          <option value="4">4°</option>
-          <option value="5">5°</option>
+          {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{y}°</option>)}
         </select>
       </div>
 
-      {/* TABLA */}
       <div className="subjects-table">
         <div className="table-header">
           <span>Materia</span>
@@ -78,40 +112,36 @@ export default function Subjects() {
         </div>
 
         {loading ? (
-          <p style={{ padding: '20px', textAlign: 'center' }}>Cargando materias...</p>
-        ) : filteredSubjects.length > 0 ? (
-          filteredSubjects.map((subject) => (
-            <div key={subject._id} className="table-row">
-              <span>{subject.nombre}</span>
-              <span>{subject.codigo}</span>
-              <span>{subject.anio}°</span>
-              <span>{subject.cuatrimestre === 0 ? 'Anual' : `${subject.cuatrimestre}°`}</span>
-              <span>{subject.creditos}</span>
-
+          <p style={{ padding: 20, textAlign: 'center' }}>Cargando materias...</p>
+        ) : filtered.length > 0 ? (
+          filtered.map((s) => (
+            <div key={s._id} className="table-row">
+              <span>
+                {s.nombre}
+                {s.esOptativa && <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 6px', background: '#fef3c7', color: '#92400e', borderRadius: 4 }}>Optativa</span>}
+                {s.esUnahur === false && <span style={{ marginLeft: 4, fontSize: 11, padding: '2px 6px', background: '#dbeafe', color: '#1e40af', borderRadius: 4 }}>No-UNAHUR</span>}
+              </span>
+              <span>{s.codigo}</span>
+              <span>{s.anio}°</span>
+              <span>{cuatriLabel(s.cuatrimestre)}</span>
+              <span>{s.creditos}</span>
               <div className="actions">
-                <button title="Correlativas">🔗</button>
-                <button title="Editar">✏️</button>
-                <button title="Eliminar">🗑️</button>
+                <button title="Editar" onClick={() => navigate(`/admin/subjects/editar/${s._id}`)}>✏️</button>
+                <button title="Eliminar" onClick={() => handleDelete(s._id, s.nombre)}>🗑️</button>
               </div>
             </div>
           ))
         ) : (
-          <p style={{ padding: '20px', textAlign: 'center' }}>No se encontraron materias.</p>
+          <p style={{ padding: 20, textAlign: 'center' }}>No se encontraron materias.</p>
         )}
       </div>
 
-      {/* BLOQUE INFERIOR */}
       <div className="correlatives-box">
         <h4>🔗 Gestión de Correlatividades</h4>
         <p>
-          Las correlatividades definen qué materias deben estar aprobadas para
-          poder cursar otras. Haz clic en el icono de correlatividades para
-          editar las dependencias de cada materia.
+          Las correlatividades se definen al editar cada materia. Las materias con correlativas
+          requieren tener aprobadas las anteriores antes de poder cursarse.
         </p>
-
-        <button className="btn-primary-outline">
-          Ver Diagrama de Correlatividades
-        </button>
       </div>
     </div>
   );

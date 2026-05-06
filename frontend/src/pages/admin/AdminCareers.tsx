@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import "../../styles/AdminCareers.css";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import "../../styles/AdminCareers.css";
 
 interface Career {
   _id: string;
@@ -9,44 +9,71 @@ interface Career {
   codigo: string;
   cantidadEstudiantes: number;
   cantidadMaterias: number;
+  creditosNecesarios?: number;
+  nivelInglesRequerido?: string;
 }
 
 export default function AdminCareers() {
   const navigate = useNavigate();
   const [careers, setCareers] = useState<Career[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    api.get("/carreras")
-      .then((response) => { setCareers(response.data); })
-      .catch((error) => { console.error("Error al obtener carreras:", error); })
-      .finally(() => { setLoading(false); });
-  }, []);
+  useEffect(() => { fetchCareers(); }, []);
+
+  const fetchCareers = async () => {
+    setLoading(true);
+    try {
+      const r = await api.get("/carreras");
+      setCareers(r.data);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  const handleDelete = async (id: string, nombre: string) => {
+    if (!confirm(`¿Eliminar la carrera "${nombre}"?`)) return;
+    try {
+      await api.delete(`/carreras/${id}`);
+      await fetchCareers();
+      setError("");
+    } catch (e: unknown) {
+      const ax = e as { response?: { data?: { mensaje?: string } } };
+      setError(ax.response?.data?.mensaje || "Error al eliminar la carrera");
+    }
+  };
+
+  const filtered = careers.filter((c) =>
+    c.nombre.toLowerCase().includes(search.toLowerCase()) ||
+    c.codigo.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="admin-careers-container">
-      
-      {/* Header */}
       <div className="admin-careers-header">
         <div>
           <h1>Gestión de Carreras</h1>
           <p>Administra las carreras disponibles</p>
         </div>
-
-        <button
-          className="btn-primary"
-           onClick={() => navigate("/admin/carreras/nueva")}
-        >
+        <button className="btn-primary" onClick={() => navigate("/admin/carreras/nueva")}>
           + Nueva Carrera
         </button>
       </div>
 
-      {/* Buscador */}
+      {error && (
+        <div style={{ padding: '12px 16px', background: '#fee', color: '#c33', borderRadius: 8, marginBottom: 16 }}>
+          {error}
+        </div>
+      )}
+
       <div className="admin-search-box">
-        <input placeholder="Buscar carrera..." />
+        <input
+          placeholder="Buscar carrera..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
-      {/* Tabla */}
       <div className="admin-table-container">
         {loading ? (
           <p style={{ padding: '20px', textAlign: 'center' }}>Cargando carreras...</p>
@@ -58,29 +85,41 @@ export default function AdminCareers() {
                 <th>Código</th>
                 <th>Estudiantes</th>
                 <th>Materias</th>
+                <th>Créditos</th>
+                <th>Inglés</th>
                 <th>Acciones</th>
               </tr>
             </thead>
-
             <tbody>
-              {careers.map((c) => (
+              {filtered.map((c) => (
                 <tr key={c._id}>
                   <td>{c.nombre}</td>
                   <td className="code">{c.codigo}</td>
                   <td>{c.cantidadEstudiantes}</td>
                   <td>{c.cantidadMaterias}</td>
-
+                  <td>{c.creditosNecesarios || 0}</td>
+                  <td>{c.nivelInglesRequerido || '-'}</td>
                   <td className="actions">
-                    <button className="icon-btn edit">✏️</button>
-                    <button className="icon-btn delete">🗑️</button>
+                    <button
+                      className="icon-btn edit"
+                      title="Editar"
+                      onClick={() => navigate(`/admin/carreras/editar/${c._id}`)}
+                    >✏️</button>
+                    <button
+                      className="icon-btn delete"
+                      title="Eliminar"
+                      onClick={() => handleDelete(c._id, c.nombre)}
+                    >🗑️</button>
                   </td>
                 </tr>
               ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 20 }}>No se encontraron carreras.</td></tr>
+              )}
             </tbody>
           </table>
         )}
       </div>
-
     </div>
   );
 }

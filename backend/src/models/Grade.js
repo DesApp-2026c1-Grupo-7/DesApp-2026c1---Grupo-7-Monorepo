@@ -13,13 +13,19 @@ const gradeSchema = new mongoose.Schema({
   },
   estado: {
     type: String,
-    enum: ['Pendiente', 'Cursando', 'Regular', 'Aprobada'],
+    enum: ['Pendiente', 'Inscripto', 'Cursando', 'Regular', 'Aprobada', 'Libre', 'Promocion'],
     default: 'Pendiente'
   },
   nota: {
     type: Number,
     min: 0,
     max: 10
+  },
+  cuatrimestre: {
+    type: Number // 1, 2 o 0 (anual)
+  },
+  anioCursada: {
+    type: Number
   },
   fecha: {
     type: Date,
