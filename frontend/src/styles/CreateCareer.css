@@ -93,8 +93,21 @@
   transition: all 0.2s;
 }
 
-.btn-secondary:hover {
-  background-color: #fee2e2;
-  color: var(--error);
-  border-color: #fca5a5;
+@media (max-width: 640px) {
+  .create-career-page {
+    padding: 16px;
+  }
+
+  .create-career-container {
+    padding: 20px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .btn-primary, .btn-secondary {
+    width: 100%;
+  }
 }

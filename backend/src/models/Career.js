@@ -41,6 +41,10 @@ const careerSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  materiasUnahurRequeridas: {
+    type: Number,
+    default: 0
+  },
   creditosNecesarios: {
     type: Number,
     default: 0

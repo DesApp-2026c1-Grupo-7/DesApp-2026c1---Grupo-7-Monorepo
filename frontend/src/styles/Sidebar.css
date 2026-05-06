@@ -8,7 +8,8 @@
   color: var(--text-white);
   position: sticky;
   top: 0;
-  transition: width 0.3s ease;
+  transition: all 0.3s ease;
+  z-index: 20;
 }
 
 .sidebar-header {
@@ -72,17 +73,60 @@
 
 @media (max-width: 1024px) {
   .sidebar {
-    width: 80px;
-    padding: 2rem 0.75rem;
-    align-items: center;
+    width: 100%;
+    height: auto;
+    padding: 1rem;
+    position: relative;
+    top: auto;
   }
   
-  .sidebar-header h2, .sidebar-header p, .link span {
+  .sidebar-header {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: none;
+  }
+
+  .sidebar-header p {
     display: none;
   }
   
+  .menu {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    gap: 0.25rem;
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .menu::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+  
   .link {
-    justify-content: center;
+    white-space: nowrap;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.875rem;
+    gap: 0.5rem;
+  }
+
+  .link span {
+    display: inline;
+  }
+}
+
+@media (max-width: 640px) {
+  .sidebar-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .link span {
+    display: none;
+  }
+
+  .link {
     padding: 0.75rem;
   }
 }

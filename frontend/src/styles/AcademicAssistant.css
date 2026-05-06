@@ -166,8 +166,34 @@
   gap: 0.5rem;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .assistant { padding: 1.5rem 1rem; }
-  .final-card { flex-direction: column; align-items: flex-start; gap: 1rem; }
-  .final-card button { width: 100%; }
+  .assistant h1 { font-size: 1.5rem; }
+  .subtitle { margin-bottom: 1.5rem; }
+  
+  .subject {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .badge {
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .final-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .final-card button {
+    width: 100%;
+  }
+
+  .assistant .section {
+    padding: 1rem;
+  }
 }
