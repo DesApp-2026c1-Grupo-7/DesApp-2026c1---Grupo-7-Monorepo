@@ -22,7 +22,7 @@ Aplicación web con arquitectura cliente-servidor:
 | Frontend | React 19 + Vite + TypeScript        | Lo que usamos en la cursada, ecosistema grande, build rápido.           |
 | Backend  | Node.js 20 + Express 5              | Equipo lo conoce, simple para CRUD.                                     |
 | BD       | MongoDB (Mongoose)                   | Modelo flexible, encaja con el dominio académico que tiene muchas relaciones opcionales. |
-| Auth     | JWT (a definir en sprint 2)         | Stateless, fácil de integrar.                                           |
+| Auth     | JWT + roles `student` / `admin`     | Stateless, fácil de integrar con frontend y middlewares de autorización. |
 | CI       | GitHub Actions                       | Gratis, integrado al repo.                                              |
 
 ## 3. Estructura de carpetas
@@ -74,7 +74,7 @@ Mapeo a los puntos del enunciado:
 8. **Notificaciones** — in-app y email.
 9. **Reportes** — para administradores.
 
-> Sprint 1 toca solo arquitectura, DER y navegación. Implementación funcional arranca en sprint 2.
+> Nota de planificación (06/05/2026): la ficha original de Sprint 1 pedía una versión preliminar funcional hasta el punto 4. El PR #10 adelanta esa implementación (auth, CRUD académico, situación y asistente básico), por lo que Sprint 2 queda replanificado para cerrar deuda, tests y faltantes de puntos 1 a 4.
 
 ## 5. Decisiones (ADR resumido)
 

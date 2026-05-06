@@ -55,12 +55,15 @@ Lee [`CONTRIBUTING.md`](./CONTRIBUTING.md). Resumen:
 
 ## Sprints
 
-| Sprint | Inicio       | Fin          | Alcance                                          |
-|--------|--------------|--------------|--------------------------------------------------|
-| 1      | 16-04-2026   | 07-05-2026   | Actores, DER, arquitectura, navegación básica    |
-| 2      | TBD          | TBD          | TBD                                              |
+| Sprint | Inicio | Fin | Alcance |
+|---|---|---|---|
+| 1 | 16-04-2026 | 07-05-2026 | Actores, DER, arquitectura, navegación básica y versión preliminar funcional de puntos 1-4 |
+| 2 | 07-05-2026 | 21-05-2026 | Cierre real de puntos 1-4: tests, ajustes de consigna, Excel preview, proyecciones y planificador |
+| 3 | 21-05-2026 | 04-06-2026 | Red social académica: perfil, privacidad, contactos y feed |
+| 4 | 04-06-2026 | 25-06-2026 | Sesiones de estudio y materiales base |
+| 5 | 25-06-2026 | 16-07-2026 | Moderación, notificaciones, reportes, deploy y cierre |
 
-Detalle en [`docs/sprint-1/`](./docs/sprint-1/).
+Detalle en [`AGENTS.md`](./AGENTS.md) y en [`docs/sprint-1/`](./docs/sprint-1/), [`docs/sprint-2/`](./docs/sprint-2/), [`docs/sprint-3/`](./docs/sprint-3/), [`docs/sprint-4/`](./docs/sprint-4/) y [`docs/sprint-5/`](./docs/sprint-5/).
 
 ## Documentación
 
