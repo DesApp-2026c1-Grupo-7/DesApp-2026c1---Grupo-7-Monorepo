@@ -9,12 +9,15 @@ Cada vez que un agente termine una tarea debe mover Trello, abrir/actualizar PR 
 ## Estado actual al 06/05/2026
 
 La deuda de Sprint 1 sobre puntos 1 a 4 queda cerrada en `feature/cerrar-deuda-puntos-1-4`.
+Además, se completó el rediseño responsive y la automatización de carreras en `feature/responsive-design`.
 
-Validacion:
+### Log de Actividades del Agente (06/05/2026)
 
-- `cd backend && npm test`
-- `cd frontend && npm run lint`
-- `cd frontend && npm run build`
+- [x] **Rediseño Responsive:** Todo el sistema (Admin y Estudiante) es ahora adaptable a móviles y tablets. Se incluyó un nuevo Sidebar colapsable/horizontal y tablas con scroll.
+- [x] **Automatización de Carreras:** El alta de carreras ahora autocompleta materias, créditos e inglés seleccionando un Plan de Estudio Base.
+- [x] **Documentación Sprint 1:** Se consolidaron los objetivos cumplidos en `docs/sprint-1/objetivos-completados.md` y se cerró la ficha del Sprint 1.
+- [x] **Fix de Entorno:** Se corrigió la URL de desarrollo del frontend (`--host`) en `package.json`.
+- [x] **Pull Requests:** Creados PRs para `feature/responsive-design` y `docs/sprint-documentation` hacia `dev`.
 
 ## Backlog por punto del TP
 

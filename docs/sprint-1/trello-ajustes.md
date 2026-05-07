@@ -2,7 +2,7 @@
 
 ## Card Sprint 1
 
-Estado sugerido: **Hecho en este sprint**.
+Estado sugerido: **Completado**.
 
 Checklist:
 
@@ -13,6 +13,9 @@ Checklist:
 - [x] Excel de prueba para carga de situacion.
 - [x] Tests reales de backend.
 - [x] Frontend lint/build verde.
+- [x] Diseño Responsive (Admin y Estudiante).
+- [x] Automatización de creación de carreras.
+- [x] Documentación de objetivos y cierre de sprint.
 
 ## Card Sprint 2
 
