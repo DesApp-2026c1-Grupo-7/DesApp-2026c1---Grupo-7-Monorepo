@@ -1,6 +1,21 @@
+import { useState } from "react";
 import "../../styles/Profile.css";
 
 export default function Profile() {
+  const [user] = useState<{ nombre: string; email: string; role: string } | null>(() => {
+    const userStr = localStorage.getItem("user");
+    if (!userStr) return null;
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      return null;
+    }
+  });
+
+  if (!user) {
+    return <div className="profile-container"><p>Cargando perfil...</p></div>;
+  }
+
   return (
     <div className="profile-container">
       <h1>Mi Perfil</h1>
@@ -12,14 +27,14 @@ export default function Profile() {
           <div className="avatar">👤</div>
 
           <div className="user-data">
-            <h2>Juan Pérez</h2>
-            <span className="role">Estudiante</span>
+            <h2>{user.nombre}</h2>
+            <span className="role">{user.role === 'admin' ? 'Administrador' : 'Estudiante'}</span>
 
             <div className="user-details">
-              <span>📧 juan.perez@universidad.edu</span>
-              <span>📚 Ingeniería en Sistemas</span>
-              <span>📞 +54 11 1234-5678</span>
-              <span>📍 Buenos Aires, Argentina</span>
+              <span>📧 {user.email}</span>
+              <span>📚 Ingeniería en Sistemas (Demo)</span>
+              <span>📞 +54 11 1234-5678 (Demo)</span>
+              <span>📍 Buenos Aires, Argentina (Demo)</span>
             </div>
           </div>
         </div>

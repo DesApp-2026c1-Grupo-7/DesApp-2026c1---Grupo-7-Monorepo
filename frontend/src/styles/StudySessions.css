@@ -103,10 +103,27 @@
 
 /* BOTÓN */
 .btn-primary {
-  background: #2563eb;
+  background: var(--primary);
   color: white;
   border: none;
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   cursor: pointer;
+  font-weight: 600;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+@media (max-width: 768px) {
+  .sessions-container { padding: 1rem; }
+  .sessions-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .sessions-filters { flex-direction: column; }
+  .session-top { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+  .session-info { flex-direction: column; gap: 8px; }
+  .session-footer { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .progress-bar { width: 100%; margin-right: 0; }
+  .btn-primary { width: 100%; }
 }

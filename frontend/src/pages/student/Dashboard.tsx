@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import "../../styles/Dashboard.css";
 import StatCard from "../../components/StatCard";
+import api from "../../services/api";
 import {
   BookOpen,
   GraduationCap,
@@ -8,13 +10,65 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+interface AcademicRecord {
+  estado: string;
+}
+
+interface Avance {
+  totalMaterias: number;
+  aprobadas: number;
+  regularizadas: number;
+  pendientes: number;
+  porcentajeAvance: number;
+}
+
 export default function Dashboard() {
+  const [userName] = useState<string>(() => {
+    try {
+      const userStr = localStorage.getItem("user");
+      return userStr ? JSON.parse(userStr).nombre ?? "Estudiante" : "Estudiante";
+    } catch {
+      return "Estudiante";
+    }
+  });
+  const [stats, setStats] = useState({ aprobadas: 0, regular: 0, pendientes: 0 });
+  const [avance, setAvance] = useState<Avance | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([api.get("/academico/situacion"), api.get("/academico/avance")])
+      .then(([response, avanceResponse]) => {
+        const records: AcademicRecord[] = response.data;
+        const counts = records.reduce(
+          (acc, curr) => {
+            if (curr.estado === "Aprobada") acc.aprobadas++;
+            else if (curr.estado === "Regular") acc.regular++;
+            else if (curr.estado === "Pendiente") acc.pendientes++;
+            return acc;
+          },
+          { aprobadas: 0, regular: 0, pendientes: 0 }
+        );
+        const avanceData: Avance = avanceResponse.data;
+        setAvance(avanceData);
+        setStats({
+          aprobadas: avanceData.aprobadas ?? counts.aprobadas,
+          regular: avanceData.regularizadas ?? counts.regular,
+          pendientes: avanceData.pendientes ?? counts.pendientes
+        });
+      })
+      .catch((error) => { console.error("Error al obtener estadísticas:", error); })
+      .finally(() => { setLoading(false); });
+  }, []);
+
+  const totalMaterias = avance?.totalMaterias ?? 0;
+  const avancePercent = avance?.porcentajeAvance ?? 0;
+
   return (
     <div className="dashboard">
       {/* HEADER */}
       <div className="dashboard-header">
         <h1>Dashboard</h1>
-        <p>Bienvenido, Juan Pérez</p>
+        <p>Bienvenido, {userName}</p>
       </div>
 
       {/* PROGRESO */}
@@ -22,30 +76,35 @@ export default function Dashboard() {
         <div className="progress-header">
           <div>
             <h2>Avance en la Carrera</h2>
-            <span>Ingeniería en Sistemas</span>
+            <span>Plan de estudio actual</span>
           </div>
           <TrendingUp size={20} />
         </div>
 
         <div className="progress-bar-container">
           <div className="progress-bar">
-            <div className="progress-fill" style={{ width: "68%" }} />
+            <div className="progress-fill" style={{ width: `${avancePercent}%` }} />
           </div>
-          <span className="progress-percent">68%</span>
+          <span className="progress-percent">{avancePercent}%</span>
         </div>
 
         <p className="progress-text">
-          32 de 47 materias aprobadas
+          {stats.aprobadas} de {totalMaterias} materias aprobadas
         </p>
       </div>
 
       {/* STATS */}
 
       <div className="stats">
-        
-        <StatCard title="Materias Aprobadas" value="32" color="green"/> 
-        <StatCard title="Regularizadas" value="8" color="blue" />
-        <StatCard title="Pendientes" value="7" color="orange" />
+        {loading ? (
+          <p>Cargando estadísticas...</p>
+        ) : (
+          <>
+            <StatCard title="Materias Aprobadas" value={stats.aprobadas.toString()} color="green"/> 
+            <StatCard title="Regularizadas" value={stats.regular.toString()} color="blue" />
+            <StatCard title="Pendientes" value={stats.pendientes.toString()} color="orange" />
+          </>
+        )}
       </div>
 
       {/* ACCESOS */}

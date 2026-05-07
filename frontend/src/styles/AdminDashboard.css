@@ -1,5 +1,7 @@
 .admin-container {
   padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .subtitle {
@@ -10,7 +12,7 @@
 /* STATS */
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
 }
 
@@ -18,16 +20,18 @@
   background: white;
   padding: 16px;
   border-radius: 12px;
+  border: 1px solid var(--border);
 }
 
 .stat-card.warning {
   background: #fff7ed;
+  border-color: #fed7aa;
 }
 
 /* ACCESOS */
 .quick-actions {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   margin: 16px 0;
 }
@@ -37,6 +41,14 @@
   padding: 20px;
   text-align: center;
   border-radius: 12px;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+
+.action:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary);
 }
 
 .action.highlight {
@@ -49,6 +61,7 @@
   padding: 20px;
   border-radius: 12px;
   margin-top: 20px;
+  border: 1px solid var(--border);
 }
 
 /* CHART */
@@ -63,4 +76,26 @@
   display: flex;
   justify-content: space-between;
   margin-top: 10px;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .admin-container {
+    padding: 16px;
+  }
+
+  .stats, .quick-actions {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .stats, .quick-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .activity {
+    flex-direction: column;
+  }
 }

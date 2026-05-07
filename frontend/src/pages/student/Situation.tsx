@@ -1,51 +1,50 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../../services/api";
 import "../../styles/Situation.css";
 
-type Materia = {
-  nombre: string;
-  anio: string;
+interface AcademicRecord {
+  _id: string;
+  materia: {
+    nombre: string;
+    anio: number;
+  };
   estado: string;
-  nota: string;
+  nota?: number;
   fecha: string;
-};
-
-const data: Materia[] = [
-  { nombre: "Algoritmos y Estructuras de Datos", anio: "1°", estado: "Aprobada", nota: "8", fecha: "14/12/2023" },
-  { nombre: "Programación I", anio: "1°", estado: "Aprobada", nota: "9", fecha: "9/12/2023" },
-  { nombre: "Matemática I", anio: "1°", estado: "Aprobada", nota: "7", fecha: "19/2/2024" },
-  { nombre: "Sistemas Operativos", anio: "2°", estado: "Regularizada", nota: "-", fecha: "14/7/2024" },
-  { nombre: "Base de Datos", anio: "2°", estado: "Regularizada", nota: "-", fecha: "17/7/2024" },
-  { nombre: "Redes de Computadoras", anio: "3°", estado: "Cursando", nota: "-", fecha: "-" },
-  { nombre: "Ingeniería de Software", anio: "3°", estado: "Cursando", nota: "-", fecha: "-" },
-  { nombre: "Inteligencia Artificial", anio: "4°", estado: "Pendiente", nota: "-", fecha: "-" },
-];
+}
 
 const Situation = () => {
   const navigate = useNavigate();
-
+  const [data, setData] = useState<AcademicRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState("Todos los estados");
-
   const [openYear, setOpenYear] = useState(false);
   const [selectedYear, setSelectedYear] = useState("Todos los años");
-
   const [search, setSearch] = useState("");
 
-  const options = ["Todos los estados", "Aprobada", "Regularizada", "Cursando", "Pendiente"];
-  const yearOptions = ["Todos los años", "1°", "2°", "3°", "4°"];
+  const options = ["Todos los estados", "Aprobada", "Regular", "Cursando", "Pendiente"];
+  const yearOptions = ["Todos los años", "1°", "2°", "3°", "4°", "5°"];
+
+  useEffect(() => {
+    api.get("/academico/situacion")
+      .then((response) => { setData(response.data); })
+      .catch((error) => { console.error("Error al obtener situación académica:", error); })
+      .finally(() => { setLoading(false); });
+  }, []);
 
   const filteredData = data.filter((m) => {
-    const matchEstado = selected === "Todos los estados" || m.estado === selected;
-    const matchYear = selectedYear === "Todos los años" || m.anio === selectedYear;
-    const matchSearch = m.nombre.toLowerCase().includes(search.toLowerCase());
+    const matchEstado = selected === "Todos los estados" || m.estado === (selected === "Regularizada" ? "Regular" : selected);
+    const matchYear = selectedYear === "Todos los años" || `${m.materia.anio}°` === selectedYear;
+    const matchSearch = m.materia.nombre.toLowerCase().includes(search.toLowerCase());
     return matchEstado && matchYear && matchSearch;
   });
 
   const getBadgeClass = (estado: string) => {
     switch (estado) {
       case "Aprobada": return "badge green";
-      case "Regularizada": return "badge blue";
+      case "Regular": return "badge blue";
       case "Cursando": return "badge yellow";
       case "Pendiente": return "badge gray";
       default: return "badge";
@@ -140,29 +139,39 @@ const Situation = () => {
       </div>
 
       <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Materia</th>
-              <th>Año</th>
-              <th>Estado</th>
-              <th>Nota</th>
-              <th>Fecha</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {filteredData.map((m, i) => (
-              <tr key={i}>
-                <td>{m.nombre}</td>
-                <td>{m.anio}</td>
-                <td><span className={getBadgeClass(m.estado)}>{m.estado}</span></td>
-                <td>{m.nota}</td>
-                <td>{m.fecha}</td>
+        {loading ? (
+          <p style={{ padding: '20px', textAlign: 'center' }}>Cargando situación académica...</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Materia</th>
+                <th>Año</th>
+                <th>Estado</th>
+                <th>Nota</th>
+                <th>Fecha</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {filteredData.length > 0 ? (
+                filteredData.map((m) => (
+                  <tr key={m._id}>
+                    <td>{m.materia.nombre}</td>
+                    <td>{m.materia.anio}°</td>
+                    <td><span className={getBadgeClass(m.estado)}>{m.estado}</span></td>
+                    <td>{m.nota || "-"}</td>
+                    <td>{new Date(m.fecha).toLocaleDateString()}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>No hay registros académicos.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
 
     </div>

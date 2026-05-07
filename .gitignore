@@ -17,8 +17,9 @@ dist
 dist-ssr
 *.local
 
-# Workspace local de Claude Code / herramientas de IA
+# Workspace local de Claude Code / Gemini CLI / herramientas de IA
 .claude/
+.gemini/
 
 # Workspace de Claude Code (no se versiona)
 .claude/
@@ -26,6 +27,7 @@ dist-ssr
 # Documentos internos del equipo (no se versionan)
 *.docx
 *.xlsx
+!docs/sprint-1/situacion-academica-ejemplo.xlsx
 *.pdf
 
 # Variables de entorno
@@ -45,3 +47,6 @@ frontend/.env
 *.njsproj
 *.sln
 *.sw?
+
+# Sprint summaries
+resumen-sprint-1.txt

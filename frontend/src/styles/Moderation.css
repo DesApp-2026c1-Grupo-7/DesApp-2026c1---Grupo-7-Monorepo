@@ -161,9 +161,13 @@ button.btn-success {
   color: white;
 }
 
-.btn-success:hover {
-  background-color: #15803d;
-  border-color: #15803d;
-  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25);
+@media (max-width: 768px) {
+  .stats { flex-direction: column; }
+  .filters { flex-direction: column; }
+  .report-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .report-info { flex-direction: column; gap: 0.5rem; }
+  .actions { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .right-actions { width: 100%; }
+  .right-actions button { flex: 1; justify-content: center; }
 }
 
