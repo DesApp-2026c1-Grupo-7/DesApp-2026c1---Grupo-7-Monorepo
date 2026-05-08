@@ -1,0 +1,401 @@
+.dashboard,
+.assistant,
+.social-container,
+.sessions-container,
+.materials-container,
+.situation,
+.load-situation,
+.profile-container,
+.notifications-container,
+.admin-container,
+.admin-careers-container,
+.admin-careers,
+.plans-container,
+.subjects-container,
+.moderation-container,
+.create-career-page,
+.create-session-container {
+  width: min(100%, 1180px);
+  margin-inline: auto;
+  padding: 2rem;
+}
+
+.create-career-page,
+.create-session-container {
+  min-height: calc(100vh - 72px);
+  background: transparent !important;
+}
+
+.dashboard-header,
+.admin-careers-header,
+.admin-header,
+.plans-header,
+.subjects-header,
+.sessions-header,
+.materials-header,
+.notifications-header,
+.header {
+  padding: 1.15rem 1.25rem;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(18px);
+}
+
+.dashboard-header h1,
+.assistant h1,
+.profile-container h1,
+.load-situation h1,
+.admin-careers-header h1,
+.admin-header h1,
+.plans-header h1,
+.subjects-header h2,
+.sessions-header h2,
+.materials-header h2,
+.notifications-header h2,
+.moderation-container h1,
+.create-career-container h1,
+.create-session-title {
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+}
+
+.subtitle,
+.dashboard-header p,
+.admin-careers-header p,
+.admin-header p,
+.plans-header p,
+.subjects-header p,
+.sessions-header p,
+.materials-header p,
+.notifications-header p,
+.create-session-subtitle,
+.plan-subtitle,
+.materia,
+.meta,
+.downloads,
+.section-title,
+.motivo,
+.fecha,
+.label {
+  color: var(--text-muted) !important;
+}
+
+.card,
+.quick-card,
+.event,
+.assistant .section,
+.final-card,
+.projection,
+.social-container .card,
+.session-card,
+.material-card,
+.option-card,
+.template-box,
+.profile-container .card,
+.notification-card,
+.stat,
+.stat-card,
+.action,
+.plan-card,
+.correlatives-box,
+.report-card,
+.create-career-container,
+.create-session-card,
+.admin-table-container,
+.subjects-table,
+.table-container,
+.careers-table {
+  background: var(--bg-card) !important;
+  border: 1px solid rgba(255, 255, 255, 0.76) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(16px);
+}
+
+.dashboard .progress-card,
+.progress-card {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 32%),
+    linear-gradient(135deg, #1d326f 0%, #3157d5 52%, #6d8cff 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: var(--shadow-lg);
+}
+
+.quick-card:hover,
+.event:hover,
+.assistant .section:hover,
+.session-card:hover,
+.material-card:hover,
+.option-card:hover,
+.profile-container .card:hover,
+.notification-card:hover,
+.plan-card:hover,
+.report-card:hover {
+  border-color: rgba(49, 87, 213, 0.22) !important;
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.stat-card.warning,
+.notification-card.warning,
+.subject.warning {
+  background: linear-gradient(135deg, #fff8ea, rgba(255, 255, 255, 0.86)) !important;
+  color: #a15c07;
+}
+
+.stat-card.success,
+.notification-card.success,
+.subject.success {
+  background: linear-gradient(135deg, #edfbf5, rgba(255, 255, 255, 0.86)) !important;
+  color: #08724d;
+}
+
+.stat-card.neutral,
+.notification-card.info,
+.badge-blue,
+.badge.blue,
+.file-icon,
+.icon.blue {
+  background: linear-gradient(135deg, #eaf0ff, rgba(255, 255, 255, 0.86)) !important;
+  color: var(--primary) !important;
+}
+
+.badge-purple,
+.badge.orange,
+.badge.yellow,
+.tag.estado {
+  background: #fff4db !important;
+  color: #a15c07 !important;
+}
+
+.badge.green,
+.tag.tipo,
+.status-badge,
+.status-badge.active {
+  background: #e6f8ef !important;
+  color: #08724d !important;
+}
+
+.status-badge.inactive,
+.badge.gray {
+  background: #eef1f6 !important;
+  color: #475467 !important;
+}
+
+.filters,
+.subjects-filters,
+.plans-filters,
+.sessions-filters,
+.materials-filters,
+.admin-search-box,
+.create-career-form,
+.login-form {
+  gap: 0.85rem;
+}
+
+input,
+select,
+textarea,
+.input,
+.select,
+.textarea,
+.dropdown-selected {
+  background: rgba(255, 255, 255, 0.84) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.input:focus,
+.select:focus,
+.textarea:focus {
+  border-color: rgba(49, 87, 213, 0.46) !important;
+  box-shadow: 0 0 0 4px rgba(49, 87, 213, 0.12) !important;
+  outline: none;
+}
+
+thead,
+th,
+.table-header {
+  color: #344054;
+  font-weight: 700;
+}
+
+td,
+.table-row,
+.activity,
+.request-item,
+.setting-item,
+.contact,
+.report-info {
+  border-color: rgba(16, 24, 40, 0.08) !important;
+}
+
+.table-row,
+tbody tr,
+.request-item,
+.setting-item,
+.contact {
+  transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.dropdown-menu {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-lg);
+}
+
+.dropdown-item:hover,
+.dropdown-item.active,
+.modalidad-box.active,
+.option-card.active {
+  background: var(--primary-soft) !important;
+  border-color: rgba(49, 87, 213, 0.32) !important;
+  color: var(--primary);
+}
+
+.avatar {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.5), transparent),
+    linear-gradient(135deg, #d9e5ff, #edf7f2) !important;
+  color: var(--primary) !important;
+  box-shadow: 0 10px 24px rgb(16 24 40 / 0.1);
+}
+
+.date,
+.icon,
+.file-icon {
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.progress-bar,
+.bar {
+  background: rgba(16, 24, 40, 0.1) !important;
+}
+
+.progress,
+.progress-fill,
+.fill {
+  background: linear-gradient(90deg, #4e74ea, #12a56f) !important;
+}
+
+.progress-card .progress-fill,
+.progress-card .fill {
+  background: white !important;
+}
+
+.login-container {
+  background:
+    radial-gradient(circle at 20% 15%, rgba(49, 87, 213, 0.18), transparent 24rem),
+    radial-gradient(circle at 80% 82%, rgba(18, 165, 111, 0.12), transparent 26rem),
+    linear-gradient(135deg, #f8fbff, #eef3fb) !important;
+}
+
+.login-card {
+  background: rgba(255, 255, 255, 0.82) !important;
+  border: 1px solid rgba(255, 255, 255, 0.82) !important;
+  box-shadow: var(--shadow-lg) !important;
+  backdrop-filter: blur(18px);
+}
+
+.login-header .icon {
+  width: 4rem;
+  height: 4rem;
+  margin-inline: auto;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-xl);
+  background: var(--primary-soft);
+  box-shadow: var(--shadow-md);
+}
+
+.chart-placeholder {
+  background:
+    linear-gradient(90deg, rgba(49, 87, 213, 0.1) 25%, transparent 25% 50%, rgba(18, 165, 111, 0.1) 50% 75%, transparent 75%),
+    linear-gradient(180deg, #f7f9fd, #eaf0ff) !important;
+  background-size: 88px 100%, 100% 100%;
+}
+
+.link-btn {
+  color: var(--primary) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+button.btn-danger {
+  background: linear-gradient(135deg, #dc3d4d, #f06474) !important;
+  color: white !important;
+}
+
+button.btn-success {
+  background: linear-gradient(135deg, #12a56f, #32c997) !important;
+  color: white !important;
+}
+
+@media (max-width: 768px) {
+  .dashboard,
+  .assistant,
+  .social-container,
+  .sessions-container,
+  .materials-container,
+  .situation,
+  .load-situation,
+  .profile-container,
+  .notifications-container,
+  .admin-container,
+  .admin-careers-container,
+  .admin-careers,
+  .plans-container,
+  .subjects-container,
+  .moderation-container,
+  .create-career-page,
+  .create-session-container {
+    padding: 1rem;
+  }
+
+  .dashboard-header,
+  .admin-careers-header,
+  .admin-header,
+  .plans-header,
+  .subjects-header,
+  .sessions-header,
+  .materials-header,
+  .notifications-header,
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .filters,
+  .subjects-filters,
+  .plans-filters,
+  .sessions-filters,
+  .materials-filters,
+  .options,
+  .grid-2,
+  .plan-info,
+  .session-info,
+  .material-card,
+  .session-footer,
+  .report-info,
+  .actions,
+  .right-actions {
+    flex-direction: column;
+    grid-template-columns: 1fr !important;
+    align-items: stretch !important;
+  }
+
+  .admin-table-container,
+  .subjects-table,
+  .table-container,
+  .careers-table {
+    overflow-x: auto;
+  }
+}
