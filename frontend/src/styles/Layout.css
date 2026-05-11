@@ -1,7 +1,9 @@
 .layout {
   display: flex;
   min-height: 100vh;
-  background: var(--bg-main);
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.36), transparent 36rem),
+    transparent;
   position: relative;
 }
 

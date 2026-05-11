@@ -32,6 +32,7 @@ import Subjects from "./pages/admin/Subjects";
 import CreateSubject from "./pages/admin/CreateSubject";
 import EditSubject from "./pages/admin/EditSubject";
 import Moderation from "./pages/admin/Moderation";
+import "./styles/PremiumTheme.css";
 
 const getActiveUser = (): { role?: string } | null => {
   const token = localStorage.getItem("token");
