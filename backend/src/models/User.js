@@ -37,6 +37,30 @@ const userSchema = new mongoose.Schema({
   planEstudio: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'StudyPlan'
+  },
+  bio: {
+    type: String,
+    trim: true,
+    maxlength: 500
+  },
+  foto: {
+    type: String, // URL de la imagen o base64
+    default: ''
+  },
+  configuracionPrivacidad: {
+    perfil: {
+      type: String,
+      enum: ['publico', 'privado'],
+      default: 'publico'
+    },
+    mostrarEmail: {
+      type: Boolean,
+      default: true
+    },
+    mostrarSituacionAcademica: {
+      type: Boolean,
+      default: true
+    }
   }
 }, {
   timestamps: true
