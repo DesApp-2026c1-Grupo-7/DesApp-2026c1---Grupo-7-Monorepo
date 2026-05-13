@@ -37,12 +37,11 @@ export default function Profile() {
     nombre: "",
     bio: "",
     foto: "",
-    configuracionPrivacidad: { ...DEFAULT_PRIVACY }
+    configuracionPrivacidad: { ...DEFAULT_PRIVACY } as ProfileData["configuracionPrivacidad"]
   });
 
   const loadProfile = useCallback(async () => {
     try {
-      setLoading(true);
       const response = await api.get("/perfil/me");
       const data = response.data;
       
@@ -70,7 +69,10 @@ export default function Profile() {
   }, []);
 
   useEffect(() => {
-    loadProfile();
+    const timer = setTimeout(() => {
+      loadProfile();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [loadProfile]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
