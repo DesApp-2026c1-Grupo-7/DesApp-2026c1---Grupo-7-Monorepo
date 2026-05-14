@@ -12,7 +12,15 @@ const getProfile = async (req, res) => {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
 
-    res.json(user);
+    // Incluimos la situación académica
+    const situacion = await Grade.find({ estudiante: user._id })
+      .populate('materia', 'nombre anio')
+      .sort({ fecha: -1 });
+
+    const userObj = user.toObject();
+    userObj.situacionAcademica = situacion;
+
+    res.json(userObj);
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al obtener el perfil', error: error.message });
   }
@@ -47,7 +55,14 @@ const updateProfile = async (req, res) => {
       .populate('carrera', 'nombre codigo')
       .populate('planEstudio', 'nombre');
 
-    res.json({ mensaje: 'Perfil actualizado con éxito', user: updatedUser });
+    const situacion = await Grade.find({ estudiante: updatedUser._id })
+      .populate('materia', 'nombre anio')
+      .sort({ fecha: -1 });
+
+    const userObj = updatedUser.toObject();
+    userObj.situacionAcademica = situacion;
+
+    res.json({ mensaje: 'Perfil actualizado con éxito', user: userObj });
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al actualizar el perfil', error: error.message });
   }
