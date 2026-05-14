@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import api from "../../services/api";
 import "../../styles/Notifications.css";
 
@@ -16,20 +16,22 @@ export default function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadNotifications();
+  const loadNotifications = useCallback(() => {
+    api.get("/notificaciones")
+      .then((response) => {
+        setNotifications(response.data);
+      })
+      .catch((error) => {
+        console.error("Error al cargar notificaciones:", error);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
-  const loadNotifications = async () => {
-    try {
-      const response = await api.get("/notificaciones");
-      setNotifications(response.data);
-    } catch (error) {
-      console.error("Error al cargar notificaciones:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
 
   const marcarComoLeida = async (id: string) => {
     try {

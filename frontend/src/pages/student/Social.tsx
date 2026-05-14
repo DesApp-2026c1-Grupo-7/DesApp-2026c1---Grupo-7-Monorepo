@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import api from "../../services/api";
 import "../../styles/Social.css";
 
@@ -42,34 +42,37 @@ const Social = () => {
   const [inviting, setInviting] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
-  useEffect(() => {
-    loadData();
+  const loadData = useCallback(() => {
+    Promise.all([
+      api.get("/invitaciones/contactos"),
+      api.get("/invitaciones/pendientes"),
+      api.get("/invitaciones/enviadas")
+    ])
+      .then(([contRes, pendRes, envRes]) => {
+        setContactos(contRes.data);
+        setPendientes(pendRes.data);
+        setEnviadas(envRes.data);
+      })
+      .catch((error) => {
+        console.error("Error al cargar datos sociales:", error);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
-  const loadData = async () => {
-    try {
-      const [contRes, pendRes, envRes] = await Promise.all([
-        api.get("/invitaciones/contactos"),
-        api.get("/invitaciones/pendientes"),
-        api.get("/invitaciones/enviadas")
-      ]);
-      setContactos(contRes.data);
-      setPendientes(pendRes.data);
-      setEnviadas(envRes.data);
-    } catch (error) {
-      console.error("Error al cargar datos sociales:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleAction = async (token: string, action: 'aceptar' | 'rechazar') => {
     try {
       await api.post(`/invitaciones/${action}`, { token });
       // Recargar datos
       loadData();
-    } catch (error: any) {
-      alert(error.response?.data?.mensaje || "Error al procesar la invitación");
+    } catch (error: unknown) {
+      const axiosErr = error as { response?: { data?: { mensaje?: string } } };
+      alert(axiosErr.response?.data?.mensaje || "Error al procesar la invitación");
     }
   };
 
@@ -78,8 +81,9 @@ const Social = () => {
     try {
       await api.delete(`/invitaciones/${id}`);
       loadData();
-    } catch (error: any) {
-      alert(error.response?.data?.mensaje || "Error al cancelar la invitación");
+    } catch (error: unknown) {
+      const axiosErr = error as { response?: { data?: { mensaje?: string } } };
+      alert(axiosErr.response?.data?.mensaje || "Error al cancelar la invitación");
     }
   };
 
@@ -88,8 +92,9 @@ const Social = () => {
     try {
       await api.delete(`/invitaciones/contactos/${id}`);
       loadData();
-    } catch (error: any) {
-      alert(error.response?.data?.mensaje || "Error al eliminar contacto");
+    } catch (error: unknown) {
+      const axiosErr = error as { response?: { data?: { mensaje?: string } } };
+      alert(axiosErr.response?.data?.mensaje || "Error al eliminar contacto");
     }
   };
 
@@ -103,9 +108,10 @@ const Social = () => {
       const response = await api.post("/invitaciones/enviar", { email: inviteEmail });
       setMessage({ text: response.data.mensaje, type: "success" });
       setInviteEmail("");
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const axiosErr = error as { response?: { data?: { mensaje?: string } } };
       setMessage({ 
-        text: error.response?.data?.mensaje || "Error al enviar la invitación", 
+        text: axiosErr.response?.data?.mensaje || "Error al enviar la invitación", 
         type: "error" 
       });
     } finally {

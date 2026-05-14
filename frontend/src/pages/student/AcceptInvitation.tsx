@@ -3,30 +3,38 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';
 import '../../styles/Social.css';
 
+interface InvitationData {
+  remitente: {
+    nombre: string;
+    foto?: string;
+  };
+}
+
 const AcceptInvitation = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const navigate = useNavigate();
 
-  const [invitation, setInvitation] = useState<any>(null);
+  const [invitation, setInvitation] = useState<InvitationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    if (!token) {
-      setError('Token de invitación no proporcionado.');
-      setLoading(false);
-      return;
-    }
-
     const verifyToken = async () => {
+      if (!token) {
+        setError('Token de invitación no proporcionado.');
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await api.get(`/invitaciones/verificar/${token}`);
         setInvitation(response.data);
-      } catch (err: any) {
-        setError(err.response?.data?.mensaje || 'Error al verificar la invitación.');
+      } catch (err: unknown) {
+        const axiosErr = err as { response?: { data?: { mensaje?: string } } };
+        setError(axiosErr.response?.data?.mensaje || 'Error al verificar la invitación.');
       } finally {
         setLoading(false);
       }
@@ -41,8 +49,9 @@ const AcceptInvitation = () => {
       await api.post(`/invitaciones/${action}`, { token });
       setSuccess(`Has ${action === 'aceptar' ? 'aceptado' : 'rechazado'} la invitación con éxito.`);
       setTimeout(() => navigate('/student/social'), 3000);
-    } catch (err: any) {
-      setError(err.response?.data?.mensaje || `Error al ${action} la invitación.`);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { mensaje?: string } } };
+      setError(axiosErr.response?.data?.mensaje || `Error al ${action} la invitación.`);
     } finally {
       setProcessing(false);
     }
@@ -84,6 +93,10 @@ const AcceptInvitation = () => {
         </div>
       </div>
     );
+  }
+
+  if (!invitation) {
+    return null;
   }
 
   return (
