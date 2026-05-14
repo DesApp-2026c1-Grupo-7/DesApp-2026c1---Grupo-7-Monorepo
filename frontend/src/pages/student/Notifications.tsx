@@ -1,82 +1,83 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import api from "../../services/api";
 import "../../styles/Notifications.css";
 
 interface Notification {
-  id: number;
-  title: string;
-  description: string;
-  time: string;
-  type: "success" | "info" | "warning" | "default";
-  read: boolean;
+  _id: string;
+  titulo: string;
+  descripcion: string;
+  createdAt: string;
+  tipo: "success" | "info" | "warning" | "default";
+  leida: boolean;
+  link?: string;
 }
 
 export default function Notifications() {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: 1,
-      title: "Material aprobado",
-      description:
-        "Tu material 'Resumen Normalización' fue aprobado y publicado",
-      time: "Hace 5 minutos",
-      type: "success",
-      read: false,
-    },
-    {
-      id: 2,
-      title: "Recordatorio de sesión",
-      description: "La sesión de Base de Datos comienza en 2 horas",
-      time: "Hace 1 hora",
-      type: "info",
-      read: false,
-    },
-    {
-      id: 3,
-      title: "Nueva solicitud de conexión",
-      description: "Pedro Martínez quiere conectar contigo",
-      time: "Hace 3 horas",
-      type: "info",
-      read: false,
-    },
-    {
-      id: 4,
-      title: "Nuevo participante",
-      description: "María González se unió a tu sesión de estudio",
-      time: "Hace 5 horas",
-      type: "default",
-      read: true,
-    },
-    {
-      id: 5,
-      title: "Nuevo material disponible",
-      description:
-        "Ana López compartió 'Ejercicios SQL' en Base de Datos",
-      time: "Hace 1 día",
-      type: "default",
-      read: true,
-    },
-    {
-      id: 6,
-      title: "Sesión cancelada",
-      description:
-        "La sesión de Redes del 15/05 fue cancelada por el organizador",
-      time: "Hace 2 días",
-      type: "warning",
-      read: true,
-    },
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const marcarComoLeida = (id: number) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+  const loadNotifications = useCallback(() => {
+    api.get("/notificaciones")
+      .then((response) => {
+        setNotifications(response.data);
+      })
+      .catch((error) => {
+        console.error("Error al cargar notificaciones:", error);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
+
+  const marcarComoLeida = async (id: string) => {
+    try {
+      await api.put(`/notificaciones/${id}/read`);
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === id ? { ...n, leida: true } : n))
+      );
+    } catch (error) {
+      console.error("Error al marcar como leída:", error);
+    }
+  };
+
+  const marcarTodas = async () => {
+    try {
+      await api.put("/notificaciones/read-all");
+      setNotifications((prev) => prev.map((n) => ({ ...n, leida: true })));
+    } catch (error) {
+      console.error("Error al marcar todas:", error);
+    }
+  };
+
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (minutes < 60) return `Hace ${minutes} minutos`;
+    if (hours < 24) return `Hace ${hours} horas`;
+    return `Hace ${days} días`;
+  };
+
+  const sinLeer = notifications.filter((n) => !n.leida);
+  const leidas = notifications.filter((n) => n.leida);
+
+  if (loading) {
+    return (
+      <div className="notifications-container">
+        <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
+          <p>Cargando notificaciones...</p>
+        </div>
+      </div>
     );
-  };
-
-  const marcarTodas = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  };
-
-  const sinLeer = notifications.filter((n) => !n.read);
-  const leidas = notifications.filter((n) => n.read);
+  }
 
   return (
     <div className="notifications-container">
@@ -87,55 +88,74 @@ export default function Notifications() {
           <p>Mantente al día con tus actividades</p>
         </div>
 
-        <button className="link-btn" onClick={marcarTodas}>
-          Marcar todas como leídas
-        </button>
+        {sinLeer.length > 0 && (
+          <button className="link-btn" onClick={marcarTodas}>
+            Marcar todas como leídas
+          </button>
+        )}
       </div>
 
-      {/* SIN LEER */}
-      <h4 className="section-title">Sin leer</h4>
-
-      {sinLeer.map((n) => (
-        <div key={n.id} className={`notification-card ${n.type}`}>
-          <div className="left">
-            <div className="icon">
-              {n.type === "success" && "✔"}
-              {n.type === "info" && "📅"}
-              {n.type === "warning" && "⚠"}
-            </div>
-
-            <div>
-              <h4>{n.title}</h4>
-              <p>{n.description}</p>
-              <span>{n.time}</span>
-            </div>
-          </div>
-
-          <button
-            className="link-btn"
-            onClick={() => marcarComoLeida(n.id)}
-          >
-            Marcar como leída
-          </button>
+      {notifications.length === 0 ? (
+        <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
+          <p>No tienes notificaciones por el momento.</p>
         </div>
-      ))}
+      ) : (
+        <>
+          {/* SIN LEER */}
+          {sinLeer.length > 0 && (
+            <>
+              <h4 className="section-title">Nuevas</h4>
+              {sinLeer.map((n) => (
+                <div key={n._id} className={`notification-card ${n.tipo}`}>
+                  <div className="left">
+                    <div className="icon">
+                      {n.tipo === "success" && "✔"}
+                      {n.tipo === "info" && "📅"}
+                      {n.tipo === "warning" && "⚠"}
+                      {n.tipo === "default" && "🔔"}
+                    </div>
 
-      {/* LEÍDAS */}
-      <h4 className="section-title">Anteriores</h4>
+                    <div>
+                      <h4>{n.titulo}</h4>
+                      <p>{n.descripcion}</p>
+                      <span>{formatTime(n.createdAt)}</span>
+                    </div>
+                  </div>
 
-      {leidas.map((n) => (
-        <div key={n.id} className="notification-card read">
-          <div className="left">
-            <div className="icon">📄</div>
+                  <button
+                    className="link-btn"
+                    onClick={() => marcarComoLeida(n._id)}
+                  >
+                    Marcar como leída
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
 
-            <div>
-              <h4>{n.title}</h4>
-              <p>{n.description}</p>
-              <span>{n.time}</span>
-            </div>
-          </div>
-        </div>
-      ))}
+          {/* LEÍDAS */}
+          {leidas.length > 0 && (
+            <>
+              <h4 className="section-title">Anteriores</h4>
+              {leidas.map((n) => (
+                <div key={n._id} className="notification-card read">
+                  <div className="left">
+                    <div className="icon">
+                      {n.tipo === "success" ? "✅" : "📄"}
+                    </div>
+
+                    <div>
+                      <h4>{n.titulo}</h4>
+                      <p>{n.descripcion}</p>
+                      <span>{formatTime(n.createdAt)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 }

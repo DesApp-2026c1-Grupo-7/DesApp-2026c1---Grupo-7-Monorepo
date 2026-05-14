@@ -6,10 +6,18 @@
 
 Cada vez que un agente termine una tarea debe mover Trello, abrir/actualizar PR a `dev`, dejar CI verde, pedir review, actualizar este archivo si cambia el plan y hacer push. Si algo no se cerro del todo, crear una card nueva y documentarlo.
 
-## Estado actual al 06/05/2026
+## Estado actual al 14/05/2026
 
-La deuda de Sprint 1 sobre puntos 1 a 4 queda cerrada en `feature/cerrar-deuda-puntos-1-4`.
-Además, se completó el rediseño responsive y la automatización de carreras en `feature/responsive-design`.
+Implementación del sistema de contactos, invitaciones por email y centro de notificaciones funcional en `feature/mail-invitations-and-profile-fixes`.
+
+### Log de Actividades del Agente (14/05/2026)
+
+- [x] **Situación Académica en Perfil:** Integración de la lista de materias y estados en el perfil del estudiante. Se garantizó la visibilidad persistente durante la edición y para el dueño del perfil.
+- [x] **Sistema de Invitaciones por Email:** Implementado flujo completo de envío de invitaciones (Nodemailer), links de aceptación seguros con redirección post-login y aviso de usuario no registrado.
+- [x] **Gestión de Contactos:** Nueva interfaz en "Social" para ver contactos, aceptar/rechazar solicitudes y cancelar invitaciones enviadas.
+- [x] **Centro de Notificaciones:** Implementado el modelo y la UI para notificaciones en tiempo real sobre la actividad de la red social.
+- [x] **Seeds de Prueba:** Añadido un segundo estudiante por defecto (`estudiante2@universidad.edu`) para facilitar el testeo de funciones sociales.
+- [x] **CI Fixes:** Corregidos errores de TypeScript y reglas de React Hooks en el frontend para asegurar que el pipeline de GitHub Actions pase correctamente.
 
 ### Log de Actividades del Agente (06/05/2026)
 
@@ -74,13 +82,13 @@ Además, se completó el rediseño responsive y la automatización de carreras e
 
 ### Punto 5 - Red Social Academica
 
-- [ ] Perfil de estudiante con datos, carrera/s, situacion y foto.
-- [ ] Privacidad publico/privado.
-- [ ] Toggles de email, situacion academica y publicacion de eventos.
-- [ ] Invitaciones por email.
-- [ ] Aceptar/rechazar via link con login previo.
-- [ ] Aviso si destinatario no esta registrado.
-- [ ] Mis contactos y solicitudes pendientes.
+- [x] Perfil de estudiante con datos, carrera/s, situacion y foto.
+- [x] Privacidad publico/privado.
+- [x] Toggles de email, situacion academica y publicacion de eventos.
+- [x] Invitaciones por email.
+- [x] Aceptar/rechazar via link con login previo.
+- [x] Aviso si destinatario no esta registrado.
+- [x] Mis contactos y solicitudes pendientes.
 - [ ] Feed de eventos academicos y posteos manuales.
 
 ### Punto 6 - Sesiones de Estudio Colaborativo
@@ -99,7 +107,7 @@ Además, se completó el rediseño responsive y la automatización de carreras e
 
 ### Punto 8 - Notificaciones
 
-- [ ] Centro de notificaciones in-app.
+- [x] Centro de notificaciones in-app.
 - [ ] Vencimiento de regularidad, sesiones y denuncias.
 
 ### Punto 9 - Reportes y Estadisticas

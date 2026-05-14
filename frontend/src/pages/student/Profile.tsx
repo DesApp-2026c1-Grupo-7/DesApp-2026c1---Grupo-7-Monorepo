@@ -15,6 +15,16 @@ interface ProfileData {
     mostrarEmail: boolean;
     mostrarSituacionAcademica: boolean;
   };
+  situacionAcademica?: {
+    _id: string;
+    materia: {
+      nombre: string;
+      anio: number;
+    };
+    estado: string;
+    nota?: number;
+    fecha: string;
+  }[];
 }
 
 const DEFAULT_PRIVACY = {
@@ -241,6 +251,32 @@ export default function Profile() {
           )}
         </div>
       </div>
+
+      {/* CARD DE SITUACIÓN ACADÉMICA */}
+      {profile.situacionAcademica && profile.situacionAcademica.length > 0 && (
+        <div className="card">
+          <div className="privacy-header">
+            <span>🎓</span>
+            <h3>Situación Académica</h3>
+          </div>
+          <div className="academic-grid">
+            {profile.situacionAcademica.map((item) => (
+              <div key={item._id} className="academic-item">
+                <div className="academic-info">
+                  <span className="subject-name">{item.materia.nombre}</span>
+                  <span className="subject-year">{item.materia.anio}° Año</span>
+                </div>
+                <div className="academic-status">
+                  <span className={`status-badge ${item.estado.toLowerCase()}`}>
+                    {item.estado}
+                  </span>
+                  {item.nota && <span className="grade-badge">{item.nota}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* CARD DE PRIVACIDAD */}
       <div className="card">

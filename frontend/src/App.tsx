@@ -12,6 +12,7 @@ import Situation from "./pages/student/Situation";
 import LoadSituation from "./pages/student/LoadSituation";
 import AcademicAssistant from "./pages/student/AcademicAssistant";
 import Social from "./pages/student/Social";
+import AcceptInvitation from "./pages/student/AcceptInvitation";
 import StudySessions from "./pages/student/StudySessions";
 import CreateSession from "./pages/student/CreateSession";
 import Materials from "./pages/student/Materials";
@@ -81,6 +82,7 @@ const App = () => {
           <Route path="load-situation" element={<LoadSituation />} />
           <Route path="assistant" element={<AcademicAssistant />} />
           <Route path="social" element={<Social />} />
+          <Route path="aceptar-invitacion" element={<AcceptInvitation />} />
           <Route path="sessions" element={<StudySessions />} />
           <Route path="create-session" element={<CreateSession />} />
           <Route path="materials" element={<Materials />} />
