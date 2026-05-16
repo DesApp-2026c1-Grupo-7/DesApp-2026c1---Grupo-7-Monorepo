@@ -119,6 +119,25 @@
   margin: 15px 0;
 }
 
+/* Search Results */
+.search-results-dropdown {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.search-result-item:hover {
+  background-color: #f9fafb;
+}
+
+.searching-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 @media (max-width: 768px) {
   .social-container { padding: 1rem; }
   .request-item { flex-direction: column; align-items: flex-start; gap: 1rem; }

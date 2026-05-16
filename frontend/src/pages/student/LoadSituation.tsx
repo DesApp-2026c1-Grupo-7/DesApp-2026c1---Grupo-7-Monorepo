@@ -167,34 +167,83 @@ const LoadSituation = () => {
       </div>
 
       {mode === "manual" && (
-        <form onSubmit={submitManual} style={{ marginTop: 24, padding: 24, border: "1px solid #e5e7eb", borderRadius: 12, background: "#fff" }}>
+        <form onSubmit={submitManual} className="manual-form">
           <h3>Carga manual</h3>
-          {rows.map((row, idx) => (
-            <div key={idx} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 0.6fr 0.7fr 0.8fr auto", gap: 8, marginBottom: 8 }}>
-              <select value={row.materiaId} onChange={(e) => updateRow(idx, "materiaId", e.target.value)}>
-                <option value="">-- Materia --</option>
-                {subjects.map((subject) => <option key={subject._id} value={subject._id}>{subject.nombre} ({subject.codigo})</option>)}
-              </select>
-              <select value={row.estado} onChange={(e) => updateRow(idx, "estado", e.target.value)}>
-                {ESTADOS.map((estado) => <option key={estado} value={estado}>{estado}</option>)}
-              </select>
-              <input type="number" min={0} max={10} placeholder="Nota" value={row.nota} onChange={(e) => updateRow(idx, "nota", e.target.value)} />
-              <select value={row.cuatrimestre} onChange={(e) => updateRow(idx, "cuatrimestre", Number(e.target.value))}>
-                <option value={0}>Anual</option>
-                <option value={1}>1C</option>
-                <option value={2}>2C</option>
-              </select>
-              <input type="number" value={row.anioCursada} onChange={(e) => updateRow(idx, "anioCursada", Number(e.target.value))} />
-              <button type="button" onClick={() => setRows((prev) => prev.filter((_, i) => i !== idx))}>Quitar</button>
-            </div>
-          ))}
-          <button type="button" onClick={() => setRows((prev) => [...prev, { materiaId: "", estado: "Aprobada", nota: "", cuatrimestre: 1, anioCursada: currentYear }])}>Agregar fila</button>
-          <button type="submit" className="btn-primary" disabled={loading} style={{ marginLeft: 8 }}>Guardar</button>
+          <div className="manual-rows">
+            {rows.map((row, idx) => (
+              <div key={idx} className="manual-row">
+                <select 
+                  className="subject-select"
+                  value={row.materiaId} 
+                  onChange={(e) => updateRow(idx, "materiaId", e.target.value)}
+                >
+                  <option value="">-- Materia --</option>
+                  {subjects.map((subject) => (
+                    <option key={subject._id} value={subject._id}>
+                      {subject.nombre} ({subject.codigo})
+                    </option>
+                  ))}
+                </select>
+                <select 
+                  className="status-select"
+                  value={row.estado} 
+                  onChange={(e) => updateRow(idx, "estado", e.target.value)}
+                >
+                  {ESTADOS.map((estado) => (
+                    <option key={estado} value={estado}>{estado}</option>
+                  ))}
+                </select>
+                <input 
+                  type="number" 
+                  className="grade-input"
+                  min={0} 
+                  max={10} 
+                  placeholder="Nota" 
+                  value={row.nota} 
+                  onChange={(e) => updateRow(idx, "nota", e.target.value)} 
+                />
+                <select 
+                  className="term-select"
+                  value={row.cuatrimestre} 
+                  onChange={(e) => updateRow(idx, "cuatrimestre", Number(e.target.value))}
+                >
+                  <option value={0}>Anual</option>
+                  <option value={1}>1C</option>
+                  <option value={2}>2C</option>
+                </select>
+                <input 
+                  type="number" 
+                  className="year-input"
+                  value={row.anioCursada} 
+                  onChange={(e) => updateRow(idx, "anioCursada", Number(e.target.value))} 
+                />
+                <button 
+                  type="button" 
+                  className="btn-remove"
+                  onClick={() => setRows((prev) => prev.filter((_, i) => i !== idx))}
+                >
+                  Quitar
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="manual-actions">
+            <button 
+              type="button" 
+              className="btn-secondary"
+              onClick={() => setRows((prev) => [...prev, { materiaId: "", estado: "Aprobada", nota: "", cuatrimestre: 1, anioCursada: currentYear }])}
+            >
+              Agregar fila
+            </button>
+            <button type="submit" className="btn-primary" disabled={loading}>
+              Guardar
+            </button>
+          </div>
         </form>
       )}
 
       {mode === "excel" && (
-        <div style={{ marginTop: 24, padding: 24, border: "1px solid #e5e7eb", borderRadius: 12, background: "#fff" }}>
+        <div className="excel-import-container">
           <h3>Importar Excel/CSV</h3>
           <input
             type="file"
@@ -206,49 +255,59 @@ const LoadSituation = () => {
               if (file) previewExcel(file);
             }}
           />
-          <button type="button" className="btn-primary" onClick={() => fileInputRef.current?.click()} disabled={loading}>
-            {loading ? "Procesando..." : "Seleccionar archivo"}
-          </button>
-          <button type="button" className="btn-secondary" onClick={downloadTemplate} style={{ marginLeft: 8 }}>Descargar plantilla</button>
+          <div className="excel-actions">
+            <button type="button" className="btn-primary" onClick={() => fileInputRef.current?.click()} disabled={loading}>
+              {loading ? "Procesando..." : "Seleccionar archivo"}
+            </button>
+            <button type="button" className="btn-secondary" onClick={downloadTemplate}>
+              Descargar plantilla
+            </button>
+          </div>
 
           {preview.length > 0 && (
-            <div style={{ marginTop: 16, overflowX: "auto" }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Fila</th>
-                    <th>Materia</th>
-                    <th>Estado</th>
-                    <th>Nota</th>
-                    <th>Cuatri</th>
-                    <th>Anio</th>
-                    <th>Errores</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {preview.map((row, idx) => (
-                    <tr key={row.fila}>
-                      <td>{row.fila}</td>
-                      <td>
-                        <select value={row.materiaId || ""} onChange={(e) => updatePreview(idx, "materiaId", e.target.value)}>
-                          <option value="">-- Corregir materia --</option>
-                          {subjects.map((subject) => <option key={subject._id} value={subject._id}>{subject.nombre} ({subject.codigo})</option>)}
-                        </select>
-                      </td>
-                      <td>
-                        <select value={row.estado} onChange={(e) => updatePreview(idx, "estado", e.target.value)}>
-                          {ESTADOS.map((estado) => <option key={estado} value={estado}>{estado}</option>)}
-                        </select>
-                      </td>
-                      <td><input type="number" min={0} max={10} value={row.nota ?? ""} onChange={(e) => updatePreview(idx, "nota", Number(e.target.value))} /></td>
-                      <td><input type="number" min={0} max={2} value={row.cuatrimestre ?? ""} onChange={(e) => updatePreview(idx, "cuatrimestre", Number(e.target.value))} /></td>
-                      <td><input type="number" value={row.anioCursada ?? ""} onChange={(e) => updatePreview(idx, "anioCursada", Number(e.target.value))} /></td>
-                      <td style={{ color: row.errores.length ? "#c33" : "#15803d" }}>{row.errores.join("; ") || "OK"}</td>
+            <div className="preview-container">
+              <div className="table-responsive">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fila</th>
+                      <th>Materia</th>
+                      <th>Estado</th>
+                      <th>Nota</th>
+                      <th>Cuatri</th>
+                      <th>Anio</th>
+                      <th>Errores</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <button className="btn-primary" onClick={confirmPreview} disabled={loading} style={{ marginTop: 12 }}>Confirmar importacion</button>
+                  </thead>
+                  <tbody>
+                    {preview.map((row, idx) => (
+                      <tr key={row.fila}>
+                        <td>{row.fila}</td>
+                        <td>
+                          <select value={row.materiaId || ""} onChange={(e) => updatePreview(idx, "materiaId", e.target.value)}>
+                            <option value="">-- Corregir materia --</option>
+                            {subjects.map((subject) => <option key={subject._id} value={subject._id}>{subject.nombre} ({subject.codigo})</option>)}
+                          </select>
+                        </td>
+                        <td>
+                          <select value={row.estado} onChange={(e) => updatePreview(idx, "estado", e.target.value)}>
+                            {ESTADOS.map((estado) => <option key={estado} value={estado}>{estado}</option>)}
+                          </select>
+                        </td>
+                        <td><input type="number" min={0} max={10} value={row.nota ?? ""} onChange={(e) => updatePreview(idx, "nota", Number(e.target.value))} /></td>
+                        <td><input type="number" min={0} max={2} value={row.cuatrimestre ?? ""} onChange={(e) => updatePreview(idx, "cuatrimestre", Number(e.target.value))} /></td>
+                        <td><input type="number" value={row.anioCursada ?? ""} onChange={(e) => updatePreview(idx, "anioCursada", Number(e.target.value))} /></td>
+                        <td className={row.errores.length ? "error-text" : "ok-text"}>
+                          {row.errores.join("; ") || "OK"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <button className="btn-primary" onClick={confirmPreview} disabled={loading} style={{ marginTop: 12 }}>
+                Confirmar importacion
+              </button>
             </div>
           )}
         </div>

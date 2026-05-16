@@ -9,6 +9,7 @@ router.use(auth);
 
 router.get('/me', profileController.getProfile);
 router.put('/me', profileController.updateProfile);
+router.get('/search', profileController.searchUsers);
 router.get('/:id', profileController.getPublicProfile);
 
 module.exports = router;

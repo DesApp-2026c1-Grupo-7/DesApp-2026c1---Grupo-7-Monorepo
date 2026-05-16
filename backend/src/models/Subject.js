@@ -39,7 +39,7 @@ const subjectSchema = new mongoose.Schema({
   },
   esUnahur: {
     type: Boolean,
-    default: true
+    default: false
   }
 }, {
   timestamps: true
