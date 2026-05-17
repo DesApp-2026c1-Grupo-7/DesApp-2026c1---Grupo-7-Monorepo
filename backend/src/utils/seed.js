@@ -195,7 +195,22 @@ async function seedUsers() {
       await student.save();
     }
 
+    const student2Email = 'estudiante2@universidad.edu';
+    let student2 = await User.findOne({ email: student2Email });
+    if (!student2) {
+      student2 = await User.create({
+        nombre: 'Segundo Estudiante',
+        email: student2Email,
+        password: await bcrypt.hash('estudiante123', 10),
+        role: 'student',
+        carrera: careerIngSist._id,
+        planEstudio: plan._id
+      });
+      logger.info('Segundo usuario estudiante por defecto creado.');
+    }
+
     await seedSituationFor(student, subjects);
+    await seedSituationFor(student2, subjects);
     await seedAcademicOffer(subjects);
   } catch (error) {
     logger.error('Error durante el seeding:', error.message);
