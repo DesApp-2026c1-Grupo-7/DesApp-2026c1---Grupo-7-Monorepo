@@ -36,7 +36,10 @@ export default function Feed() {
   }, []);
 
   useEffect(() => {
-    loadFeed();
+    const timer = setTimeout(() => {
+      loadFeed();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [loadFeed]);
 
   const handlePost = async (e: React.FormEvent) => {
