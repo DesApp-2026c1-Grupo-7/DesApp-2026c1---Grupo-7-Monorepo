@@ -60,6 +60,10 @@ const userSchema = new mongoose.Schema({
     mostrarSituacionAcademica: {
       type: Boolean,
       default: true
+    },
+    mostrarEventos: {
+      type: Boolean,
+      default: true
     }
   },
   contactos: [{

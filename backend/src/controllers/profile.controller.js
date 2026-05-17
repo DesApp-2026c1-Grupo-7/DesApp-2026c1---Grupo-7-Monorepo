@@ -113,8 +113,37 @@ const getPublicProfile = async (req, res) => {
   }
 };
 
+const searchUsers = async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.length < 2) {
+      return res.json([]);
+    }
+
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escaped, 'i');
+    const currentUserId = req.user.id;
+
+    const users = await User.find({
+      $and: [
+        { _id: { $ne: currentUserId } },
+        { role: 'student' },
+        { $or: [{ nombre: regex }, { email: regex }] }
+      ]
+    })
+      .select('nombre foto carrera configuracionPrivacidad')
+      .populate('carrera', 'nombre')
+      .limit(10);
+
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al buscar usuarios', error: error.message });
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
-  getPublicProfile
+  getPublicProfile,
+  searchUsers
 };
