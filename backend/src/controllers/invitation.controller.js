@@ -6,24 +6,35 @@ const crypto = require('crypto');
 
 const sendInvitation = async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, destinatarioId } = req.body;
     const remitenteId = req.user.id;
 
-    if (!email) {
-      return res.status(400).json({ mensaje: 'El email es obligatorio' });
+    if (!email && !destinatarioId) {
+      return res.status(400).json({ mensaje: 'El email o ID de destinatario es obligatorio' });
     }
 
     const remitente = await User.findById(remitenteId);
-    const destinatario = await User.findOne({ email: email.toLowerCase() });
+    let destinatario;
+    
+    if (destinatarioId) {
+      destinatario = await User.findById(destinatarioId);
+    } else {
+      destinatario = await User.findOne({ email: email.toLowerCase() });
+    }
 
     if (!destinatario) {
-      // Caso B: El destinatario no está registrado
+      if (destinatarioId) {
+        return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+      }
+      // Caso B: El destinatario no está registrado (solo si se envió email)
       await mailService.sendUserNotFoundEmail(remitente.email, email);
       return res.json({ 
         mensaje: 'El usuario no está registrado. Se ha enviado un aviso a tu correo.',
         usuarioRegistrado: false 
       });
     }
+
+    const targetEmail = destinatario.email;
 
     if (destinatario._id.toString() === remitenteId) {
       return res.status(400).json({ mensaje: 'No puedes invitarte a ti mismo' });
@@ -49,7 +60,7 @@ const sendInvitation = async (req, res) => {
     const token = crypto.randomBytes(32).toString('hex');
     const nuevaInvitacion = new Invitation({
       remitente: remitenteId,
-      emailDestino: email.toLowerCase(),
+      emailDestino: targetEmail,
       destinatario: destinatario._id,
       token
     });
@@ -66,7 +77,7 @@ const sendInvitation = async (req, res) => {
     });
 
     const invitationLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/student/aceptar-invitacion?token=${token}`;
-    await mailService.sendInvitationEmail(destinatario.email, remitente.nombre, invitationLink);
+    await mailService.sendInvitationEmail(targetEmail, remitente.nombre, invitationLink);
 
     res.json({ 
       mensaje: 'Invitación enviada con éxito',
@@ -100,10 +111,15 @@ const getInvitationByToken = async (req, res) => {
 
 const acceptInvitation = async (req, res) => {
   try {
-    const { token } = req.body;
+    const { token, invitacionId } = req.body;
     const userId = req.user.id;
 
-    const invitacion = await Invitation.findOne({ token });
+    let invitacion;
+    if (token) {
+      invitacion = await Invitation.findOne({ token });
+    } else if (invitacionId) {
+      invitacion = await Invitation.findById(invitacionId);
+    }
 
     if (!invitacion || invitacion.estado !== 'pendiente') {
       return res.status(400).json({ mensaje: 'Invitación no válida o ya procesada' });
@@ -147,10 +163,15 @@ const acceptInvitation = async (req, res) => {
 
 const rejectInvitation = async (req, res) => {
   try {
-    const { token } = req.body;
+    const { token, invitacionId } = req.body;
     const userId = req.user.id;
 
-    const invitacion = await Invitation.findOne({ token });
+    let invitacion;
+    if (token) {
+      invitacion = await Invitation.findOne({ token });
+    } else if (invitacionId) {
+      invitacion = await Invitation.findById(invitacionId);
+    }
 
     if (!invitacion || invitacion.estado !== 'pendiente') {
       return res.status(400).json({ mensaje: 'Invitación no válida o ya procesada' });

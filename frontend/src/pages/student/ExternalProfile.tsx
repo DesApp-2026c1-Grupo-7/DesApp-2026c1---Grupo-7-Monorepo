@@ -32,9 +32,9 @@ interface PublicProfile {
   invitacionPendiente?: {
     _id: string;
     remitente: string;
-    token: string;
   } | null;
 }
+
 
 const ExternalProfile = () => {
   const { id } = useParams();
@@ -65,15 +65,15 @@ const ExternalProfile = () => {
   }, [id]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProfile();
   }, [fetchProfile]);
 
   const handleInvite = async () => {
-    if (!profile?.email) return;
+    if (!profile) return;
     setProcessing(true);
     try {
-      await api.post("/invitaciones/enviar", { email: profile.email });
+      // Usamos destinatarioId para que funcione aunque el email esté oculto
+      await api.post("/invitaciones/enviar", { destinatarioId: profile._id });
       await fetchProfile(); // Recargar para actualizar estado
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { mensaje?: string } } };
@@ -84,10 +84,11 @@ const ExternalProfile = () => {
   };
 
   const handleAccept = async () => {
-    if (!profile?.invitacionPendiente?.token) return;
+    if (!profile?.invitacionPendiente?._id) return;
     setProcessing(true);
     try {
-      await api.post("/invitaciones/aceptar", { token: profile.invitacionPendiente.token });
+      // Usamos invitacionId en lugar del token por seguridad y simplicidad
+      await api.post("/invitaciones/aceptar", { invitacionId: profile.invitacionPendiente._id });
       await fetchProfile();
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { mensaje?: string } } };
@@ -96,6 +97,7 @@ const ExternalProfile = () => {
       setProcessing(false);
     }
   };
+
 
   const getBadgeClass = (estado: string) => {
     switch (estado) {

@@ -108,9 +108,9 @@ const Social = () => {
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
 
-  const handleAction = async (token: string, action: 'aceptar' | 'rechazar') => {
+  const handleAction = async (id: string, action: 'aceptar' | 'rechazar') => {
     try {
-      await api.post(`/invitaciones/${action}`, { token });
+      await api.post(`/invitaciones/${action}`, { invitacionId: id });
       // Recargar datos
       loadData();
     } catch (error: unknown) {
@@ -148,9 +148,11 @@ const Social = () => {
     setInviting(true);
     setMessage(null);
     try {
+      // Intentar enviar por email (el backend ahora soporta ambos)
       const response = await api.post("/invitaciones/enviar", { email: inviteEmail });
       setMessage({ text: response.data.mensaje, type: "success" });
       setInviteEmail("");
+      loadData(); // Recargar para ver la nueva invitación enviada
     } catch (error: unknown) {
       const axiosErr = error as { response?: { data?: { mensaje?: string } } };
       setMessage({ 
@@ -168,11 +170,12 @@ const Social = () => {
       <p className="subtitle">Conecta con otros estudiantes y amplía tu red académica</p>
 
       {/* Buscador de Usuarios */}
-      <div className="card search-users-card" style={{ position: 'relative', zIndex: 100 }}>
+      <div className="card search-users-card">
         <h3>Buscar un Perfil</h3>
-        <div className="search-bar-container" style={{ position: 'relative', marginTop: '1rem' }}>
+        <div className="search-bar-container">
           <input 
             type="text" 
+            className="search-bar-input"
             placeholder="Buscar por nombre o email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -182,31 +185,11 @@ const Social = () => {
                 navigate(`/student/perfil/${searchResults[0]._id}`);
               }
             }}
-            style={{ 
-              width: '100%', 
-              padding: '12px 16px', 
-              borderRadius: '8px', 
-              border: '1px solid #ddd',
-              fontSize: '1rem'
-            }}
           />
-          {searching && <div className="searching-spinner" style={{ position: 'absolute', right: '15px', top: '12px' }}>⏳</div>}
+          {searching && <div className="searching-spinner">⏳</div>}
           
           {showDropdown && (
-            <div className="search-results-dropdown" style={{ 
-              position: 'absolute', 
-              top: '100%', 
-              left: 0, 
-              right: 0, 
-              backgroundColor: 'white', 
-              border: '1px solid #ccc', 
-              borderRadius: '0 0 8px 8px', 
-              zIndex: 1000,
-              boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-              marginTop: '4px',
-              maxHeight: '400px',
-              overflowY: 'auto'
-            }}>
+            <div className="search-results-dropdown">
               {searchResults.length > 0 ? (
                 searchResults.map(user => (
                   <div 
@@ -216,29 +199,21 @@ const Social = () => {
                       // Usamos onMouseDown para que se ejecute antes del onBlur si lo tuviéramos
                       navigate(`/student/perfil/${user._id}`);
                     }}
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '12px', 
-                      padding: '12px', 
-                      cursor: 'pointer',
-                      borderBottom: '1px solid #eee'
-                    }}
                   >
-                    <div className="avatar" style={{ width: '35px', height: '35px' }}>
-                      {user.foto ? <img src={user.foto} alt={user.nombre} style={{ borderRadius: '50%', width: '100%', height: '100%', objectFit: 'cover' }} /> : "👤"}
+                    <div className="avatar">
+                      {user.foto ? <img src={user.foto} alt={user.nombre} /> : "👤"}
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 'bold' }}>{user.nombre}</div>
-                      <div style={{ fontSize: '0.8rem', color: '#666' }}>{user.carrera?.nombre || "Estudiante"}</div>
+                    <div className="search-result-info">
+                      <div className="search-result-name">{user.nombre}</div>
+                      <div className="search-result-career">{user.carrera?.nombre || "Estudiante"}</div>
                     </div>
-                    <div style={{ fontSize: '0.8rem' }}>
+                    <div className="search-result-privacy">
                       {user.configuracionPrivacidad.perfil === 'privado' ? "🔒 Privado" : "🌐 Público"}
                     </div>
                   </div>
                 ))
               ) : (
-                <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+                <div className="search-no-results">
                   {searchError ? "Error al realizar la búsqueda" : "No se encontraron perfiles"}
                 </div>
               )}
@@ -249,7 +224,6 @@ const Social = () => {
           <div 
             className="dropdown-overlay" 
             onClick={() => setShowDropdown(false)}
-            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 90 }}
           />
         )}
       </div>
@@ -257,21 +231,16 @@ const Social = () => {
       {/* Invitación */}
       <div className="card">
         <h3>Invitar por Email</h3>
-        <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+        <p className="invite-help" style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
           ¿Tu compañero no aparece en la búsqueda? Invitalo directamente por email.
         </p>
-        <form onSubmit={handleInvite} className="invite-form" style={{ display: 'flex', gap: '10px' }}>
+        <form onSubmit={handleInvite} className="invite-form">
           <input 
             type="email" 
+            className="invite-input"
             placeholder="email@ejemplo.com"
             value={inviteEmail}
             onChange={(e) => setInviteEmail(e.target.value)}
-            style={{ 
-              flex: 1, 
-              padding: '8px 12px', 
-              borderRadius: '6px', 
-              border: '1px solid #ddd' 
-            }}
             required
           />
           <button type="submit" className="btn primary" disabled={inviting}>
@@ -302,14 +271,15 @@ const Social = () => {
                   </div>
                 </div>
                 <div className="actions">
-                  <button className="btn primary" onClick={() => handleAction(inv.token, 'aceptar')}>Aceptar</button>
-                  <button className="btn secondary" onClick={() => handleAction(inv.token, 'rechazar')}>Rechazar</button>
+                  <button className="btn primary" onClick={() => handleAction(inv._id, 'aceptar')}>Aceptar</button>
+                  <button className="btn secondary" onClick={() => handleAction(inv._id, 'rechazar')}>Rechazar</button>
                 </div>
               </div>
             ))}
           </div>
         </div>
       )}
+
 
       {/* Invitaciones Enviadas */}
       {enviadas.length > 0 && (

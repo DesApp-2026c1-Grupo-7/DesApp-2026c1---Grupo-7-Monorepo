@@ -110,8 +110,7 @@ const getPublicProfile = async (req, res) => {
       esContacto: isContact,
       invitacionPendiente: invitacionPendiente ? {
         _id: invitacionPendiente._id,
-        remitente: invitacionPendiente.remitente,
-        token: invitacionPendiente.token
+        remitente: invitacionPendiente.remitente
       } : null
     };
 
@@ -140,7 +139,9 @@ const searchUsers = async (req, res) => {
     }
 
     const currentUserId = req.user.id;
-    const regex = new RegExp(q, 'i');
+    // Escapar caracteres especiales para prevenir ReDoS
+    const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedQ, 'i');
 
     const users = await User.find({
       $and: [

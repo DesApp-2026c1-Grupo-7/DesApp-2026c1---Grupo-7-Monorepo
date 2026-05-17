@@ -212,6 +212,15 @@ async function seedUsers() {
     await seedSituationFor(student, subjects);
     await seedSituationFor(student2, subjects);
     await seedAcademicOffer(subjects);
+
+    // Migración: asegurar que las materias existentes tengan esUnahur correcto
+    // Esto corrige documentos que quedaron con el default anterior (true)
+    await Subject.updateMany(
+      { codigo: { $ne: 'OPTBD' } }, 
+      { $set: { esUnahur: false } }
+    );
+    logger.info('Migración de esUnahur completada.');
+
   } catch (error) {
     logger.error('Error durante el seeding:', error.message);
   }
