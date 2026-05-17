@@ -65,7 +65,9 @@ const ExternalProfile = () => {
   }, [id]);
 
   useEffect(() => {
-    fetchProfile();
+    (async () => {
+      await fetchProfile();
+    })();
   }, [fetchProfile]);
 
   const handleInvite = async () => {
