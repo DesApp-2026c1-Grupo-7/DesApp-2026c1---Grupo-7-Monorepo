@@ -6,9 +6,18 @@
 
 Cada vez que un agente termine una tarea debe mover Trello, abrir/actualizar PR a `dev`, dejar CI verde, pedir review, actualizar este archivo si cambia el plan y hacer push. Si algo no se cerro del todo, crear una card nueva y documentarlo.
 
-## Estado actual al 14/05/2026
+## Estado actual al 17/05/2026
 
-Implementación del sistema de contactos, invitaciones por email y centro de notificaciones funcional en `feature/mail-invitations-and-profile-fixes`.
+Sprint 2 técnicamente completo. Todos los ítems del alcance están implementados. Quedan abiertos PR #20 (requiere fix de seguridad antes del merge) y PR #21 (listo para review + merge). CI debe verificarse tras los merges.
+
+### Log de Actividades del Agente (17/05/2026)
+
+- [x] **Feed de eventos académicos (punto 8):** Modelo `Event`, endpoints `GET /api/eventos/feed` y `POST /api/eventos`, página `Feed.tsx` con compositor, entrada en sidebar. *(PR #21)*
+- [x] **Toggle `mostrarEventos`:** Campo nuevo en `configuracionPrivacidad` del User; toggle visible en Profile; el feed lo respeta al filtrar autores visibles. *(PR #21)*
+- [x] **Búsqueda de perfiles segura (fix ReDoS):** `GET /api/perfil/search` con regex escapado; registrado antes de `/:id` para evitar colisión de rutas. *(PR #21)*
+- [x] **Tests sprint 2 (`test/sprint2.test.js`):** 7 tests verdes — búsqueda, sanitización regex, perfil público/privado, invitaciones y feed con toggle de privacidad. *(PR #21)*
+- [x] **Review PR #20:** `REQUEST_CHANGES` publicado con 5 comentarios inline en líneas específicas (ReDoS, token expuesto, UX silencioso, default sin migración, eslint inválido).
+- [x] **Documentación:** `docs/sprint-2/ficha.md` y `AGENTS.md` actualizados al estado real del sprint.
 
 ### Log de Actividades del Agente (14/05/2026)
 
@@ -89,7 +98,7 @@ Implementación del sistema de contactos, invitaciones por email y centro de not
 - [x] Aceptar/rechazar via link con login previo.
 - [x] Aviso si destinatario no esta registrado.
 - [x] Mis contactos y solicitudes pendientes.
-- [ ] Feed de eventos academicos y posteos manuales.
+- [x] Feed de eventos academicos y posteos manuales. *(PR #21)*
 
 ### Punto 6 - Sesiones de Estudio Colaborativo
 
@@ -116,9 +125,12 @@ Implementación del sistema de contactos, invitaciones por email y centro de not
 
 ## Plan por sprint actualizado
 
-### Sprint 2 (07/05 -> 21/05) - Red social academica
+### Sprint 2 (07/05 -> 21/05) - Red social academica ✅ COMPLETO
 
-Objetivo: perfil, privacidad, contactos por invitacion y feed. Reunion docente prevista para jueves 07/05/2026.
+Objetivo: perfil, privacidad, contactos por invitacion y feed.
+PRs mergeados: #18 (perfil), #19 (invitaciones/contactos).
+PRs pendientes de merge: #20 (ajustes perfil externo — requiere fix seguridad), #21 (feed + tests).
+Pendiente: verificar CI verde tras merge de #20 y #21.
 
 ### Sprint 3 (21/05 -> 04/06) - Sesiones de estudio
 
