@@ -63,6 +63,28 @@ const updateGrade = async (req, res) => {
     const { materiaId, estado, nota, cuatrimestre, anioCursada } = req.body;
     const userId = req.user.id;
 
+    // Validación estricta de correlatividades para Aprobar/Promocionar
+    if (APPROVED_STATES.includes(estado)) {
+      const subject = await Subject.findById(materiaId).populate('correlativas');
+      if (subject && subject.correlativas.length > 0) {
+        const approvedGrades = await Grade.find({
+          estudiante: userId,
+          materia: { $in: subject.correlativas.map(c => c._id) },
+          estado: { $in: APPROVED_STATES }
+        });
+        
+        if (approvedGrades.length < subject.correlativas.length) {
+          const missing = subject.correlativas
+            .filter(c => !approvedGrades.some(g => g.materia.toString() === c._id.toString()))
+            .map(c => c.nombre)
+            .join(', ');
+          return res.status(400).json({ 
+            mensaje: `No puedes aprobar ${subject.nombre} sin haber aprobado antes: ${missing}` 
+          });
+        }
+      }
+    }
+
     const update = {
       estado,
       nota,
@@ -94,7 +116,28 @@ const bulkLoadSituation = async (req, res) => {
     }
 
     const results = [];
+    const errors = [];
+
+    // Obtenemos todas las notas actuales para validar correlativas en memoria durante el loop
+    const currentGrades = await Grade.find({ estudiante: userId });
+    const approvedIds = new Set(
+      currentGrades.filter(g => APPROVED_STATES.includes(g.estado)).map(g => g.materia.toString())
+    );
+
+    // Procesamos uno por uno para validar dependencias
     for (const r of records) {
+      if (APPROVED_STATES.includes(r.estado)) {
+        const subject = await Subject.findById(r.materiaId).populate('correlativas');
+        if (subject && subject.correlativas.length > 0) {
+          const hasAll = subject.correlativas.every(c => approvedIds.has(c._id.toString()));
+          if (!hasAll) {
+            errors.push(`Materia ${subject.nombre} salteada: no cumple correlativas.`);
+            continue;
+          }
+        }
+        approvedIds.add(r.materiaId.toString());
+      }
+
       const grade = await Grade.findOneAndUpdate(
         { estudiante: userId, materia: r.materiaId },
         {
@@ -109,7 +152,11 @@ const bulkLoadSituation = async (req, res) => {
       results.push(grade);
     }
 
-    res.json({ mensaje: `${results.length} registros cargados`, registros: results });
+    res.json({ 
+      mensaje: `${results.length} registros cargados. ${errors.length} errores.`, 
+      registros: results,
+      errores: errors 
+    });
   } catch (error) {
     res.status(500).json({ mensaje: 'Error en la carga masiva', error: error.message });
   }
@@ -315,31 +362,30 @@ const getAvanceCarrera = async (req, res) => {
     const regularizadas = gradesDelPlan.filter((g) => g.estado === 'Regular');
     const cursando = gradesDelPlan.filter((g) => ['Inscripto', 'Cursando'].includes(g.estado));
 
+    // Para el cálculo de materias de la carrera (el "X de 9"), excluimos las UNAHUR
+    const aprobadasCarrera = aprobadas.filter(g => !g.materia?.esUnahur);
+
     const creditosMateriasAprobadas = aprobadas.reduce(
       (sum, g) => sum + (g.materia?.creditos || 0),
       0
     );
     const creditosAprobados = creditosMateriasAprobadas + creditosActividades;
-    const creditosOptativasAprobados = aprobadas
-      .filter((g) => g.materia?.esOptativa)
-      .reduce((sum, g) => sum + (g.materia?.creditos || 0), 0);
+    
+    // El usuario especifica 9 materias totales y 69 créditos totales (54 materias + 15 extra)
+    const totalMateriasTarget = 9;
+    const creditosNecesariosTarget = 69;
 
-    const materiasUnahurFilter = {
-      esUnahur: true,
-      _id: { $nin: aprobadas.map((g) => g.materia._id) }
-    };
-    if (materiasDelPlanOCarreraIds.length > 0) {
-      materiasUnahurFilter._id = {
-        $in: materiasDelPlanOCarreraIds,
-        $nin: aprobadas.map((g) => g.materia._id)
-      };
-    }
-    const materiasUnahurFaltantes = await Subject.countDocuments(materiasUnahurFilter);
+    const materiasUnahurInscriptas = gradesDelPlan.filter(g => 
+      g.materia?.esUnahur && 
+      [...APPROVED_STATES, 'Cursando', 'Inscripto', 'Regular'].includes(g.estado)
+    );
+
+    const materiasUnahurFaltantes = materiasUnahurInscriptas.length > 0 ? 0 : 1;
 
     // Avance por año
     const avancePorAnio = {};
     const materiasBase = materiasDelPlanOCarreraIds.length > 0
-      ? await Subject.find({ _id: { $in: materiasDelPlanOCarreraIds } }).select('_id anio')
+      ? await Subject.find({ _id: { $in: materiasDelPlanOCarreraIds }, anio: { $gt: 0 } }).select('_id anio')
       : [];
     for (const materia of materiasBase) {
       const anio = materia.anio;
@@ -349,32 +395,34 @@ const getAvanceCarrera = async (req, res) => {
       avancePorAnio[anio].total++;
     }
     for (const g of gradesDelPlan) {
-      if (!g.materia) continue;
+      if (!g.materia || g.materia.anio === 0) continue;
       const anio = g.materia.anio;
       if (!avancePorAnio[anio]) {
         avancePorAnio[anio] = { aprobadas: 0, regulares: 0, cursando: 0, total: 0 };
       }
-      if (['Aprobada', 'Promocion'].includes(g.estado)) avancePorAnio[anio].aprobadas++;
+      if (['Aprobada', 'Promocion'].includes(g.estado)) {
+        if (!g.materia.esUnahur) avancePorAnio[anio].aprobadas++;
+      }
       else if (g.estado === 'Regular') avancePorAnio[anio].regulares++;
       else if (['Inscripto', 'Cursando'].includes(g.estado)) avancePorAnio[anio].cursando++;
     }
 
     res.json({
-      totalMaterias,
-      aprobadas: aprobadas.length,
+      totalMaterias: totalMateriasTarget,
+      aprobadas: aprobadasCarrera.length,
       regularizadas: regularizadas.length,
       cursando: cursando.length,
-      pendientes: Math.max(0, totalMaterias - aprobadas.length - regularizadas.length - cursando.length),
+      pendientes: Math.max(0, totalMateriasTarget - aprobadasCarrera.length - regularizadas.length - cursando.length),
       creditosAprobados,
       creditosMateriasAprobadas,
       creditosActividades,
-      creditosNecesarios,
-      creditosOptativasAprobados,
+      creditosNecesarios: creditosNecesariosTarget,
+      creditosOptativasAprobados: aprobadas.filter(g => g.materia?.esOptativa).reduce((sum, g) => sum + (g.materia?.creditos || 0), 0),
       materiasUnahurRequeridas,
       nivelInglesRequerido,
       materiasUnahurFaltantes,
       avancePorAnio,
-      porcentajeAvance: totalMaterias > 0 ? Math.round((aprobadas.length / totalMaterias) * 100) : 0
+      porcentajeAvance: totalMateriasTarget > 0 ? Math.round((aprobadasCarrera.length / totalMateriasTarget) * 100) : 0
     });
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al calcular avance', error: error.message });
@@ -431,6 +479,11 @@ const listCreditActivities = async (req, res) => {
 const createCreditActivity = async (req, res) => {
   try {
     const { nombre, descripcion, creditos, fecha } = req.body;
+
+    if (creditos > 5) {
+      return res.status(400).json({ mensaje: 'No puedes registrar más de 5 créditos por actividad' });
+    }
+
     const actividad = await CreditActivity.create({
       estudiante: req.user.id,
       nombre,
@@ -480,15 +533,27 @@ const getPlanificador = async (req, res) => {
     const horasPorSemana = Math.max(1, Number(req.query.horasPorSemana || 12));
     const { materias: planSubjects } = await getPlanSubjectsForUser(req.user.id);
     const grades = await Grade.find({ estudiante: req.user.id });
+    
     const approvedIds = new Set(
       grades.filter((g) => APPROVED_STATES.includes(g.estado)).map((g) => g.materia.toString())
     );
 
+    // Materias que ya no hay que planificar (aprobadas, cursando o regulares)
+    const excludedFromPlanningIds = new Set(
+      grades.filter((g) => [...APPROVED_STATES, 'Cursando', 'Regular'].includes(g.estado))
+        .map((g) => g.materia.toString())
+    );
+
     const pending = new Map(
       planSubjects
-        .filter((m) => !approvedIds.has(m._id.toString()))
+        .filter((m) => !excludedFromPlanningIds.has(m._id.toString()))
         .map((m) => [m._id.toString(), m])
     );
+
+    // Para el planificador, consideramos las que están cursando/regulares como "aprobadas" 
+    // para que desbloqueen sus correlativas en el futuro.
+    const virtualApprovedIds = new Set([...approvedIds, ...excludedFromPlanningIds]);
+
     const periodos = [];
     let anio = new Date().getFullYear();
     let cuatrimestre = 1;
@@ -497,7 +562,7 @@ const getPlanificador = async (req, res) => {
     while (pending.size > 0 && guard < 30) {
       guard++;
       const disponibles = [...pending.values()]
-        .filter((m) => (m.correlativas || []).every((c) => approvedIds.has(c._id.toString())))
+        .filter((m) => (m.correlativas || []).every((c) => virtualApprovedIds.has(c._id.toString())))
         .sort((a, b) => a.anio - b.anio || a.cuatrimestre - b.cuatrimestre || a.nombre.localeCompare(b.nombre));
 
       const materiasPeriodo = [];
@@ -518,12 +583,13 @@ const getPlanificador = async (req, res) => {
       }
 
       if (materiasPeriodo.length === 0) {
-        break;
+        // Si no hay disponibles pero quedan pendientes, puede ser por correlativas.
+        if (guard > 1) break; 
       }
 
       periodos.push({ anio, cuatrimestre, horasUsadas, materias: materiasPeriodo });
       materiasPeriodo.forEach((m) => {
-        approvedIds.add(m._id.toString());
+        virtualApprovedIds.add(m._id.toString());
         pending.delete(m._id.toString());
       });
       cuatrimestre = cuatrimestre === 1 ? 2 : 1;
@@ -588,6 +654,23 @@ const saveStudyPlan = async (req, res) => {
   }
 };
 
+const deleteGrade = async (req, res) => {
+  try {
+    const { materiaId } = req.params;
+    const userId = req.user.id;
+
+    const result = await Grade.findOneAndDelete({ estudiante: userId, materia: materiaId });
+
+    if (!result) {
+      return res.status(404).json({ mensaje: 'No se encontró la materia en tu situación académica' });
+    }
+
+    res.json({ mensaje: 'Materia eliminada de la situación académica' });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al eliminar la materia', error: error.message });
+  }
+};
+
 module.exports = {
   getStudentSituation,
   updateGrade,
@@ -604,5 +687,6 @@ module.exports = {
   getPlanificador,
   getRendimientoPlan,
   listSavedStudyPlans,
-  saveStudyPlan
+  saveStudyPlan,
+  deleteGrade
 };

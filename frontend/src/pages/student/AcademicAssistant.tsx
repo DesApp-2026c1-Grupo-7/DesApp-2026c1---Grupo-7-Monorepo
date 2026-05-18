@@ -11,6 +11,7 @@ interface Subject {
   creditos: number;
   horasSemanalesEstimadas?: number;
   esOptativa?: boolean;
+  esUnahur?: boolean;
 }
 
 interface FinalPendiente {
@@ -18,6 +19,7 @@ interface FinalPendiente {
   fechaRegular: string;
   intentosPrevios?: number;
   venceRegularidad?: string;
+  yaInscripto: boolean;
 }
 
 interface Avance {
@@ -85,6 +87,10 @@ const AcademicAssistant = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  // Estado para el modal de finales
+  const [showFinalModal, setShowFinalModal] = useState(false);
+  const [finalToDelete, setFinalToDelete] = useState<{ id: string, nombre: string } | null>(null);
+
   const fetchAll = useCallback(async () => {
     const params = oferta.soloOferta
       ? `?soloOferta=true&anio=${oferta.anio}&cuatrimestre=${oferta.cuatrimestre}`
@@ -148,6 +154,31 @@ const AcademicAssistant = () => {
     }
   };
 
+  const openFinalModal = (id: string, nombre: string) => {
+    setFinalToDelete({ id, nombre });
+    setShowFinalModal(true);
+  };
+
+  const closeFinalModal = () => {
+    setShowFinalModal(false);
+    setFinalToDelete(null);
+  };
+
+  const confirmDarseDeBajaFinal = async () => {
+    if (!finalToDelete) return;
+    setError("");
+    setSuccess("");
+    try {
+      await api.delete(`/finales/${finalToDelete.id}`);
+      setSuccess("Inscripcion a final eliminada");
+      await fetchAll();
+      closeFinalModal();
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { mensaje?: string } } };
+      setError(ax.response?.data?.mensaje || "Error al eliminar inscripción");
+    }
+  };
+
   const guardarActividad = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -208,8 +239,8 @@ const AcademicAssistant = () => {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
             <div style={{ padding: 12, background: "#eff6ff", borderRadius: 8 }}>
               <strong>Avance general</strong>
-              <div style={{ fontSize: 24, fontWeight: 700 }}>{avance.porcentajeAvance}%</div>
-              <small>{avance.aprobadas} de {avance.totalMaterias} materias</small>
+              <div style={{ fontSize: 24, fontWeight: 700 }}>{Math.round((avance.aprobadas / 9) * 100)}%</div>
+              <small>{avance.aprobadas} de 9 materias</small>
             </div>
             <div style={{ padding: 12, background: "#f0fdf4", borderRadius: 8 }}>
               <strong>Creditos</strong>
@@ -219,7 +250,6 @@ const AcademicAssistant = () => {
             <div style={{ padding: 12, background: "#fef3c7", borderRadius: 8 }}>
               <strong>UNAHUR faltantes</strong>
               <div style={{ fontSize: 24, fontWeight: 700 }}>{avance.materiasUnahurFaltantes}</div>
-              <small>Ingles requerido: {avance.nivelInglesRequerido}</small>
             </div>
           </div>
         </div>
@@ -275,9 +305,9 @@ const AcademicAssistant = () => {
           <label><input type="checkbox" checked={oferta.soloOferta} onChange={(e) => setOferta((s) => ({ ...s, soloOferta: e.target.checked }))} /> Filtrar por oferta</label>
         </div>
         {filteredDisponibles.map((s) => (
-          <div key={s._id} className="subject success">
+          <div key={s._id} className={`subject ${s.esUnahur ? 'warning' : 'success'}`} style={s.esUnahur ? { background: '#fef3c7', borderColor: '#fcd34d' } : {}}>
             <div>
-              <strong>{s.nombre}</strong>
+              <strong>{s.nombre} {s.esUnahur && <span className="badge yellow" style={{ marginLeft: 8 }}>UNAHUR</span>}</strong>
               <p>{s.codigo} · {s.creditos} creditos</p>
             </div>
             <button onClick={() => inscribirseCursada(s._id)} className="btn-primary">Inscribirse</button>
@@ -294,7 +324,21 @@ const AcademicAssistant = () => {
               <p>Regularizada: {new Date(f.fechaRegular).toLocaleDateString()} · Intentos: {f.intentosPrevios ?? 0}</p>
               {f.venceRegularidad && <small>Vence: {new Date(f.venceRegularidad).toLocaleDateString()}</small>}
             </div>
-            <button onClick={() => inscribirseFinal(f.materia._id)} className="btn-primary">Inscribirse</button>
+            <div style={{ display: "flex", gap: 8 }}>
+              {f.yaInscripto ? (
+                <>
+                  <button className="btn-disabled" style={{ background: '#e2e8f0', color: '#94a3b8' }} disabled>INSCRIPTO</button>
+                  <button 
+                    className="btn-danger" 
+                    onClick={() => openFinalModal(f.materia._id, f.materia.nombre)}
+                  >
+                    Darse de baja
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => inscribirseFinal(f.materia._id)} className="btn-primary">Inscribirse</button>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -343,10 +387,30 @@ const AcademicAssistant = () => {
         <h3>Actividades con creditos</h3>
         <form onSubmit={guardarActividad} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input placeholder="Actividad" value={actividad.nombre} onChange={(e) => setActividad((s) => ({ ...s, nombre: e.target.value }))} required />
-          <input type="number" min={1} value={actividad.creditos} onChange={(e) => setActividad((s) => ({ ...s, creditos: Number(e.target.value) }))} required />
+          <input type="number" min={1} max={5} value={actividad.creditos} onChange={(e) => setActividad((s) => ({ ...s, creditos: Number(e.target.value) }))} required />
           <button className="btn-primary" type="submit">Registrar</button>
         </form>
       </div>
+
+      {/* Modal de confirmación para Finales */}
+      {showFinalModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>¿Confirmar baja de final?</h2>
+            <p>
+              ¿Estás seguro de que quieres darte de baja del final de <strong>{finalToDelete?.nombre}</strong>?
+            </p>
+            <div className="modal-actions">
+              <button className="btn-secondary" onClick={closeFinalModal}>
+                Cancelar
+              </button>
+              <button className="btn-danger" onClick={confirmDarseDeBajaFinal}>
+                Confirmar Baja
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

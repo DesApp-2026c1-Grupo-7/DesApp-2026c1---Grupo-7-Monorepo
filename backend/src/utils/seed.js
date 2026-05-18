@@ -72,7 +72,12 @@ async function seedSubjects(careerId) {
     { nombre: 'Sistemas Operativos', codigo: 'SO', anio: 2, cuatrimestre: 2, creditos: 6, esUnahur: false, correlativasCodigos: ['PROG1'] },
     { nombre: 'Bases de Datos I', codigo: 'BD1', anio: 3, cuatrimestre: 1, creditos: 6, esUnahur: false, correlativasCodigos: ['PROG1'] },
     { nombre: 'Ingenieria de Software', codigo: 'ISW', anio: 3, cuatrimestre: 2, creditos: 6, esUnahur: false, correlativasCodigos: ['BD1', 'SO'] },
-    { nombre: 'Optativa: Big Data', codigo: 'OPTBD', anio: 4, cuatrimestre: 2, creditos: 4, esOptativa: true, esUnahur: true, correlativasCodigos: ['BD1'] }
+    { nombre: 'Optativa: Big Data', codigo: 'OPTBD', anio: 4, cuatrimestre: 2, creditos: 4, esOptativa: true, esUnahur: false, correlativasCodigos: ['BD1'] },
+    // Materias UNAHUR
+    { nombre: 'Rock Nacional', codigo: 'UNA-ROCK', anio: 0, cuatrimestre: 0, creditos: 4, esOptativa: true, esUnahur: true },
+    { nombre: 'La vida de Maradona', codigo: 'UNA-DIEGO', anio: 0, cuatrimestre: 0, creditos: 4, esOptativa: true, esUnahur: true },
+    { nombre: 'Robotica', codigo: 'UNA-ROBOT', anio: 0, cuatrimestre: 0, creditos: 4, esOptativa: true, esUnahur: true },
+    { nombre: 'La vida de las rocas', codigo: 'UNA-PIEDRA', anio: 0, cuatrimestre: 0, creditos: 4, esOptativa: true, esUnahur: true }
   ];
 
   const created = {};
@@ -209,14 +214,14 @@ async function seedUsers() {
       logger.info('Segundo usuario estudiante por defecto creado.');
     }
 
-    await seedSituationFor(student, subjects);
-    await seedSituationFor(student2, subjects);
+    // No cargamos situaciones iniciales para la demo
+    // await seedSituationFor(student, subjects);
+    // await seedSituationFor(student2, subjects);
     await seedAcademicOffer(subjects);
 
-    // Migración: asegurar que las materias existentes tengan esUnahur correcto
-    // Esto corrige documentos que quedaron con el default anterior (true)
+    // Migración: asegurar que las materias que no son UNAHUR tengan el campo en false
     await Subject.updateMany(
-      { codigo: { $ne: 'OPTBD' } }, 
+      { codigo: { $nin: ['UNA-ROCK', 'UNA-DIEGO', 'UNA-ROBOT', 'UNA-PIEDRA'] } }, 
       { $set: { esUnahur: false } }
     );
     logger.info('Migración de esUnahur completada.');

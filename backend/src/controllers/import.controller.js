@@ -60,10 +60,34 @@ const persistPreview = async (userId, preview, res) => {
   const procesados = [];
   const errores = [];
 
+  const APPROVED_STATES = ['Aprobada', 'Promocion'];
+
+  // Obtenemos aprobadas actuales para validar correlativas
+  const currentGrades = await Grade.find({ estudiante: userId });
+  const approvedIds = new Set(
+    currentGrades.filter(g => APPROVED_STATES.includes(g.estado)).map(g => g.materia.toString())
+  );
+
   for (const row of preview) {
     if (row.errores?.length > 0 || !row.materiaId) {
       errores.push({ fila: row.fila, motivo: (row.errores || ['Fila invalida']).join('; ') });
       continue;
+    }
+
+    // Validación estricta de correlativas en el import
+    if (APPROVED_STATES.includes(row.estado)) {
+      const subject = await Subject.findById(row.materiaId).populate('correlativas');
+      if (subject && subject.correlativas.length > 0) {
+        const hasAll = subject.correlativas.every(c => approvedIds.has(c._id.toString()));
+        if (!hasAll) {
+          errores.push({ 
+            fila: row.fila, 
+            motivo: `Correlativas no cumplidas para ${subject.nombre}` 
+          });
+          continue;
+        }
+      }
+      approvedIds.add(row.materiaId.toString());
     }
 
     const update = { estado: row.estado, fecha: Date.now() };
