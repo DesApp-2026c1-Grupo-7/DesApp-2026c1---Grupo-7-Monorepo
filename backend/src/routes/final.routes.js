@@ -6,6 +6,7 @@ const { auth } = require('../middlewares/auth');
 router.get('/', auth, finalController.getFinales);
 router.get('/pendientes', auth, finalController.getFinalesPendientes);
 router.post('/', auth, finalController.inscribirseAFinal);
+router.delete('/:materiaId', auth, finalController.darseDeBajaFinal);
 router.put('/:id/resultado', auth, finalController.registrarResultadoFinal);
 
 module.exports = router;
