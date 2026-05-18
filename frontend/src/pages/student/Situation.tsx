@@ -1,19 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import "../../styles/Situation.css";
-
-interface AcademicRecord {
-  _id: string;
-  materia: {
-    _id: string;
-    nombre: string;
-    anio: number;
-  };
-  estado: string;
-  nota?: number;
-  fecha: string;
-}
 
 interface AcademicRecord {
   _id: string;
@@ -52,8 +40,8 @@ const Situation = () => {
   const options = ["Todos los estados", "Aprobada", "Regular", "Cursando", "Pendiente"];
   const yearOptions = ["Todos los años", "1°", "2°", "3°", "4°", "5°"];
 
-  const fetchSituation = () => {
-    setLoading(true);
+  const fetchSituation = useCallback((showLoading = false) => {
+    if (showLoading) setLoading(true);
     Promise.all([
       api.get("/academico/situacion"),
       api.get("/academico/actividades-creditos")
@@ -64,11 +52,14 @@ const Situation = () => {
       })
       .catch((error) => { console.error("Error al obtener datos académicos:", error); })
       .finally(() => { setLoading(false); });
-  };
+  }, []);
 
   useEffect(() => {
-    fetchSituation();
-  }, []);
+    const timer = setTimeout(() => {
+      fetchSituation();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchSituation]);
 
   const openDeleteModal = (id: string, nombre: string) => {
     setSubjectToDelete({ id, nombre });
@@ -85,7 +76,7 @@ const Situation = () => {
 
     try {
       await api.delete(`/academico/situacion/${subjectToDelete.id}`);
-      fetchSituation();
+      fetchSituation(true); // Aquí sí queremos ver el loading al recargar
       closeDeleteModal();
     } catch (error) {
       console.error("Error al dar de baja la materia:", error);
