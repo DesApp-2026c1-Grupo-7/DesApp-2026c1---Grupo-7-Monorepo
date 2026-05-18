@@ -121,7 +121,7 @@ export default function Subjects() {
               <span>
                 {s.nombre}
                 {s.esOptativa && <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 6px', background: '#fef3c7', color: '#92400e', borderRadius: 4 }}>Optativa</span>}
-                {s.esUnahur === false && <span style={{ marginLeft: 4, fontSize: 11, padding: '2px 6px', background: '#dbeafe', color: '#1e40af', borderRadius: 4 }}>No-UNAHUR</span>}
+                {s.esUnahur && <span style={{ marginLeft: 4, fontSize: 11, padding: '2px 6px', background: '#d1fae5', color: '#065f46', borderRadius: 4 }}>Es Unahur</span>}
               </span>
               <span>{s.codigo}</span>
               <span>{s.anio}°</span>

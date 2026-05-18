@@ -64,14 +64,14 @@ async function seedCareers() {
 
 async function seedSubjects(careerId) {
   const subjectsData = [
-    { nombre: 'Analisis Matematico I', codigo: 'AM1', anio: 1, cuatrimestre: 1, creditos: 8, esUnahur: true },
-    { nombre: 'Algoritmos y Estructuras de Datos', codigo: 'AED', anio: 1, cuatrimestre: 1, creditos: 6, esUnahur: true },
-    { nombre: 'Programacion I', codigo: 'PROG1', anio: 1, cuatrimestre: 2, creditos: 6, esUnahur: true, correlativasCodigos: ['AED'] },
-    { nombre: 'Analisis Matematico II', codigo: 'AM2', anio: 1, cuatrimestre: 2, creditos: 8, esUnahur: true, correlativasCodigos: ['AM1'] },
+    { nombre: 'Analisis Matematico I', codigo: 'AM1', anio: 1, cuatrimestre: 1, creditos: 8, esUnahur: false },
+    { nombre: 'Algoritmos y Estructuras de Datos', codigo: 'AED', anio: 1, cuatrimestre: 1, creditos: 6, esUnahur: false },
+    { nombre: 'Programacion I', codigo: 'PROG1', anio: 1, cuatrimestre: 2, creditos: 6, esUnahur: false, correlativasCodigos: ['AED'] },
+    { nombre: 'Analisis Matematico II', codigo: 'AM2', anio: 1, cuatrimestre: 2, creditos: 8, esUnahur: false, correlativasCodigos: ['AM1'] },
     { nombre: 'Ingles Tecnico', codigo: 'ENG1', anio: 2, cuatrimestre: 1, creditos: 4, esUnahur: false },
-    { nombre: 'Sistemas Operativos', codigo: 'SO', anio: 2, cuatrimestre: 2, creditos: 6, esUnahur: true, correlativasCodigos: ['PROG1'] },
-    { nombre: 'Bases de Datos I', codigo: 'BD1', anio: 3, cuatrimestre: 1, creditos: 6, esUnahur: true, correlativasCodigos: ['PROG1'] },
-    { nombre: 'Ingenieria de Software', codigo: 'ISW', anio: 3, cuatrimestre: 2, creditos: 6, esUnahur: true, correlativasCodigos: ['BD1', 'SO'] },
+    { nombre: 'Sistemas Operativos', codigo: 'SO', anio: 2, cuatrimestre: 2, creditos: 6, esUnahur: false, correlativasCodigos: ['PROG1'] },
+    { nombre: 'Bases de Datos I', codigo: 'BD1', anio: 3, cuatrimestre: 1, creditos: 6, esUnahur: false, correlativasCodigos: ['PROG1'] },
+    { nombre: 'Ingenieria de Software', codigo: 'ISW', anio: 3, cuatrimestre: 2, creditos: 6, esUnahur: false, correlativasCodigos: ['BD1', 'SO'] },
     { nombre: 'Optativa: Big Data', codigo: 'OPTBD', anio: 4, cuatrimestre: 2, creditos: 4, esOptativa: true, esUnahur: true, correlativasCodigos: ['BD1'] }
   ];
 
@@ -212,6 +212,15 @@ async function seedUsers() {
     await seedSituationFor(student, subjects);
     await seedSituationFor(student2, subjects);
     await seedAcademicOffer(subjects);
+
+    // Migración: asegurar que las materias existentes tengan esUnahur correcto
+    // Esto corrige documentos que quedaron con el default anterior (true)
+    await Subject.updateMany(
+      { codigo: { $ne: 'OPTBD' } }, 
+      { $set: { esUnahur: false } }
+    );
+    logger.info('Migración de esUnahur completada.');
+
   } catch (error) {
     logger.error('Error durante el seeding:', error.message);
   }
