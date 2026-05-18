@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Grade = require('../models/Grade');
+const Invitation = require('../models/Invitation');
 
 const getProfile = async (req, res) => {
   try {
@@ -71,7 +72,7 @@ const updateProfile = async (req, res) => {
 const getPublicProfile = async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
-      .select('nombre email carrera bio foto configuracionPrivacidad')
+      .select('nombre email carrera bio foto configuracionPrivacidad contactos')
       .populate('carrera', 'nombre');
 
     if (!user) {
@@ -81,26 +82,43 @@ const getPublicProfile = async (req, res) => {
     // Lógica de privacidad
     const isOwner = req.user && req.user.id === req.params.id;
     const isPublic = user.configuracionPrivacidad.perfil === 'publico';
+    const isContact = user.contactos.some(c => c.toString() === req.user.id);
     
-    // Si es privado y no es el dueño, en el futuro verificaremos si son contactos
-    // Por ahora, si es privado solo el dueño lo ve completo
-    if (!isPublic && !isOwner) {
-      return res.status(403).json({ mensaje: 'Este perfil es privado' });
+    // Si es privado y no es el dueño ni contacto, denegar acceso
+    if (!isPublic && !isOwner && !isContact) {
+      return res.status(403).json({ mensaje: 'Este perfil es privado. Solo sus contactos pueden verlo.' });
+    }
+
+    // Verificar si hay una invitación pendiente
+    let invitacionPendiente = null;
+    if (!isOwner && !isContact) {
+      invitacionPendiente = await Invitation.findOne({
+        $or: [
+          { remitente: req.user.id, destinatario: user._id, estado: 'pendiente' },
+          { remitente: user._id, destinatario: req.user.id, estado: 'pendiente' }
+        ]
+      });
     }
 
     const publicData = {
+      _id: user._id,
       nombre: user.nombre,
       carrera: user.carrera,
       bio: user.bio,
       foto: user.foto,
-      configuracionPrivacidad: user.configuracionPrivacidad
+      configuracionPrivacidad: user.configuracionPrivacidad,
+      esContacto: isContact,
+      invitacionPendiente: invitacionPendiente ? {
+        _id: invitacionPendiente._id,
+        remitente: invitacionPendiente.remitente
+      } : null
     };
 
-    if (user.configuracionPrivacidad.mostrarEmail || isOwner) {
+    if (isOwner || user.configuracionPrivacidad.mostrarEmail) {
       publicData.email = user.email;
     }
 
-    if (user.configuracionPrivacidad.mostrarSituacionAcademica || isOwner) {
+    if (isOwner || user.configuracionPrivacidad.mostrarSituacionAcademica) {
       const situacion = await Grade.find({ estudiante: user._id })
         .populate('materia', 'nombre anio')
         .sort({ fecha: -1 });
@@ -113,8 +131,43 @@ const getPublicProfile = async (req, res) => {
   }
 };
 
+const searchUsers = async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.length < 2) {
+      return res.json([]);
+    }
+
+    const currentUserId = req.user.id;
+    // Escapar caracteres especiales para prevenir ReDoS
+    const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedQ, 'i');
+
+    const users = await User.find({
+      $and: [
+        { _id: { $ne: currentUserId } },
+        { role: 'student' },
+        {
+          $or: [
+            { nombre: regex },
+            { email: regex }
+          ]
+        }
+      ]
+    })
+      .select('nombre foto carrera configuracionPrivacidad')
+      .populate('carrera', 'nombre')
+      .limit(10);
+
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al buscar usuarios', error: error.message });
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
-  getPublicProfile
+  getPublicProfile,
+  searchUsers
 };

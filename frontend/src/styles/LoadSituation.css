@@ -152,3 +152,129 @@
     padding: 20px;
   }
 }
+
+/* Form Styles */
+.manual-form, .excel-import-container {
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.manual-form h3, .excel-import-container h3 {
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.manual-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.manual-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 0.6fr 0.7fr 0.8fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.manual-row select, .manual-row input {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 100%;
+}
+
+.btn-remove {
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-remove:hover {
+  background: #fecaca;
+}
+
+.manual-actions, .excel-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+/* Excel styles */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 16px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+
+.table-responsive table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-responsive th, .table-responsive td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.table-responsive th {
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.error-text { color: #dc2626; font-weight: 500; }
+.ok-text { color: #16a34a; font-weight: 500; }
+
+/* Mobile Adjustments for manual rows */
+@media (max-width: 768px) {
+  .manual-row {
+    grid-template-columns: 1fr 1fr;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #eef2f6;
+  }
+
+  .subject-select {
+    grid-column: span 2;
+  }
+
+  .btn-remove {
+    grid-column: span 2;
+    margin-top: 4px;
+  }
+
+  .manual-actions, .excel-actions {
+    flex-direction: column;
+  }
+
+  .manual-actions button, .excel-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .manual-row {
+    grid-template-columns: 1fr;
+  }
+
+  .subject-select, .btn-remove {
+    grid-column: span 1;
+  }
+}

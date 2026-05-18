@@ -12,6 +12,7 @@ import Situation from "./pages/student/Situation";
 import LoadSituation from "./pages/student/LoadSituation";
 import AcademicAssistant from "./pages/student/AcademicAssistant";
 import Social from "./pages/student/Social";
+import ExternalProfile from "./pages/student/ExternalProfile";
 import AcceptInvitation from "./pages/student/AcceptInvitation";
 import StudySessions from "./pages/student/StudySessions";
 import CreateSession from "./pages/student/CreateSession";
@@ -88,6 +89,7 @@ const App = () => {
           <Route path="materials" element={<Materials />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="perfil/:id" element={<ExternalProfile />} />
         </Route>
 
         {/* Admin Flow */}
