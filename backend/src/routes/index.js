@@ -15,5 +15,6 @@ router.use('/ofertas', require('./academicOffer.routes'));
 router.use('/perfil', require('./profile.routes'));
 router.use('/invitaciones', require('./invitation.routes'));
 router.use('/notificaciones', require('./notification.routes'));
+router.use('/eventos', require('./event.routes'));
 
 module.exports = router;

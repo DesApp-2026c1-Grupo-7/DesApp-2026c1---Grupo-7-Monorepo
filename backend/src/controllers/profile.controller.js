@@ -139,20 +139,14 @@ const searchUsers = async (req, res) => {
     }
 
     const currentUserId = req.user.id;
-    // Escapar caracteres especiales para prevenir ReDoS
-    const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(escapedQ, 'i');
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escaped, 'i');
 
     const users = await User.find({
       $and: [
         { _id: { $ne: currentUserId } },
         { role: 'student' },
-        {
-          $or: [
-            { nombre: regex },
-            { email: regex }
-          ]
-        }
+        { $or: [{ nombre: regex }, { email: regex }] }
       ]
     })
       .select('nombre foto carrera configuracionPrivacidad')

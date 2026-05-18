@@ -14,6 +14,7 @@ interface ProfileData {
     perfil: "publico" | "privado";
     mostrarEmail: boolean;
     mostrarSituacionAcademica: boolean;
+    mostrarEventos: boolean;
   };
   situacionAcademica?: {
     _id: string;
@@ -31,6 +32,7 @@ const DEFAULT_PRIVACY = {
   perfil: "publico" as const,
   mostrarEmail: true,
   mostrarSituacionAcademica: true,
+  mostrarEventos: true,
 };
 
 export default function Profile() {
@@ -336,8 +338,8 @@ export default function Profile() {
             <p>Mostrar tus materias aprobadas y regularizadas en tu perfil público</p>
           </div>
           <label className="toggle-switch">
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               disabled={!editing}
               checked={formData.configuracionPrivacidad.mostrarSituacionAcademica}
               onChange={(e) => setFormData({
@@ -345,6 +347,28 @@ export default function Profile() {
                 configuracionPrivacidad: {
                   ...formData.configuracionPrivacidad,
                   mostrarSituacionAcademica: e.target.checked
+                }
+              })}
+            />
+            <span className="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div className="setting-row">
+          <div className="setting-info">
+            <h4>Publicar en el Feed Académico</h4>
+            <p>Permitir que tus publicaciones aparezcan en el feed de tus contactos y perfiles públicos</p>
+          </div>
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              disabled={!editing}
+              checked={formData.configuracionPrivacidad.mostrarEventos}
+              onChange={(e) => setFormData({
+                ...formData,
+                configuracionPrivacidad: {
+                  ...formData.configuracionPrivacidad,
+                  mostrarEventos: e.target.checked
                 }
               })}
             />
