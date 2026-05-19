@@ -561,11 +561,17 @@ const getQuePasaSi = async (req, res) => {
     const simulatedYaInscriptaIds = new Set(yaInscriptaIds);
 
     for (const h of materias) {
-      if (['Regular', 'Aprobada', 'Promocion'].includes(h.estadoHipotetico)) {
-        simulatedUnlockingIds.add(h.materiaId.toString());
+      // Manejar tanto el formato { materiaId, estadoHipotetico } como el formato simple de ID (string)
+      const mId = (typeof h === 'string' ? h : h.materiaId)?.toString();
+      const mEstado = typeof h === 'string' ? 'Aprobada' : h.estadoHipotetico;
+
+      if (!mId) continue;
+
+      if (['Regular', 'Aprobada', 'Promocion'].includes(mEstado)) {
+        simulatedUnlockingIds.add(mId);
       }
       // Al simular pasarla, ya no cuenta como "actualmente cursando" para el bloqueo de inscribibles
-      simulatedYaInscriptaIds.add(h.materiaId.toString());
+      simulatedYaInscriptaIds.add(mId);
     }
 
     const disponiblesSimuladas = getUnlockedSubjects(planSubjects, simulatedUnlockingIds, simulatedYaInscriptaIds);

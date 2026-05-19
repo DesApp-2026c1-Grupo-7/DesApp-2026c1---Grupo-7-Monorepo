@@ -241,7 +241,7 @@ const AcademicAssistant = () => {
     try {
       const res = await api.post("/academico/que-pasa-si", { materias: hipotesis });
       setSimulacion(res.data.desbloqueadas || []);
-    } catch (err) {
+    } catch {
       setError("Error al simular el escenario");
     }
   };
