@@ -239,6 +239,48 @@ const Situation = () => {
         )}
       </div>
 
+      {/* MOBILE CARDS FOR SUBJECTS */}
+      <div className="mobile-cards">
+        {loading ? (
+          <p>Cargando...</p>
+        ) : filteredData.length > 0 ? (
+          filteredData.map((m) => (
+            <div key={m._id} className="situation-card">
+              <div className="card-header">
+                <span className="name">{m.materia.nombre}</span>
+                <span className="year">{m.materia.anio === 0 ? "U" : `${m.materia.anio}°`}</span>
+              </div>
+              <div className="card-content-grid">
+                <div>
+                  <label>Estado</label>
+                  <span className={getBadgeClass(m.estado)} style={{ width: 'fit-content', marginTop: 4 }}>{m.estado}</span>
+                </div>
+                <div>
+                  <label>Nota</label>
+                  <span>{m.nota || "-"}</span>
+                </div>
+                <div>
+                  <label>Fecha</label>
+                  <span>{new Date(m.fecha).toLocaleDateString()}</span>
+                </div>
+              </div>
+              <div className="card-footer">
+                <button 
+                  className={m.estado === 'Aprobada' || m.estado === 'Promocion' ? 'btn-disabled' : 'btn-danger'}
+                  style={{ width: '100%' }}
+                  onClick={() => openDeleteModal(m.materia._id, m.materia.nombre)}
+                  disabled={m.estado === 'Aprobada' || m.estado === 'Promocion'}
+                >
+                  Darse de baja
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p style={{ textAlign: 'center', padding: '20px' }}>No hay registros académicos.</p>
+        )}
+      </div>
+
       <div className="section-title" style={{ marginTop: 40 }}>
         <h2>Actividades</h2>
       </div>
@@ -274,6 +316,37 @@ const Situation = () => {
               )}
             </tbody>
           </table>
+        )}
+      </div>
+
+      {/* MOBILE CARDS FOR ACTIVITIES */}
+      <div className="mobile-cards">
+        {loading ? (
+          <p>Cargando...</p>
+        ) : activities.length > 0 ? (
+          activities.map((a) => (
+            <div key={a._id} className="situation-card">
+              <div className="card-header">
+                <span className="name">{a.nombre}</span>
+              </div>
+              <div className="card-content-grid">
+                <div>
+                  <label>Estado</label>
+                  <span className="badge green" style={{ width: 'fit-content', marginTop: 4 }}>Aprobada</span>
+                </div>
+                <div>
+                  <label>Créditos</label>
+                  <span>{a.creditos}</span>
+                </div>
+                <div>
+                  <label>Fecha</label>
+                  <span>{new Date(a.fecha).toLocaleDateString()}</span>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p style={{ textAlign: 'center', padding: '20px' }}>No hay actividades registradas.</p>
         )}
       </div>
 

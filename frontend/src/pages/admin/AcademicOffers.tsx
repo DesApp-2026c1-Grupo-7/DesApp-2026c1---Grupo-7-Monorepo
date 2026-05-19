@@ -66,52 +66,102 @@ export default function AcademicOffers() {
   };
 
   return (
-    <div className="admin-careers">
-      <div className="admin-header">
+    <div className="admin-careers-container">
+      <div className="admin-careers-header">
         <div>
-          <h1>Oferta Academica</h1>
-          <p>Define que materias se ofrecen por periodo para filtrar inscribibles.</p>
+          <h1>Oferta Académica</h1>
+          <p>Define qué materias se ofrecen por periodo para filtrar inscribibles.</p>
         </div>
       </div>
 
-      {message && <p style={{ color: "#15803d" }}>{message}</p>}
-      {error && <p style={{ color: "var(--error)" }}>{error}</p>}
-
-      <form onSubmit={submit} className="filters" style={{ alignItems: "start" }}>
-        <input type="number" value={form.anio} onChange={(e) => setForm((s) => ({ ...s, anio: Number(e.target.value) }))} />
-        <select value={form.cuatrimestre} onChange={(e) => setForm((s) => ({ ...s, cuatrimestre: Number(e.target.value) }))}>
-          <option value={1}>1C</option>
-          <option value={2}>2C</option>
-          <option value={0}>Anual</option>
-        </select>
-        <button className="btn-primary" type="submit">Guardar oferta</button>
-        <div style={{ flexBasis: "100%", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 8 }}>
-          {subjects.map((subject) => (
-            <label key={subject._id} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <input type="checkbox" checked={form.materias.includes(subject._id)} onChange={() => toggleSubject(subject._id)} />
-              {subject.nombre} ({subject.codigo})
-            </label>
-          ))}
+      {message && (
+        <div className="profile-alert success" style={{ marginBottom: '1.5rem', position: 'static', transform: 'none' }}>
+          {message}
         </div>
-      </form>
+      )}
+      
+      {error && (
+        <div className="profile-alert error" style={{ marginBottom: '1.5rem', position: 'static', transform: 'none' }}>
+          {error}
+        </div>
+      )}
 
-      <div className="careers-table">
+      <div className="card" style={{ marginBottom: '2rem' }}>
+        <h3>Nueva Oferta</h3>
+        <form onSubmit={submit} className="filters" style={{ marginTop: '1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flex: 1, minWidth: '250px' }}>
+            <input 
+              type="number" 
+              className="full-width-input"
+              style={{ width: '100px' }}
+              value={form.anio} 
+              onChange={(e) => setForm((s) => ({ ...s, anio: Number(e.target.value) }))} 
+            />
+            <select 
+              className="full-width-input"
+              value={form.cuatrimestre} 
+              onChange={(e) => setForm((s) => ({ ...s, cuatrimestre: Number(e.target.value) }))}
+            >
+              <option value={1}>Primer Cuatrimestre (1C)</option>
+              <option value={2}>Segundo Cuatrimestre (2C)</option>
+              <option value={0}>Anual</option>
+            </select>
+          </div>
+          <button className="btn primary" type="submit" style={{ height: '45px' }}>Guardar oferta</button>
+          
+          <div style={{ flexBasis: "100%", marginTop: '1rem' }}>
+            <p style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Seleccionar materias disponibles:</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10, maxHeight: '300px', overflowY: 'auto', padding: '10px', background: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              {subjects.map((subject) => (
+                <label key={subject._id} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: '0.9rem', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={form.materias.includes(subject._id)} onChange={() => toggleSubject(subject._id)} />
+                  <span>{subject.nombre} <small style={{ color: 'var(--text-muted)' }}>({subject.codigo})</small></span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </form>
+      </div>
+
+      {/* TABLE LAYOUT (Desktop) */}
+      <div className="admin-table-container desktop-only">
         <table>
           <thead>
             <tr>
-              <th>Periodo</th>
-              <th>Materias</th>
+              <th style={{ width: '200px' }}>Periodo</th>
+              <th>Materias Ofrecidas</th>
             </tr>
           </thead>
           <tbody>
             {offers.map((offer) => (
               <tr key={offer._id}>
-                <td>{offer.anio} - {offer.cuatrimestre === 0 ? "Anual" : `${offer.cuatrimestre}C`}</td>
-                <td>{offer.materias.map((m) => `${m.nombre} (${m.codigo})`).join(", ")}</td>
+                <td style={{ fontWeight: 600 }}>
+                  {offer.anio} - {offer.cuatrimestre === 0 ? "Anual" : `${offer.cuatrimestre}C`}
+                </td>
+                <td style={{ fontSize: '0.85rem', lineHeight: 1.5, color: 'var(--text-main)' }}>
+                  {offer.materias.map((m) => `${m.nombre} (${m.codigo})`).join(", ")}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* MOBILE CARDS */}
+      <div className="mobile-only-cards">
+        {offers.map((offer) => (
+          <div key={offer._id} className="career-mobile-card">
+            <div className="card-row header">
+              <span className="name">{offer.anio} - {offer.cuatrimestre === 0 ? "Anual" : `${offer.cuatrimestre}C`}</span>
+            </div>
+            <div className="card-body" style={{ marginTop: '0.5rem' }}>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Materias:</p>
+              <p style={{ fontSize: '0.95rem' }}>
+                {offer.materias.map((m) => `${m.nombre} (${m.codigo})`).join(", ")}
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

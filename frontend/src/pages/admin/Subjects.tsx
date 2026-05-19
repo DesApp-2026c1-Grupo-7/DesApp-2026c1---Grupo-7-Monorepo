@@ -103,7 +103,7 @@ export default function Subjects() {
         </select>
       </div>
 
-      <div className="subjects-table">
+      <div className="subjects-table desktop-only">
         <div className="table-header">
           <span>Materia</span>
           <span>Código</span>
@@ -135,6 +135,34 @@ export default function Subjects() {
           ))
         ) : (
           <p style={{ padding: 20, textAlign: 'center' }}>No se encontraron materias.</p>
+        )}
+      </div>
+
+      {/* MOBILE CARDS */}
+      <div className="mobile-only-cards">
+        {loading ? (
+          <p>Cargando...</p>
+        ) : filtered.length > 0 ? (
+          filtered.map((s) => (
+            <div key={s._id} className="career-mobile-card">
+              <div className="card-row header">
+                <span className="name">{s.nombre}</span>
+                <span className="code">{s.codigo}</span>
+              </div>
+              <div className="card-stats-grid">
+                <div><label>Año</label><span>{s.anio}°</span></div>
+                <div><label>Cuatrimestre</label><span>{cuatriLabel(s.cuatrimestre)}</span></div>
+                <div><label>Créditos</label><span>{s.creditos}</span></div>
+                <div><label>Tipo</label><span>{s.esOptativa ? "Optativa" : "Obligatoria"}{s.esUnahur ? " (UNAHUR)" : ""}</span></div>
+              </div>
+              <div className="card-actions">
+                <button className="btn secondary" onClick={() => navigate(`/admin/subjects/editar/${s._id}`)}>Editar</button>
+                <button className="btn secondary" style={{ color: 'var(--error)' }} onClick={() => handleDelete(s._id, s.nombre)}>Eliminar</button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p>No se encontraron materias.</p>
         )}
       </div>
 
