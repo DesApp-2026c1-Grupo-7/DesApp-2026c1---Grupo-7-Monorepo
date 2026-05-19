@@ -15,6 +15,9 @@ interface ProfileData {
     mostrarEmail: boolean;
     mostrarSituacionAcademica: boolean;
     mostrarEventos: boolean;
+    publicarInscripciones: boolean;
+    publicarRegularizaciones: boolean;
+    publicarAprobaciones: boolean;
   };
   situacionAcademica?: {
     _id: string;
@@ -33,6 +36,9 @@ const DEFAULT_PRIVACY = {
   mostrarEmail: true,
   mostrarSituacionAcademica: true,
   mostrarEventos: true,
+  publicarInscripciones: true,
+  publicarRegularizaciones: true,
+  publicarAprobaciones: true,
 };
 
 export default function Profile() {
@@ -377,6 +383,73 @@ export default function Profile() {
             <span className="toggle-slider"></span>
           </label>
         </div>
+
+        {formData.configuracionPrivacidad.mostrarEventos && (
+          <div className="nested-settings" style={{ paddingLeft: '2rem', borderLeft: '2px solid #eee', marginBottom: '1.5rem' }}>
+            <div className="setting-row" style={{ padding: '0.5rem 0' }}>
+              <div className="setting-info">
+                <h5 style={{ margin: 0 }}>Publicar Inscripciones</h5>
+              </div>
+              <label className="toggle-switch small">
+                <input
+                  type="checkbox"
+                  disabled={!editing}
+                  checked={formData.configuracionPrivacidad.publicarInscripciones}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    configuracionPrivacidad: {
+                      ...formData.configuracionPrivacidad,
+                      publicarInscripciones: e.target.checked
+                    }
+                  })}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+            
+            <div className="setting-row" style={{ padding: '0.5rem 0' }}>
+              <div className="setting-info">
+                <h5 style={{ margin: 0 }}>Publicar Regularizaciones</h5>
+              </div>
+              <label className="toggle-switch small">
+                <input
+                  type="checkbox"
+                  disabled={!editing}
+                  checked={formData.configuracionPrivacidad.publicarRegularizaciones}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    configuracionPrivacidad: {
+                      ...formData.configuracionPrivacidad,
+                      publicarRegularizaciones: e.target.checked
+                    }
+                  })}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div className="setting-row" style={{ padding: '0.5rem 0' }}>
+              <div className="setting-info">
+                <h5 style={{ margin: 0 }}>Publicar Aprobaciones</h5>
+              </div>
+              <label className="toggle-switch small">
+                <input
+                  type="checkbox"
+                  disabled={!editing}
+                  checked={formData.configuracionPrivacidad.publicarAprobaciones}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    configuracionPrivacidad: {
+                      ...formData.configuracionPrivacidad,
+                      publicarAprobaciones: e.target.checked
+                    }
+                  })}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* BARRA DE ACCIONES */}

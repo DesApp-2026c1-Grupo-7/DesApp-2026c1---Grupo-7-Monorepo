@@ -29,12 +29,19 @@ const getFeed = async (req, res) => {
     const currentUser = await User.findById(req.user.id).select('contactos');
     const contactIds = currentUser.contactos.map(c => c.toString());
 
+    // El usuario siempre puede ver sus propios eventos.
+    // Para otros autores, deben tener 'mostrarEventos' en true Y ser contacto o perfil público.
     const visibleAuthors = await User.find({
       role: 'student',
-      'configuracionPrivacidad.mostrarEventos': true,
       $or: [
-        { _id: { $in: contactIds } },
-        { 'configuracionPrivacidad.perfil': 'publico' }
+        { _id: req.user.id },
+        {
+          'configuracionPrivacidad.mostrarEventos': true,
+          $or: [
+            { _id: { $in: contactIds } },
+            { 'configuracionPrivacidad.perfil': 'publico' }
+          ]
+        }
       ]
     }).select('_id');
 
