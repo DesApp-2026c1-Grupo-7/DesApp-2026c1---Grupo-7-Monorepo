@@ -34,7 +34,7 @@ async function seedCareers() {
       instituto: 'Instituto de Tecnologia e Ingenieria',
       duracionAnios: 5,
       cantidadMaterias: 47,
-      creditosNecesarios: 240,
+      creditosNecesarios: 85,
       nivelInglesRequerido: 'B2'
     },
     {
@@ -45,7 +45,7 @@ async function seedCareers() {
       instituto: 'Instituto de Tecnologia e Ingenieria',
       duracionAnios: 5,
       cantidadMaterias: 42,
-      creditosNecesarios: 210,
+      creditosNecesarios: 75,
       nivelInglesRequerido: 'B1'
     }
   ];

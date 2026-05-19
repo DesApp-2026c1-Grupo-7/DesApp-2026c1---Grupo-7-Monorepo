@@ -12,6 +12,7 @@ const upload = multer({
 
 // Situación académica
 router.get('/situacion', auth, gradeController.getStudentSituation);
+router.get('/pendientes', auth, gradeController.getPendingSubjects);
 router.post('/situacion', auth, gradeController.updateGrade);
 router.post('/situacion/bulk', auth, gradeController.bulkLoadSituation);
 router.post('/situacion/preview-excel', auth, upload.single('file'), importController.previewSituationExcel);
