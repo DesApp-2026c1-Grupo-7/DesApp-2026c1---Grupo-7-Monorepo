@@ -61,7 +61,7 @@ export default function EditStudyPlan() {
           estado: p.estado || (p.activo === false ? "Discontinuado" : "Vigente")
         });
         
-        const mapped = (p.materias || []).map((pm: any) => ({
+        const mapped = (p.materias || []).map((pm: { materia: Subject; anio: number; cuatrimestre: number; creditos: number; correlativas: Subject[]; esOptativa: boolean; esUnahur: boolean; horasSemanales?: number }) => ({
           materia: pm.materia?._id || pm.materia,
           nombre: pm.materia?.nombre,
           codigo: pm.materia?.codigo,
@@ -69,7 +69,7 @@ export default function EditStudyPlan() {
           cuatrimestre: pm.cuatrimestre || 1,
           creditos: pm.creditos || 0,
           horasSemanales: pm.horasSemanales || 4,
-          correlativas: (pm.correlativas || []).map((c: any) => c._id || c),
+          correlativas: (pm.correlativas || []).map((c: Subject | string) => (typeof c === 'string' ? c : c._id)),
           esOptativa: !!pm.esOptativa,
           esUnahur: !!pm.esUnahur
         }));
@@ -115,9 +115,9 @@ export default function EditStudyPlan() {
     if (editingIndex === index) setEditingIndex(null);
   };
 
-  const updateMateria = (index: number, k: keyof PlanMateria, v: any) => {
+  const updateMateria = (index: number, k: keyof PlanMateria, v: string | number | boolean | string[]) => {
     const next = [...planMaterias];
-    next[index] = { ...next[index], [k]: v };
+    next[index] = { ...next[index], [k]: v } as PlanMateria;
     setPlanMaterias(next);
   };
 
@@ -152,7 +152,7 @@ export default function EditStudyPlan() {
       });
       navigate("/admin/studyplans");
     } catch (err: unknown) {
-      const ax = err as { response?: { data?: { mensaje?: string } } };
+      const ax = err as { response?: { data?: { mensaje?: string; error?: string | Record<string, unknown> } } };
       setError(ax.response?.data?.mensaje || "Error al actualizar el plan");
     } finally {
       setLoading(false);

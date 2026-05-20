@@ -52,8 +52,9 @@ export default function EditCareer() {
         const currentPlan = allPlans.find(p => p.carrera?._id === id);
         if (currentPlan) setSelectedPlanId(currentPlan._id);
 
-      } catch (e: any) {
-        setError(e.response?.data?.mensaje || "Error al cargar datos");
+      } catch (e: unknown) {
+        const ax = e as { response?: { data?: { mensaje?: string } } };
+        setError(ax.response?.data?.mensaje || "Error al cargar datos");
       } finally {
         setFetching(false);
       }

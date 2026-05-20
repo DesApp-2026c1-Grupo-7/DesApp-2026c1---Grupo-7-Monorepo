@@ -2,6 +2,7 @@ const xlsx = require('xlsx');
 const Subject = require('../models/Subject');
 const Grade = require('../models/Grade');
 const { createAcademicEvent } = require('../utils/academicEvents');
+const { getPlanSubjectsForUser } = require('./grade.controller');
 
 const VALID_ESTADOS = ['PENDIENTE', 'INSCRIPTO', 'INSCRIPTA', 'CURSANDO', 'REGULAR', 'APROBADA', 'APROBADO', 'LIBRE', 'PROMOCION'];
 
@@ -85,6 +86,10 @@ const persistPreview = async (userId, preview, res) => {
     currentGrades.filter(g => APPROVED_STATES.includes(g.estado)).map(g => g.materia.toString())
   );
 
+  // Obtenemos materias del plan para validar correlativas
+  const { materias: planSubjects } = await getPlanSubjectsForUser(userId);
+  const planMap = new Map(planSubjects.map(ps => [ps._id.toString(), ps]));
+
   for (const row of preview) {
     if (row.errores?.length > 0 || !row.materiaId) {
       errores.push({ fila: row.fila, motivo: (row.errores || ['Fila invalida']).join('; ') });
@@ -93,13 +98,13 @@ const persistPreview = async (userId, preview, res) => {
 
     // Validación estricta de correlativas en el import
     if (APPROVED_STATES.includes(row.estado)) {
-      const subject = await Subject.findById(row.materiaId).populate('correlativas');
-      if (subject && subject.correlativas.length > 0) {
-        const hasAll = subject.correlativas.every(c => approvedIds.has(c._id.toString()));
+      const subjectInPlan = planMap.get(row.materiaId.toString());
+      if (subjectInPlan && subjectInPlan.correlativas.length > 0) {
+        const hasAll = subjectInPlan.correlativas.every(c => approvedIds.has(c._id.toString()));
         if (!hasAll) {
           errores.push({ 
             fila: row.fila, 
-            motivo: `Correlativas no cumplidas para ${subject.nombre}` 
+            motivo: `Correlativas no cumplidas para ${subjectInPlan.nombre}` 
           });
           continue;
         }

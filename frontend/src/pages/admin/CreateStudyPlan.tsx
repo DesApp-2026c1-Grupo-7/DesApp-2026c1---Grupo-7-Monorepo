@@ -4,7 +4,6 @@ import { Search, Trash2, Settings2 } from "lucide-react";
 import api from "../../services/api";
 import "../../styles/CreateCareer.css";
 
-interface Career { _id: string; nombre: string; }
 interface Subject { _id: string; nombre: string; codigo: string; }
 
 interface PlanMateria {
@@ -79,9 +78,9 @@ export default function CreateStudyPlan() {
     if (editingIndex === index) setEditingIndex(null);
   };
 
-  const updateMateria = (index: number, k: keyof PlanMateria, v: any) => {
+  const updateMateria = (index: number, k: keyof PlanMateria, v: string | number | boolean | string[]) => {
     const next = [...planMaterias];
-    next[index] = { ...next[index], [k]: v };
+    next[index] = { ...next[index], [k]: v } as PlanMateria;
     setPlanMaterias(next);
   };
 
@@ -118,7 +117,7 @@ export default function CreateStudyPlan() {
       navigate("/admin/studyplans");
     } catch (err: unknown) {
       console.error("Error creating plan:", err);
-      const ax = err as { response?: { data?: { mensaje?: string; error?: any } } };
+      const ax = err as { response?: { data?: { mensaje?: string; error?: string | Record<string, unknown> } } };
       let detail = "";
       if (typeof ax.response?.data?.error === 'string') {
         detail = ax.response.data.error;

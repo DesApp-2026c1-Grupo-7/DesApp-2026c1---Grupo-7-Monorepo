@@ -843,6 +843,7 @@ const deleteGrade = async (req, res) => {
 };
 
 module.exports = {
+  getPlanSubjectsForUser,
   getStudentSituation,
   getPendingSubjects,
   updateGrade,
