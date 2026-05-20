@@ -7,11 +7,16 @@ interface Subject {
   _id: string;
   nombre: string;
   codigo: string;
+}
+
+interface PlanMateria {
+  materia: Subject;
   anio: number;
   cuatrimestre: number;
   creditos: number;
   esOptativa?: boolean;
-  correlativas?: { nombre: string; codigo: string }[];
+  esUnahur?: boolean;
+  correlativas?: Subject[];
 }
 
 interface Plan {
@@ -19,7 +24,7 @@ interface Plan {
   nombre: string;
   anio: number;
   carrera?: { nombre: string; codigo: string };
-  materias: Subject[];
+  materias: PlanMateria[];
   creditosNecesarios?: number;
   materiasUnahurRequeridas?: number;
   nivelInglesRequerido?: string;
@@ -39,10 +44,10 @@ export default function StudyPlanDetail() {
   if (loading) return <div className="plans-container"><p>Cargando plan...</p></div>;
   if (!plan) return <div className="plans-container"><p>Plan no encontrado.</p></div>;
 
-  const porAnio: Record<number, Subject[]> = {};
-  plan.materias.forEach((m) => {
-    if (!porAnio[m.anio]) porAnio[m.anio] = [];
-    porAnio[m.anio].push(m);
+  const porAnio: Record<number, PlanMateria[]> = {};
+  plan.materias.forEach((pm) => {
+    if (!porAnio[pm.anio]) porAnio[pm.anio] = [];
+    porAnio[pm.anio].push(pm);
   });
   const totalCreditos = plan.materias.reduce((s, m) => s + (m.creditos || 0), 0);
 
@@ -78,19 +83,27 @@ export default function StudyPlanDetail() {
         <div key={y} style={{ marginBottom: 24 }}>
           <h3>Año {y}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-            {porAnio[Number(y)].map((m) => (
-              <div key={m._id} style={{ padding: 12, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff' }}>
+            {porAnio[Number(y)].map((pm) => (
+              <div key={pm.materia?._id} style={{ padding: 12, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                  <strong>{m.nombre}</strong>
-                  {m.esOptativa && <span style={{ fontSize: 11, padding: '2px 6px', background: '#fef3c7', color: '#92400e', borderRadius: 4 }}>Optativa</span>}
+                  <strong style={{ maxWidth: '70%' }}>{pm.materia?.nombre || 'Materia desconocida'}</strong>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'end' }}>
+                    {pm.esOptativa && <span style={{ fontSize: 10, padding: '2px 6px', background: '#fef3c7', color: '#92400e', borderRadius: 4 }}>Optativa</span>}
+                    {pm.esUnahur && <span style={{ fontSize: 10, padding: '2px 6px', background: '#d1fae5', color: '#065f46', borderRadius: 4 }}>UNAHUR</span>}
+                  </div>
                 </div>
                 <p style={{ fontSize: 13, color: '#666', margin: '4px 0' }}>
-                  {m.codigo} · {m.cuatrimestre === 0 ? 'Anual' : `${m.cuatrimestre}° Cuat`} · {m.creditos} créditos
+                  {pm.materia?.codigo} · {pm.cuatrimestre === 0 ? 'Anual' : `${pm.cuatrimestre}° Cuat`} · {pm.creditos} créditos
                 </p>
-                {m.correlativas && m.correlativas.length > 0 && (
-                  <p style={{ fontSize: 12, color: '#888', margin: 0 }}>
-                    📎 Correlativas: {m.correlativas.map((c) => c.codigo).join(', ')}
-                  </p>
+                {pm.correlativas && pm.correlativas.length > 0 && (
+                  <div style={{ marginTop: 8 }}>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: '#888', margin: '0 0 2px 0' }}>📎 Correlativas:</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {pm.correlativas.map((c) => (
+                        <span key={c._id} style={{ fontSize: 10, background: '#f3f4f6', padding: '1px 4px', borderRadius: 4 }}>{c.codigo}</span>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             ))}

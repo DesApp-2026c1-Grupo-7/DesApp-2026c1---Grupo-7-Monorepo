@@ -7,7 +7,8 @@ import {
   Calendar,
   Bell,
   User,
-  ShieldAlert
+  ShieldAlert,
+  Rss
 } from "lucide-react";
 
 import "../styles/Sidebar.css";
@@ -27,6 +28,7 @@ const STUDENT_ITEMS: SidebarItem[] = [
   { to: "/student/situation", icon: <BookOpen size={18} />, label: "Situacion Academica" },
   { to: "/student/assistant", icon: <GraduationCap size={18} />, label: "Asistente Academico" },
   { to: "/student/social", icon: <Users size={18} />, label: "Red Social" },
+  { to: "/student/feed", icon: <Rss size={18} />, label: "Feed Academico" },
   { to: "/student/sessions", icon: <Calendar size={18} />, label: "Sesiones de Estudio" },
   { to: "/student/materials", icon: <BookOpen size={18} />, label: "Materiales" },
   { to: "/student/notifications", icon: <Bell size={18} />, label: "Notificaciones" },

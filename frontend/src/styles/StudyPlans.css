@@ -141,6 +141,10 @@
   .plan-actions button {
     width: 100%;
   }
+  
+  .plans-container div[style*="display: grid"] {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 /* BUTTONS */

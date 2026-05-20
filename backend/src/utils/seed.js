@@ -32,10 +32,7 @@ async function seedCareers() {
       descripcion: 'Carrera de grado de 5 anios orientada a desarrollo de software y sistemas.',
       titulo: 'Ingeniero/a en Sistemas',
       instituto: 'Instituto de Tecnologia e Ingenieria',
-      duracionAnios: 5,
-      cantidadMaterias: 47,
-      creditosNecesarios: 240,
-      nivelInglesRequerido: 'B2'
+      duracionAnios: 5
     },
     {
       nombre: 'Licenciatura en Informatica',
@@ -43,10 +40,7 @@ async function seedCareers() {
       descripcion: 'Carrera de grado orientada a investigacion y desarrollo en informatica.',
       titulo: 'Licenciado/a en Informatica',
       instituto: 'Instituto de Tecnologia e Ingenieria',
-      duracionAnios: 5,
-      cantidadMaterias: 42,
-      creditosNecesarios: 210,
-      nivelInglesRequerido: 'B1'
+      duracionAnios: 5
     }
   ];
 
@@ -64,49 +58,72 @@ async function seedCareers() {
 
 async function seedSubjects(careerId) {
   const subjectsData = [
-    { nombre: 'Analisis Matematico I', codigo: 'AM1', anio: 1, cuatrimestre: 1, creditos: 8, esUnahur: true },
-    { nombre: 'Algoritmos y Estructuras de Datos', codigo: 'AED', anio: 1, cuatrimestre: 1, creditos: 6, esUnahur: true },
-    { nombre: 'Programacion I', codigo: 'PROG1', anio: 1, cuatrimestre: 2, creditos: 6, esUnahur: true, correlativasCodigos: ['AED'] },
-    { nombre: 'Analisis Matematico II', codigo: 'AM2', anio: 1, cuatrimestre: 2, creditos: 8, esUnahur: true, correlativasCodigos: ['AM1'] },
-    { nombre: 'Ingles Tecnico', codigo: 'ENG1', anio: 2, cuatrimestre: 1, creditos: 4, esUnahur: false },
-    { nombre: 'Sistemas Operativos', codigo: 'SO', anio: 2, cuatrimestre: 2, creditos: 6, esUnahur: true, correlativasCodigos: ['PROG1'] },
-    { nombre: 'Bases de Datos I', codigo: 'BD1', anio: 3, cuatrimestre: 1, creditos: 6, esUnahur: true, correlativasCodigos: ['PROG1'] },
-    { nombre: 'Ingenieria de Software', codigo: 'ISW', anio: 3, cuatrimestre: 2, creditos: 6, esUnahur: true, correlativasCodigos: ['BD1', 'SO'] },
-    { nombre: 'Optativa: Big Data', codigo: 'OPTBD', anio: 4, cuatrimestre: 2, creditos: 4, esOptativa: true, esUnahur: true, correlativasCodigos: ['BD1'] }
+    { nombre: 'Analisis Matematico I', codigo: 'AM1' },
+    { nombre: 'Algoritmos y Estructuras de Datos', codigo: 'AED' },
+    { nombre: 'Programacion I', codigo: 'PROG1' },
+    { nombre: 'Analisis Matematico II', codigo: 'AM2' },
+    { nombre: 'Ingles Tecnico', codigo: 'ENG1' },
+    { nombre: 'Sistemas Operativos', codigo: 'SO' },
+    { nombre: 'Bases de Datos I', codigo: 'BD1' },
+    { nombre: 'Ingenieria de Software', codigo: 'ISW' },
+    { nombre: 'Optativa: Big Data', codigo: 'OPTBD' },
+    { nombre: 'Rock Nacional', codigo: 'UNA-ROCK' },
+    { nombre: 'La vida de Maradona', codigo: 'UNA-DIEGO' },
+    { nombre: 'Robotica', codigo: 'UNA-ROBOT' },
+    { nombre: 'La vida de las rocas', codigo: 'UNA-PIEDRA' }
   ];
 
   const created = {};
   for (const s of subjectsData) {
-    const { correlativasCodigos, ...data } = s;
     const subject = await Subject.findOneAndUpdate(
       { codigo: s.codigo },
-      { ...data, carrera: careerId },
+      { nombre: s.nombre, codigo: s.codigo, carrera: careerId },
       { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
     );
     created[s.codigo] = subject;
   }
 
-  for (const s of subjectsData) {
-    if (!s.correlativasCodigos?.length) continue;
-    const ids = s.correlativasCodigos.map((codigo) => created[codigo]?._id).filter(Boolean);
-    await Subject.findByIdAndUpdate(created[s.codigo]._id, { correlativas: ids }, { runValidators: true });
-    created[s.codigo] = await Subject.findById(created[s.codigo]._id);
-  }
-
-  return Object.values(created);
+  return created;
 }
 
-async function seedStudyPlan(career, subjects) {
+async function seedStudyPlan(career, subjectsMap) {
+  const materiasConfig = [
+    { codigo: 'AM1', anio: 1, cuatrimestre: 1, creditos: 8, horasSemanales: 6 },
+    { codigo: 'AED', anio: 1, cuatrimestre: 1, creditos: 6, horasSemanales: 4 },
+    { codigo: 'PROG1', anio: 1, cuatrimestre: 2, creditos: 6, horasSemanales: 4, correlativas: ['AED'] },
+    { codigo: 'AM2', anio: 1, cuatrimestre: 2, creditos: 8, horasSemanales: 6, correlativas: ['AM1'] },
+    { codigo: 'ENG1', anio: 2, cuatrimestre: 1, creditos: 4, horasSemanales: 2 },
+    { codigo: 'SO', anio: 2, cuatrimestre: 2, creditos: 6, horasSemanales: 4, correlativas: ['PROG1'] },
+    { codigo: 'BD1', anio: 3, cuatrimestre: 1, creditos: 6, horasSemanales: 4, correlativas: ['PROG1'] },
+    { codigo: 'ISW', anio: 3, cuatrimestre: 2, creditos: 6, horasSemanales: 4, correlativas: ['BD1', 'SO'] },
+    { codigo: 'OPTBD', anio: 4, cuatrimestre: 2, creditos: 4, horasSemanales: 4, esOptativa: true, correlativas: ['BD1'] },
+    { codigo: 'UNA-ROCK', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
+    { codigo: 'UNA-DIEGO', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
+    { codigo: 'UNA-ROBOT', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
+    { codigo: 'UNA-PIEDRA', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true }
+  ];
+
+  const materiasFormatted = materiasConfig.map(m => ({
+    materia: subjectsMap[m.codigo]._id,
+    anio: m.anio,
+    cuatrimestre: m.cuatrimestre,
+    creditos: m.creditos,
+    horasSemanales: m.horasSemanales,
+    correlativas: (m.correlativas || []).map(cod => subjectsMap[cod]._id),
+    esOptativa: !!m.esOptativa,
+    esUnahur: !!m.esUnahur
+  }));
+
   return StudyPlan.findOneAndUpdate(
     { carrera: career._id, anio: 2023 },
     {
       nombre: 'Plan 2023',
       anio: 2023,
       carrera: career._id,
-      materias: subjects.map((s) => s._id),
-      creditosNecesarios: career.creditosNecesarios,
+      materias: materiasFormatted,
+      creditosNecesarios: 85,
       materiasUnahurRequeridas: 8,
-      nivelInglesRequerido: career.nivelInglesRequerido,
+      nivelInglesRequerido: 'B2',
       estado: 'Vigente',
       activo: true
     },
@@ -114,34 +131,10 @@ async function seedStudyPlan(career, subjects) {
   );
 }
 
-async function seedSituationFor(student, subjects) {
-  const sample = [
-    { codigo: 'AM1', estado: 'Aprobada', nota: 9, cuatrimestre: 1, anioCursada: 2024 },
-    { codigo: 'AED', estado: 'Aprobada', nota: 8, cuatrimestre: 1, anioCursada: 2024 },
-    { codigo: 'AM2', estado: 'Regular', cuatrimestre: 2, anioCursada: 2024 },
-    { codigo: 'PROG1', estado: 'Cursando', cuatrimestre: 2, anioCursada: 2024 }
-  ];
-  const codeToId = Object.fromEntries(subjects.map((s) => [s.codigo, s._id]));
-
-  for (const r of sample) {
-    if (!codeToId[r.codigo]) continue;
-    await Grade.findOneAndUpdate(
-      { estudiante: student._id, materia: codeToId[r.codigo] },
-      {
-        estado: r.estado,
-        nota: r.nota,
-        cuatrimestre: r.cuatrimestre,
-        anioCursada: r.anioCursada,
-        fecha: Date.now()
-      },
-      { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
-    );
-  }
-}
-
-async function seedAcademicOffer(subjects) {
+async function seedAcademicOffer(subjectsMap) {
   const now = new Date();
   const cuatrimestre = now.getMonth() < 7 ? 1 : 2;
+  const subjects = Object.values(subjectsMap);
   await AcademicOffer.findOneAndUpdate(
     { anio: now.getFullYear(), cuatrimestre },
     {
@@ -162,8 +155,8 @@ async function seedUsers() {
 
     const careers = await seedCareers();
     const careerIngSist = careers[0];
-    const subjects = await seedSubjects(careerIngSist._id);
-    const plan = await seedStudyPlan(careerIngSist, subjects);
+    const subjectsMap = await seedSubjects(careerIngSist._id);
+    const plan = await seedStudyPlan(careerIngSist, subjectsMap);
 
     const adminEmail = 'admin@universidad.edu';
     let admin = await User.findOne({ email: adminEmail });
@@ -195,8 +188,23 @@ async function seedUsers() {
       await student.save();
     }
 
-    await seedSituationFor(student, subjects);
-    await seedAcademicOffer(subjects);
+    const student2Email = 'estudiante2@universidad.edu';
+    let student2 = await User.findOne({ email: student2Email });
+    if (!student2) {
+      student2 = await User.create({
+        nombre: 'Segundo Estudiante',
+        email: student2Email,
+        password: await bcrypt.hash('estudiante123', 10),
+        role: 'student',
+        carrera: careerIngSist._id,
+        planEstudio: plan._id
+      });
+      logger.info('Segundo usuario estudiante por defecto creado.');
+    }
+
+    await seedAcademicOffer(subjectsMap);
+    logger.info('Sembrado de datos completado exitosamente.');
+
   } catch (error) {
     logger.error('Error durante el seeding:', error.message);
   }

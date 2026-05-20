@@ -12,5 +12,9 @@ router.use('/academico', require('./grade.routes'));
 router.use('/finales', require('./final.routes'));
 router.use('/usuarios', require('./user.routes'));
 router.use('/ofertas', require('./academicOffer.routes'));
+router.use('/perfil', require('./profile.routes'));
+router.use('/invitaciones', require('./invitation.routes'));
+router.use('/notificaciones', require('./notification.routes'));
+router.use('/eventos', require('./event.routes'));
 
 module.exports = router;

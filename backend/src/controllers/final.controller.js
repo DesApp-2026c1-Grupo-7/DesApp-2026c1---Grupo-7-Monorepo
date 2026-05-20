@@ -1,5 +1,6 @@
 const Final = require('../models/Final');
 const Grade = require('../models/Grade');
+const { createAcademicEvent } = require('../utils/academicEvents');
 
 const REGULAR_YEARS = 2;
 
@@ -37,13 +38,22 @@ const getFinalesPendientes = async (req, res) => {
         materia: g.materia._id,
         estado: { $in: ['Aprobado', 'Desaprobado', 'Ausente'] }
       });
+
+      const inscripcionActiva = await Final.findOne({
+        estudiante: userId,
+        materia: g.materia._id,
+        estado: 'Pendiente'
+      });
+
       pendientes.push({
         materia: g.materia,
         cuatrimestre: g.cuatrimestre,
         anioCursada: g.anioCursada,
         fechaRegular: g.fecha,
         intentosPrevios,
-        venceRegularidad: addYears(g.fecha, REGULAR_YEARS)
+        venceRegularidad: addYears(g.fecha, REGULAR_YEARS),
+        yaInscripto: !!inscripcionActiva,
+        finalId: inscripcionActiva ? inscripcionActiva._id : null
       });
     }
 
@@ -98,7 +108,8 @@ const registrarResultadoFinal = async (req, res) => {
       { _id: req.params.id, estudiante: req.user.id },
       { estado, nota },
       { new: true, runValidators: true }
-    );
+    ).populate('materia', 'nombre');
+    
     if (!final) {
       return res.status(404).json({ mensaje: 'Final no encontrado' });
     }
@@ -106,10 +117,19 @@ const registrarResultadoFinal = async (req, res) => {
     // Si aprobó, actualizar Grade a 'Aprobada'
     if (estado === 'Aprobado') {
       await Grade.findOneAndUpdate(
-        { estudiante: req.user.id, materia: final.materia },
-        { estado: 'Aprobada', nota },
+        { estudiante: req.user.id, materia: final.materia._id },
+        { 
+          estado: 'Aprobada', 
+          nota,
+          fecha: final.fecha // Registramos la fecha del final como fecha de aprobación
+        },
         { runValidators: true }
       );
+      
+      // Crear evento académico si corresponde
+      if (final.materia) {
+        await createAcademicEvent(req.user.id, 'Aprobada', final.materia.nombre);
+      }
     }
 
     res.json({ mensaje: 'Resultado registrado', final });
@@ -118,9 +138,31 @@ const registrarResultadoFinal = async (req, res) => {
   }
 };
 
+const darseDeBajaFinal = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { materiaId } = req.params;
+
+    const result = await Final.findOneAndDelete({
+      estudiante: userId,
+      materia: materiaId,
+      estado: 'Pendiente'
+    });
+
+    if (!result) {
+      return res.status(404).json({ mensaje: 'No se encontró la inscripción al final' });
+    }
+
+    res.json({ mensaje: 'Inscripción a final eliminada' });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al dar de baja el final', error: error.message });
+  }
+};
+
 module.exports = {
   getFinales,
   getFinalesPendientes,
   inscribirseAFinal,
-  registrarResultadoFinal
+  registrarResultadoFinal,
+  darseDeBajaFinal
 };

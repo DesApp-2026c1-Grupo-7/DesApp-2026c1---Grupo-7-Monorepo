@@ -12,11 +12,13 @@ const upload = multer({
 
 // Situación académica
 router.get('/situacion', auth, gradeController.getStudentSituation);
+router.get('/pendientes', auth, gradeController.getPendingSubjects);
 router.post('/situacion', auth, gradeController.updateGrade);
 router.post('/situacion/bulk', auth, gradeController.bulkLoadSituation);
 router.post('/situacion/preview-excel', auth, upload.single('file'), importController.previewSituationExcel);
 router.post('/situacion/confirm-excel', auth, importController.confirmSituationExcel);
 router.post('/situacion/import-excel', auth, upload.single('file'), importController.importSituationExcel);
+router.delete('/situacion/:materiaId', auth, gradeController.deleteGrade);
 
 // Inscripciones a cursada
 router.post('/inscripciones', auth, gradeController.inscribirseACursada);

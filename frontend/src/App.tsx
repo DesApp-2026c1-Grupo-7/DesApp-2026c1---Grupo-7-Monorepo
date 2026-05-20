@@ -12,6 +12,9 @@ import Situation from "./pages/student/Situation";
 import LoadSituation from "./pages/student/LoadSituation";
 import AcademicAssistant from "./pages/student/AcademicAssistant";
 import Social from "./pages/student/Social";
+import Feed from "./pages/student/Feed";
+import ExternalProfile from "./pages/student/ExternalProfile";
+import AcceptInvitation from "./pages/student/AcceptInvitation";
 import StudySessions from "./pages/student/StudySessions";
 import CreateSession from "./pages/student/CreateSession";
 import Materials from "./pages/student/Materials";
@@ -32,6 +35,7 @@ import Subjects from "./pages/admin/Subjects";
 import CreateSubject from "./pages/admin/CreateSubject";
 import EditSubject from "./pages/admin/EditSubject";
 import Moderation from "./pages/admin/Moderation";
+import "./styles/PremiumTheme.css";
 
 const getActiveUser = (): { role?: string } | null => {
   const token = localStorage.getItem("token");
@@ -80,11 +84,14 @@ const App = () => {
           <Route path="load-situation" element={<LoadSituation />} />
           <Route path="assistant" element={<AcademicAssistant />} />
           <Route path="social" element={<Social />} />
+          <Route path="feed" element={<Feed />} />
+          <Route path="aceptar-invitacion" element={<AcceptInvitation />} />
           <Route path="sessions" element={<StudySessions />} />
           <Route path="create-session" element={<CreateSession />} />
           <Route path="materials" element={<Materials />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="perfil/:id" element={<ExternalProfile />} />
         </Route>
 
         {/* Admin Flow */}

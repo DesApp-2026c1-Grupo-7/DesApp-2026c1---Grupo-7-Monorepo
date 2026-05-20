@@ -1,7 +1,9 @@
 .sidebar {
   width: 280px;
   height: 100vh;
-  background: var(--bg-sidebar);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 22rem),
+    linear-gradient(160deg, #111827 0%, #172033 58%, #233052 100%);
   padding: 2rem 1.25rem;
   display: flex;
   flex-direction: column;
@@ -10,6 +12,7 @@
   top: 0;
   transition: all 0.3s ease;
   z-index: 20;
+  box-shadow: 18px 0 50px rgb(16 24 40 / 0.12);
 }
 
 .sidebar-header {
@@ -27,7 +30,7 @@
 
 .sidebar-header p {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: #b8c3d8;
   margin-top: 0.25rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -45,21 +48,21 @@
   gap: 0.875rem;
   padding: 0.75rem 1rem;
   border-radius: var(--radius-md);
-  color: #94a3b8;
+  color: #c4ccda;
   font-size: 0.9375rem;
   font-weight: 500;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .link:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
   color: white;
 }
 
 .link.active {
-  background: var(--primary);
+  background: linear-gradient(135deg, #5b7cf1, var(--primary));
   color: white;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 16px 34px rgba(49, 87, 213, 0.34);
 }
 
 .link svg {

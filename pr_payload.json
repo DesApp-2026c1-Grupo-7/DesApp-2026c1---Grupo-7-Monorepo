@@ -1,0 +1,6 @@
+﻿{
+    "title":  "docs: finaliza el DER del sistema",
+    "body":  "Se completa el Diagrama Entidad-Relación (DER) del sistema.",
+    "head":  "docs/der",
+    "base":  "dev"
+}

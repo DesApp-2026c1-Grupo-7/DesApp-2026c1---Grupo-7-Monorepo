@@ -1,8 +1,10 @@
 const xlsx = require('xlsx');
 const Subject = require('../models/Subject');
 const Grade = require('../models/Grade');
+const { createAcademicEvent } = require('../utils/academicEvents');
+const { getPlanSubjectsForUser } = require('./grade.controller');
 
-const VALID_ESTADOS = ['Pendiente', 'Inscripto', 'Cursando', 'Regular', 'Aprobada', 'Libre', 'Promocion'];
+const VALID_ESTADOS = ['PENDIENTE', 'INSCRIPTO', 'INSCRIPTA', 'CURSANDO', 'REGULAR', 'APROBADA', 'APROBADO', 'LIBRE', 'PROMOCION'];
 
 const normalizeKey = (key) => key.toString().trim().toLowerCase()
   .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -20,15 +22,31 @@ const normalizeImportRow = async (raw, idx) => {
   }
 
   const codigo = (r.codigo || r.codigo_materia || r.cod || '').toString().trim().toUpperCase();
-  const estado = (r.estado || '').toString().trim();
-  const nota = r.nota !== '' ? Number(r.nota) : undefined;
-  const cuatrimestre = r.cuatrimestre !== '' ? Number(r.cuatrimestre) : undefined;
+  let estado = (r.estado || '').toString().trim();
+  const nota = r.nota !== '' && r.nota !== undefined ? Number(r.nota) : undefined;
+  const cuatrimestre = r.cuatrimestre !== '' && r.cuatrimestre !== undefined ? Number(r.cuatrimestre) : undefined;
   const anioCursada = r.anio !== undefined && r.anio !== '' ? Number(r.anio) :
     (r.ano !== undefined && r.ano !== '' ? Number(r.ano) : undefined);
   const errores = [];
 
-  if (!codigo) errores.push('Falta codigo de materia');
-  if (!VALID_ESTADOS.includes(estado)) errores.push(`Estado invalido: "${estado}"`);
+  if (!codigo) {
+    errores.push('Falta codigo de materia');
+  }
+
+  // Normalización de estado: pasar a uppercase para comparar y manejar variaciones
+  const estadoUpper = estado.toUpperCase();
+  if (!VALID_ESTADOS.includes(estadoUpper)) {
+    errores.push(`Estado invalido: "${estado}"`);
+  } else {
+    // Mapeo de variaciones a los estados oficiales del modelo
+    if (['APROBADO', 'APROBADA'].includes(estadoUpper)) estado = 'Aprobada';
+    if (['INSCRIPTO', 'INSCRIPTA'].includes(estadoUpper)) estado = 'Inscripto';
+    if (estadoUpper === 'PENDIENTE') estado = 'Pendiente';
+    if (estadoUpper === 'CURSANDO') estado = 'Cursando';
+    if (estadoUpper === 'REGULAR') estado = 'Regular';
+    if (estadoUpper === 'LIBRE') estado = 'Libre';
+    if (estadoUpper === 'PROMOCION') estado = 'Promocion';
+  }
   if (nota !== undefined && (Number.isNaN(nota) || nota < 0 || nota > 10)) errores.push('Nota invalida');
   if (cuatrimestre !== undefined && ![0, 1, 2].includes(cuatrimestre)) errores.push('Cuatrimestre invalido');
 
@@ -60,10 +78,38 @@ const persistPreview = async (userId, preview, res) => {
   const procesados = [];
   const errores = [];
 
+  const APPROVED_STATES = ['Aprobada', 'Promocion'];
+
+  // Obtenemos aprobadas actuales para validar correlativas
+  const currentGrades = await Grade.find({ estudiante: userId });
+  const approvedIds = new Set(
+    currentGrades.filter(g => APPROVED_STATES.includes(g.estado)).map(g => g.materia.toString())
+  );
+
+  // Obtenemos materias del plan para validar correlativas
+  const { materias: planSubjects } = await getPlanSubjectsForUser(userId);
+  const planMap = new Map(planSubjects.map(ps => [ps._id.toString(), ps]));
+
   for (const row of preview) {
     if (row.errores?.length > 0 || !row.materiaId) {
       errores.push({ fila: row.fila, motivo: (row.errores || ['Fila invalida']).join('; ') });
       continue;
+    }
+
+    // Validación estricta de correlativas en el import
+    if (APPROVED_STATES.includes(row.estado)) {
+      const subjectInPlan = planMap.get(row.materiaId.toString());
+      if (subjectInPlan && subjectInPlan.correlativas.length > 0) {
+        const hasAll = subjectInPlan.correlativas.every(c => approvedIds.has(c._id.toString()));
+        if (!hasAll) {
+          errores.push({ 
+            fila: row.fila, 
+            motivo: `Correlativas no cumplidas para ${subjectInPlan.nombre}` 
+          });
+          continue;
+        }
+      }
+      approvedIds.add(row.materiaId.toString());
     }
 
     const update = { estado: row.estado, fecha: Date.now() };
@@ -75,7 +121,11 @@ const persistPreview = async (userId, preview, res) => {
       { estudiante: userId, materia: row.materiaId },
       update,
       { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
-    );
+    ).populate('materia');
+
+    if (grade && grade.materia) {
+      await createAcademicEvent(userId, row.estado, grade.materia.nombre);
+    }
     procesados.push({ codigo: row.codigo, estado: grade.estado });
   }
 

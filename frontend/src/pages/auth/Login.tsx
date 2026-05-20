@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api from "../../services/api";
 import "../../styles/Auth.css";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const from = location.state?.from || null;
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -21,8 +24,12 @@ const Login = () => {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
-      // Redirección automática basada en el rol detectado
-      navigate(user.role === "admin" ? "/admin" : "/student");
+      // Redirección: si venía de una página protegida, vuelve ahí; si no, al dashboard del rol
+      if (from) {
+        navigate(from, { replace: true });
+      } else {
+        navigate(user.role === "admin" ? "/admin" : "/student");
+      }
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { mensaje?: string } } };
       setError(axiosErr.response?.data?.mensaje || "Error al iniciar sesión");
