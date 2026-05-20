@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
+import { Search, X } from "lucide-react";
 import api from "../../services/api";
 import "../../styles/AdminCareers.css";
 
@@ -23,6 +24,7 @@ export default function AcademicOffers() {
     cuatrimestre: new Date().getMonth() < 7 ? 1 : 2,
     materias: [] as string[]
   });
+  const [searchTerm, setSearchTerm] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -42,6 +44,19 @@ export default function AcademicOffers() {
     return () => window.clearTimeout(timer);
   }, [fetchAll]);
 
+  const filteredSubjects = useMemo(() => {
+    if (!searchTerm) return [];
+    const term = searchTerm.toLowerCase();
+    return subjects.filter(s => 
+      !form.materias.includes(s._id) && 
+      (s.nombre.toLowerCase().includes(term) || s.codigo.toLowerCase().includes(term))
+    ).slice(0, 8);
+  }, [subjects, searchTerm, form.materias]);
+
+  const selectedSubjectsList = useMemo(() => {
+    return subjects.filter(s => form.materias.includes(s._id));
+  }, [subjects, form.materias]);
+
   const toggleSubject = (id: string) => {
     setForm((current) => ({
       ...current,
@@ -57,7 +72,9 @@ export default function AcademicOffers() {
     setError("");
     try {
       await api.post("/ofertas", form);
-      setMessage("Oferta guardada");
+      setMessage("Oferta guardada con éxito");
+      setForm(prev => ({ ...prev, materias: [] }));
+      setSearchTerm("");
       await fetchAll();
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
@@ -109,15 +126,123 @@ export default function AcademicOffers() {
           </div>
           <button className="btn primary" type="submit" style={{ height: '45px' }}>Guardar oferta</button>
           
-          <div style={{ flexBasis: "100%", marginTop: '1rem' }}>
-            <p style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Seleccionar materias disponibles:</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10, maxHeight: '300px', overflowY: 'auto', padding: '10px', background: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-              {subjects.map((subject) => (
-                <label key={subject._id} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: '0.9rem', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={form.materias.includes(subject._id)} onChange={() => toggleSubject(subject._id)} />
-                  <span>{subject.nombre} <small style={{ color: 'var(--text-muted)' }}>({subject.codigo})</small></span>
-                </label>
-              ))}
+          <div style={{ flexBasis: "100%", marginTop: '1.5rem', position: 'relative' }}>
+            <p style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
+              Seleccionar materias para la oferta:
+            </p>
+            
+            <div style={{ position: 'relative', marginBottom: '1rem' }}>
+              <div style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'flex' }}>
+                <Search size={18} />
+              </div>
+              <input 
+                type="text" 
+                placeholder="Buscar materia por nombre o código..." 
+                className="full-width-input"
+                style={{ paddingLeft: '42px', height: '48px', fontSize: '0.95rem' }}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              
+              {searchTerm && (
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '100%', 
+                  left: 0, 
+                  right: 0, 
+                  zIndex: 100, 
+                  background: 'var(--bg-card-solid)', 
+                  border: '1px solid var(--border-strong)', 
+                  borderRadius: 'var(--radius-lg)', 
+                  boxShadow: 'var(--shadow-lg)',
+                  marginTop: '6px',
+                  maxHeight: '280px',
+                  overflowY: 'auto',
+                  padding: '6px'
+                }}>
+                  {filteredSubjects.length > 0 ? (
+                    filteredSubjects.map(s => (
+                      <div 
+                        key={s._id} 
+                        onClick={() => {
+                          toggleSubject(s._id);
+                          setSearchTerm("");
+                        }}
+                        style={{ 
+                          padding: '12px 14px', 
+                          cursor: 'pointer', 
+                          borderRadius: 'var(--radius-md)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-main)')}
+                        onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      >
+                        <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{s.nombre}</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600, background: 'var(--primary-soft)', padding: '3px 8px', borderRadius: '6px' }}>{s.codigo}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                      No se encontraron materias que coincidan
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div style={{ 
+              display: 'flex', 
+              flexWrap: 'wrap', 
+              gap: '10px', 
+              minHeight: '60px', 
+              padding: '12px', 
+              background: 'var(--bg-soft)', 
+              borderRadius: 'var(--radius-lg)', 
+              border: '1px dashed var(--border-strong)' 
+            }}>
+              {selectedSubjectsList.length > 0 ? (
+                selectedSubjectsList.map(s => (
+                  <div key={s._id} style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    background: 'var(--bg-card-solid)', 
+                    color: 'var(--text-main)', 
+                    padding: '6px 12px', 
+                    borderRadius: '10px',
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
+                    border: '1px solid var(--border)',
+                    boxShadow: 'var(--shadow-sm)'
+                  }}>
+                    <span>{s.nombre}</span>
+                    <button 
+                      type="button"
+                      onClick={() => toggleSubject(s._id)}
+                      style={{ 
+                        background: 'var(--bg-main)', 
+                        border: 'none', 
+                        color: 'var(--text-muted)', 
+                        cursor: 'pointer',
+                        padding: '2px',
+                        borderRadius: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', gap: '8px' }}>
+                  <span>No hay materias seleccionadas. Usa el buscador arriba.</span>
+                </div>
+              )}
             </div>
           </div>
         </form>

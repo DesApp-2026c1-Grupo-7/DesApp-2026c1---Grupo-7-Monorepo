@@ -9,9 +9,8 @@ interface Career {
   codigo: string;
   cantidadEstudiantes: number;
   cantidadMaterias: number;
-  materiasUnahurRequeridas?: number;
-  creditosNecesarios?: number;
-  nivelInglesRequerido?: string;
+  titulo: string;
+  instituto: string;
 }
 
 export default function AdminCareers() {
@@ -58,7 +57,7 @@ export default function AdminCareers() {
       <div className="admin-careers-header">
         <div>
           <h1>Gestión de Carreras</h1>
-          <p>Administra las carreras disponibles</p>
+          <p>Administra las carreras base del sistema</p>
         </div>
         <button className="btn-primary" onClick={() => navigate("/admin/carreras/nueva")}>
           + Nueva Carrera
@@ -73,7 +72,7 @@ export default function AdminCareers() {
 
       <div className="admin-search-box">
         <input
-          placeholder="Buscar carrera..."
+          placeholder="Buscar carrera por nombre o código..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -88,24 +87,22 @@ export default function AdminCareers() {
               <tr>
                 <th>Carrera</th>
                 <th>Código</th>
-                <th>Estudiantes</th>
-                <th>Materias</th>
-                <th>UNAHUR</th>
-                <th>Créditos</th>
-                <th>Inglés</th>
+                <th>Título</th>
+                <th>Instituto</th>
+                <th style={{ textAlign: 'center' }}>Alumnos</th>
+                <th style={{ textAlign: 'center' }}>Materias</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((c) => (
                 <tr key={c._id}>
-                  <td>{c.nombre}</td>
+                  <td style={{ fontWeight: 600 }}>{c.nombre}</td>
                   <td className="code">{c.codigo}</td>
-                  <td>{c.cantidadEstudiantes}</td>
-                  <td>{c.cantidadMaterias}</td>
-                  <td>{c.materiasUnahurRequeridas || 0}</td>
-                  <td>{c.creditosNecesarios || 0}</td>
-                  <td>{c.nivelInglesRequerido || '-'}</td>
+                  <td>{c.titulo}</td>
+                  <td>{c.instituto}</td>
+                  <td style={{ textAlign: 'center' }}>{c.cantidadEstudiantes}</td>
+                  <td style={{ textAlign: 'center' }}>{c.cantidadMaterias}</td>
                   <td className="actions">
                     <button
                       className="icon-btn edit"
@@ -121,7 +118,7 @@ export default function AdminCareers() {
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 20 }}>No se encontraron carreras.</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 20 }}>No se encontraron carreras.</td></tr>
               )}
             </tbody>
           </table>
@@ -140,11 +137,10 @@ export default function AdminCareers() {
                 <span className="code">{c.codigo}</span>
               </div>
               <div className="card-stats-grid">
+                <div><label>Título</label><span>{c.titulo}</span></div>
+                <div><label>Instituto</label><span>{c.instituto}</span></div>
                 <div><label>Alumnos</label><span>{c.cantidadEstudiantes}</span></div>
                 <div><label>Materias</label><span>{c.cantidadMaterias}</span></div>
-                <div><label>UNAHUR</label><span>{c.materiasUnahurRequeridas || 0}</span></div>
-                <div><label>Créditos</label><span>{c.creditosNecesarios || 0}</span></div>
-                <div><label>Inglés</label><span>{c.nivelInglesRequerido || '-'}</span></div>
               </div>
               <div className="card-actions">
                 <button className="btn secondary" onClick={() => navigate(`/admin/carreras/editar/${c._id}`)}>Editar</button>
@@ -155,6 +151,10 @@ export default function AdminCareers() {
         ) : (
           <p>No se encontraron carreras.</p>
         )}
+      </div>
+      
+      <div style={{ marginTop: '2rem', padding: '1rem', background: 'var(--primary-soft)', color: 'var(--primary)', borderRadius: '12px', fontSize: '0.9rem' }}>
+        <strong>💡 Nota:</strong> Los requisitos académicos (Créditos, UNAHUR e Inglés) ahora se configuran directamente en los <strong>Planes de Estudio</strong> de cada carrera.
       </div>
     </div>
   );

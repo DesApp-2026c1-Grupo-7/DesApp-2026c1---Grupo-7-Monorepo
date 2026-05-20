@@ -81,11 +81,10 @@ const AcademicAssistant = () => {
   const [seleccionQuePasaSi, setSeleccionQuePasaSi] = useState<Record<string, string>>({});
   const [horasPorSemana, setHorasPorSemana] = useState(12);
   const [nombrePlan, setNombrePlan] = useState("Plan tentativo");
-  const [actividad, setActividad] = useState({ nombre: "", creditos: 1 });
   const [oferta, setOferta] = useState({
     anio: new Date().getFullYear(),
     cuatrimestre: new Date().getMonth() < 7 ? 1 : 2,
-    soloOferta: false
+    soloOferta: true
   });
   const [filterAnio, setFilterAnio] = useState("todos");
   const [showOptativas, setShowOptativas] = useState<"todas" | "obligatorias" | "optativas">("todas");
@@ -212,21 +211,6 @@ const AcademicAssistant = () => {
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
       setError(ax.response?.data?.mensaje || "Error al registrar nota");
-    }
-  };
-
-  const guardarActividad = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-    try {
-      await api.post("/academico/actividades-creditos", actividad);
-      setActividad({ nombre: "", creditos: 1 });
-      setSuccess("Actividad con creditos registrada");
-      await fetchAll();
-    } catch (err: unknown) {
-      const ax = err as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "Error al registrar actividad");
     }
   };
 
@@ -362,7 +346,6 @@ const AcademicAssistant = () => {
             <option value={2}>2C</option>
             <option value={0}>Anual</option>
           </select>
-          <label><input type="checkbox" checked={oferta.soloOferta} onChange={(e) => setOferta((s) => ({ ...s, soloOferta: e.target.checked }))} /> Filtrar por oferta</label>
         </div>
         {filteredDisponibles.map((s) => (
           <div key={s._id} className={`subject ${s.esUnahur ? 'warning' : 'success'}`} style={s.esUnahur ? { background: '#fef3c7', borderColor: '#fcd34d' } : {}}>
@@ -488,15 +471,6 @@ const AcademicAssistant = () => {
             <ul>{planesGuardados.map((plan) => <li key={plan._id}>{plan.nombre} ({plan.horasPorSemana} h/sem, {plan.periodos.length} periodos)</li>)}</ul>
           </div>
         )}
-      </div>
-
-      <div className="section">
-        <h3>Actividades con creditos</h3>
-        <form onSubmit={guardarActividad} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input placeholder="Actividad" value={actividad.nombre} onChange={(e) => setActividad((s) => ({ ...s, nombre: e.target.value }))} required />
-          <input type="number" min={1} max={5} value={actividad.creditos} onChange={(e) => setActividad((s) => ({ ...s, creditos: Number(e.target.value) }))} required />
-          <button className="btn-primary" type="submit">Registrar</button>
-        </form>
       </div>
 
       {/* Modal de confirmación para Finales */}

@@ -9,9 +9,6 @@ interface StudyPlan {
   anio: number;
   carrera?: { nombre: string };
   materias: Array<{ _id: string; nombre: string; codigo: string }>;
-  creditosNecesarios: number;
-  materiasUnahurRequeridas: number;
-  nivelInglesRequerido: string;
 }
 
 export default function CreateCareerPage() {
@@ -39,25 +36,25 @@ export default function CreateCareerPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPlanId) {
-      setError("Debes seleccionar un plan de estudio base");
-      return;
-    }
-
-    const plan = plans.find(p => p._id === selectedPlanId);
-    if (!plan) return;
-
     setLoading(true);
     setError("");
     try {
-      await api.post("/carreras", {
+      // Nota: El plan seleccionado es informativo para esta vista, 
+      // ya que la relación se guarda en el Plan (apuntando a la Carrera).
+      const res = await api.post("/carreras", {
         ...form,
-        duracionAnios: Number(form.duracionAnios),
-        cantidadMaterias: plan.materias.length,
-        materiasUnahurRequeridas: plan.materiasUnahurRequeridas,
-        creditosNecesarios: plan.creditosNecesarios,
-        nivelInglesRequerido: plan.nivelInglesRequerido
+        duracionAnios: Number(form.duracionAnios)
       });
+      
+      const newCareerId = res.data.career._id;
+      
+      // Si se seleccionó un plan, lo vinculamos a la nueva carrera
+      if (selectedPlanId) {
+        await api.put(`/planes/${selectedPlanId}`, {
+          carrera: newCareerId
+        });
+      }
+
       navigate("/admin/carreras");
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
@@ -69,69 +66,67 @@ export default function CreateCareerPage() {
 
   return (
     <div className="create-career-page">
-      <div className="create-career-container">
+      <div className="create-career-container" style={{ maxWidth: 700 }}>
         <h1>Nueva Carrera</h1>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+          Define los datos básicos de la carrera. Los requisitos académicos se gestionan desde sus Planes de Estudio.
+        </p>
         <form className="create-career-form" onSubmit={handleSubmit}>
           {error && <p style={{ color: "var(--error)", marginBottom: "1rem" }}>{error}</p>}
 
           <div className="form-group">
             <label>Nombre de la carrera</label>
-            <input value={form.nombre} onChange={(e) => onChange("nombre", e.target.value)} required disabled={loading} />
+            <input value={form.nombre} onChange={(e) => onChange("nombre", e.target.value)} required disabled={loading} placeholder="Ej: Licenciatura en Informática" />
           </div>
 
           <div className="form-group">
-            <label>Codigo</label>
-            <input value={form.codigo} onChange={(e) => onChange("codigo", e.target.value)} required disabled={loading} />
+            <label>Código</label>
+            <input value={form.codigo} onChange={(e) => onChange("codigo", e.target.value)} required disabled={loading} placeholder="Ej: LI" />
           </div>
 
           <div className="form-group">
-            <label>Titulo que otorga</label>
-            <input value={form.titulo} onChange={(e) => onChange("titulo", e.target.value)} required disabled={loading} />
+            <label>Título que otorga</label>
+            <input value={form.titulo} onChange={(e) => onChange("titulo", e.target.value)} required disabled={loading} placeholder="Ej: Licenciado/a en Informática" />
           </div>
 
           <div className="form-group">
             <label>Instituto</label>
-            <input value={form.instituto} onChange={(e) => onChange("instituto", e.target.value)} required disabled={loading} />
+            <input value={form.instituto} onChange={(e) => onChange("instituto", e.target.value)} required disabled={loading} placeholder="Ej: Instituto de Tecnología" />
           </div>
 
           <div className="form-group">
-            <label>Descripcion</label>
+            <label>Descripción</label>
             <textarea rows={3} value={form.descripcion} onChange={(e) => onChange("descripcion", e.target.value)} disabled={loading} />
           </div>
 
           <div className="form-group">
-            <label>Duracion estimada (anios)</label>
+            <label>Duración estimada (años)</label>
             <input type="number" min={1} value={form.duracionAnios} onChange={(e) => onChange("duracionAnios", Number(e.target.value))} disabled={loading} />
           </div>
 
-          <div className="form-group">
-            <label>Seleccionar Plan de Estudio Base</label>
+          <div className="form-group" style={{ marginTop: '1rem', padding: '1.5rem', background: 'var(--bg-soft)', borderRadius: '12px', border: '1px dashed var(--border-strong)' }}>
+            <label style={{ fontWeight: 700 }}>Vincular Plan de Estudio (Opcional)</label>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Puedes seleccionar un plan existente para asignarlo a esta carrera inmediatamente.
+            </p>
             <select 
               value={selectedPlanId} 
               onChange={(e) => setSelectedPlanId(e.target.value)} 
-              required 
               disabled={loading}
+              style={{ background: 'var(--bg-card-solid)' }}
             >
-              <option value="">-- Seleccionar Plan --</option>
+              <option value="">-- Sin plan asignado --</option>
               {plans.map((p) => (
                 <option key={p._id} value={p._id}>
-                  {p.carrera?.nombre || 'Plan'} - {p.nombre} ({p.anio})
+                  {p.nombre} ({p.anio}) {p.carrera ? `[Ya vinculado a ${p.carrera.nombre}]` : ''}
                 </option>
               ))}
             </select>
-            {selectedPlanId && (
-              <div style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--text-muted)', background: 'var(--bg-main)', padding: '0.75rem', borderRadius: '8px' }}>
-                <p>Materias: {plans.find(p => p._id === selectedPlanId)?.materias.length}</p>
-                <p>UNAHUR: {plans.find(p => p._id === selectedPlanId)?.materiasUnahurRequeridas}</p>
-                <p>Créditos: {plans.find(p => p._id === selectedPlanId)?.creditosNecesarios}</p>
-                <p>Inglés: {plans.find(p => p._id === selectedPlanId)?.nivelInglesRequerido}</p>
-              </div>
-            )}
           </div>
 
-          <div className="form-actions">
+          <div className="form-actions" style={{ marginTop: '2rem' }}>
             <button type="button" className="btn-secondary" onClick={() => navigate("/admin/carreras")} disabled={loading}>Cancelar</button>
-            <button type="submit" className="btn-primary" disabled={loading}>{loading ? "Creando..." : "Crear"}</button>
+            <button type="submit" className="btn-primary" disabled={loading}>{loading ? "Creando..." : "Crear Carrera"}</button>
           </div>
         </form>
       </div>

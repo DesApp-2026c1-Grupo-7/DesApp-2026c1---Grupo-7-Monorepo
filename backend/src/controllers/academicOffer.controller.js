@@ -3,7 +3,7 @@ const AcademicOffer = require('../models/AcademicOffer');
 const listOffers = async (req, res) => {
   try {
     const offers = await AcademicOffer.find()
-      .populate('materias', 'nombre codigo anio cuatrimestre creditos')
+      .populate('materias', 'nombre codigo')
       .sort({ anio: -1, cuatrimestre: -1 });
     res.json(offers);
   } catch (error) {
@@ -18,7 +18,7 @@ const upsertOffer = async (req, res) => {
       { anio, cuatrimestre },
       { anio, cuatrimestre, materias: materias || [] },
       { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
-    ).populate('materias', 'nombre codigo anio cuatrimestre creditos');
+    ).populate('materias', 'nombre codigo');
 
     res.status(201).json({ mensaje: 'Oferta academica guardada', offer });
   } catch (error) {
