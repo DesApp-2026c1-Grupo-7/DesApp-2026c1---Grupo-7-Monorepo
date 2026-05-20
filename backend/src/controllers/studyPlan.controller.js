@@ -4,7 +4,7 @@ const getStudyPlans = async (req, res) => {
   try {
     const plans = await StudyPlan.find()
       .populate('carrera', 'nombre codigo')
-      .populate('materias', 'nombre codigo anio cuatrimestre creditos esOptativa')
+      .populate('materias.materia', 'nombre codigo')
       .sort({ createdAt: -1 });
     res.json(plans);
   } catch (error) {
@@ -16,10 +16,9 @@ const getStudyPlanById = async (req, res) => {
   try {
     const plan = await StudyPlan.findById(req.params.id)
       .populate('carrera', 'nombre codigo')
-      .populate({
-        path: 'materias',
-        populate: { path: 'correlativas', select: 'nombre codigo' }
-      });
+      .populate('materias.materia', 'nombre codigo')
+      .populate('materias.correlativas', 'nombre codigo');
+      
     if (!plan) {
       return res.status(404).json({ mensaje: 'Plan no encontrado' });
     }
@@ -73,7 +72,8 @@ const updateStudyPlan = async (req, res) => {
       update,
       { new: true, runValidators: true }
     ).populate('carrera', 'nombre codigo')
-     .populate('materias', 'nombre codigo anio cuatrimestre creditos esOptativa');
+     .populate('materias.materia', 'nombre codigo')
+     .populate('materias.correlativas', 'nombre codigo');
 
     if (!plan) {
       return res.status(404).json({ mensaje: 'Plan no encontrado' });
