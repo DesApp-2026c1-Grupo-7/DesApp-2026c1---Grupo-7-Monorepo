@@ -10,6 +10,7 @@ interface Subject {
   cuatrimestre: number;
   creditos: number;
   horasSemanalesEstimadas?: number;
+  correlativas?: string[];
   esOptativa?: boolean;
   esUnahur?: boolean;
 }
@@ -70,6 +71,7 @@ const AcademicAssistant = () => {
   const [avance, setAvance] = useState<Avance | null>(null);
   const [rendimiento, setRendimiento] = useState<RendimientoPlan | null>(null);
   const [planificador, setPlanificador] = useState<PlanPeriodo[]>([]);
+  const [pendientesPlan, setPendientesPlan] = useState<Subject[]>([]);
   const [planesGuardados, setPlanesGuardados] = useState<SavedPlan[]>([]);
   const [simulacion, setSimulacion] = useState<{
     _id: string;
@@ -119,6 +121,7 @@ const AcademicAssistant = () => {
     setAvance(a.data);
     setMateriasCursando(i.data.map((row: { materia: Subject }) => row.materia).filter(Boolean));
     setPlanificador(p.data.periodos || []);
+    setPendientesPlan(p.data.pendientesNoPlanificadas || []);
     setRendimiento(r.data);
     setPlanesGuardados(saved.data);
     setLoading(false);
@@ -241,6 +244,60 @@ const AcademicAssistant = () => {
       }
       return next;
     });
+  };
+
+  const horasDePeriodo = (materias: Subject[]) =>
+    materias.reduce((sum, m) => sum + (m.horasSemanalesEstimadas ?? m.creditos ?? 0), 0);
+
+  // Una planificación es válida si toda materia tiene sus correlativas (que estén dentro del
+  // plan) en un cuatrimestre estrictamente anterior. Las correlativas que no figuran en el plan
+  // se asumen ya aprobadas (por eso la materia pudo planificarse).
+  const validarPlan = (periodos: PlanPeriodo[]): { ok: boolean; materia?: string } => {
+    const periodoDe = new Map<string, number>();
+    periodos.forEach((p, idx) => p.materias.forEach((m) => periodoDe.set(m._id, idx)));
+    for (let idx = 0; idx < periodos.length; idx++) {
+      for (const m of periodos[idx].materias) {
+        for (const corrId of m.correlativas ?? []) {
+          if (periodoDe.has(corrId) && periodoDe.get(corrId)! >= idx) {
+            return { ok: false, materia: m.nombre };
+          }
+        }
+      }
+    }
+    return { ok: true };
+  };
+
+  const moverMateria = (periodoIdx: number, materiaId: string, dir: -1 | 1) => {
+    setError("");
+    setSuccess("");
+    const destino = periodoIdx + dir;
+    if (destino < 0) return;
+
+    const next: PlanPeriodo[] = planificador.map((p) => ({ ...p, materias: [...p.materias] }));
+    const materia = next[periodoIdx].materias.find((m) => m._id === materiaId);
+    if (!materia) return;
+
+    // Si movemos a la derecha más allá del último período, creamos el cuatrimestre siguiente.
+    if (destino >= next.length) {
+      const last = next[next.length - 1];
+      const sig = last.cuatrimestre === 1
+        ? { anio: last.anio, cuatrimestre: 2 }
+        : { anio: last.anio + 1, cuatrimestre: 1 };
+      next.push({ ...sig, horasUsadas: 0, materias: [] });
+    }
+
+    next[periodoIdx].materias = next[periodoIdx].materias.filter((m) => m._id !== materiaId);
+    next[destino].materias.push(materia);
+    next.forEach((p) => { p.horasUsadas = horasDePeriodo(p.materias); });
+
+    while (next.length > 1 && next[next.length - 1].materias.length === 0) next.pop();
+
+    const validez = validarPlan(next);
+    if (!validez.ok) {
+      setError(`No se puede mover: ${validez.materia} quedaría en el mismo cuatrimestre o antes que sus correlativas.`);
+      return;
+    }
+    setPlanificador(next);
   };
 
   const guardarPlanificador = async () => {
@@ -453,18 +510,84 @@ const AcademicAssistant = () => {
         )}
       </div>
 
-      <div className="section">
-        <h3>Planificador por horas semanales</h3>
-        <label>Horas por semana </label>
-        <input type="number" min={1} value={horasPorSemana} onChange={(e) => setHorasPorSemana(Number(e.target.value))} />
-        <input value={nombrePlan} onChange={(e) => setNombrePlan(e.target.value)} placeholder="Nombre del plan" style={{ marginLeft: 8 }} />
-        <button className="btn-primary" onClick={guardarPlanificador} style={{ marginLeft: 8 }} disabled={planificador.length === 0}>Guardar plan</button>
-        {planificador.map((periodo) => (
-          <div key={`${periodo.anio}-${periodo.cuatrimestre}`} className="projection">
-            <h4>{periodo.anio} - {periodo.cuatrimestre === 0 ? "Anual" : `${periodo.cuatrimestre}C`} ({periodo.horasUsadas} h/sem)</h4>
-            <ul>{periodo.materias.map((m) => <li key={m._id}>{m.nombre} ({m.creditos} cr., {m.horasSemanalesEstimadas ?? m.creditos} h/sem)</li>)}</ul>
+      <div className="section" data-testid="planificador">
+        <h3>Planificador de cursada</h3>
+        <p className="subtitle">
+          El sistema arma un plan hasta recibirte respetando correlatividades. Las materias que ya
+          aprobaste o estás cursando no se planifican. Podés mover materias entre cuatrimestres y la
+          carga horaria se recalcula sola.
+        </p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+          <label>Horas por semana </label>
+          <input
+            type="number"
+            min={1}
+            value={horasPorSemana}
+            aria-label="Horas por semana"
+            onChange={(e) => setHorasPorSemana(Number(e.target.value))}
+          />
+          <input value={nombrePlan} onChange={(e) => setNombrePlan(e.target.value)} placeholder="Nombre del plan" />
+          <button className="btn-primary" onClick={guardarPlanificador} disabled={planificador.length === 0}>Guardar plan</button>
+          <button className="btn-secondary" onClick={() => { fetchAll().catch(() => setError("No se pudo regenerar el plan")); }}>
+            Regenerar plan automático
+          </button>
+        </div>
+
+        {planificador.length === 0 && !loading && (
+          <p style={{ color: "#666", fontStyle: "italic" }}>
+            No hay materias pendientes para planificar. ¡Vas al día!
+          </p>
+        )}
+
+        {planificador.map((periodo, idx) => {
+          const excedido = periodo.horasUsadas > horasPorSemana;
+          return (
+            <div key={`${periodo.anio}-${periodo.cuatrimestre}-${idx}`} className="projection" data-testid="periodo">
+              <h4 style={excedido ? { color: "#b91c1c" } : {}}>
+                {periodo.anio} - {periodo.cuatrimestre === 0 ? "Anual" : `${periodo.cuatrimestre}C`}
+                {" "}({periodo.horasUsadas} / {horasPorSemana} h/sem){excedido && " ⚠ sobrecarga"}
+              </h4>
+              <ul>
+                {periodo.materias.map((m) => (
+                  <li key={m._id} data-testid="periodo-materia" style={{ justifyContent: "space-between", width: "100%" }}>
+                    <span>{m.nombre} ({m.creditos} cr., {m.horasSemanalesEstimadas ?? m.creditos} h/sem)</span>
+                    <span style={{ display: "inline-flex", gap: 4, marginLeft: "auto" }}>
+                      <button
+                        className="btn-secondary"
+                        aria-label={`Mover ${m.nombre} a un cuatrimestre anterior`}
+                        disabled={idx === 0}
+                        style={{ padding: "2px 8px" }}
+                        onClick={() => moverMateria(idx, m._id, -1)}
+                      >
+                        ◀
+                      </button>
+                      <button
+                        className="btn-secondary"
+                        aria-label={`Mover ${m.nombre} a un cuatrimestre posterior`}
+                        style={{ padding: "2px 8px" }}
+                        onClick={() => moverMateria(idx, m._id, 1)}
+                      >
+                        ▶
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+
+        {pendientesPlan.length > 0 && (
+          <div style={{ marginTop: 12, padding: 12, background: "#fef3c7", borderRadius: 8, border: "1px solid #fcd34d" }} data-testid="pendientes-plan">
+            <strong>No se pudieron ubicar ({pendientesPlan.length})</strong>
+            <p style={{ fontSize: "0.85rem", margin: "4px 0" }}>
+              Requieren más horas semanales que el límite indicado o dependen de materias que tampoco entran.
+              Subí las horas por semana para incluirlas.
+            </p>
+            <ul>{pendientesPlan.map((m) => <li key={m._id}>{m.nombre} ({m.horasSemanalesEstimadas} h/sem)</li>)}</ul>
           </div>
-        ))}
+        )}
+
         {planesGuardados.length > 0 && (
           <div style={{ marginTop: 12 }}>
             <strong>Planes guardados</strong>
