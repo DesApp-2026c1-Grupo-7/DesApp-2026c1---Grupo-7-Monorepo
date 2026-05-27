@@ -65,6 +65,15 @@ interface SavedPlan {
   periodos: PlanPeriodo[];
 }
 
+interface ComparacionPlan {
+  plan: string;
+  materiasEsperadas: number;
+  materiasCumplidas: number;
+  diferencia: number;
+  estado: "al-dia" | "leve-desvio" | "atrasado";
+  porcentajeCumplimiento: number;
+}
+
 const AcademicAssistant = () => {
   const [disponibles, setDisponibles] = useState<Subject[]>([]);
   const [finales, setFinales] = useState<FinalPendiente[]>([]);
@@ -73,6 +82,7 @@ const AcademicAssistant = () => {
   const [planificador, setPlanificador] = useState<PlanPeriodo[]>([]);
   const [pendientesPlan, setPendientesPlan] = useState<Subject[]>([]);
   const [planesGuardados, setPlanesGuardados] = useState<SavedPlan[]>([]);
+  const [comparaciones, setComparaciones] = useState<Record<string, ComparacionPlan>>({});
   const [simulacion, setSimulacion] = useState<{
     _id: string;
     nombre: string;
@@ -298,6 +308,16 @@ const AcademicAssistant = () => {
       return;
     }
     setPlanificador(next);
+  };
+
+  const compararConPlan = async (planId: string) => {
+    setError("");
+    try {
+      const res = await api.get(`/academico/planes-guardados/${planId}/comparacion`);
+      setComparaciones((prev) => ({ ...prev, [planId]: res.data }));
+    } catch {
+      setError("No se pudo comparar el rendimiento con el plan guardado");
+    }
   };
 
   const guardarPlanificador = async () => {
@@ -589,9 +609,30 @@ const AcademicAssistant = () => {
         )}
 
         {planesGuardados.length > 0 && (
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 12 }} data-testid="planes-guardados">
             <strong>Planes guardados</strong>
-            <ul>{planesGuardados.map((plan) => <li key={plan._id}>{plan.nombre} ({plan.horasPorSemana} h/sem, {plan.periodos.length} periodos)</li>)}</ul>
+            <p className="subtitle" style={{ marginBottom: 8 }}>
+              Compará tu avance real contra el plan que te habías planteado.
+            </p>
+            {planesGuardados.map((plan) => {
+              const comp = comparaciones[plan._id];
+              return (
+                <div key={plan._id} className="projection" data-testid="plan-guardado">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span>{plan.nombre} ({plan.horasPorSemana} h/sem, {plan.periodos.length} periodos)</span>
+                    <button className="btn-secondary" onClick={() => compararConPlan(plan._id)}>
+                      Comparar rendimiento
+                    </button>
+                  </div>
+                  {comp && (
+                    <p style={{ marginTop: 8 }} data-testid="comparacion">
+                      Cumpliste {comp.materiasCumplidas} de {comp.materiasEsperadas} materias previstas
+                      {" "}({comp.porcentajeCumplimiento}%) · Estado: <strong>{comp.estado.replace("-", " ")}</strong>
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

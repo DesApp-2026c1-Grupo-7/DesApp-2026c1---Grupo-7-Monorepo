@@ -34,6 +34,7 @@ router.post('/que-pasa-si', auth, gradeController.getQuePasaSi);
 router.get('/planificador', auth, gradeController.getPlanificador);
 router.get('/planes-guardados', auth, gradeController.listSavedStudyPlans);
 router.post('/planes-guardados', auth, gradeController.saveStudyPlan);
+router.get('/planes-guardados/:id/comparacion', auth, gradeController.getComparacionPlanGuardado);
 router.get('/actividades-creditos', auth, gradeController.listCreditActivities);
 router.post('/actividades-creditos', auth, gradeController.createCreditActivity);
 

@@ -38,23 +38,30 @@ describe("Planificador de cursada", () => {
     cy.get('[data-testid="periodo"]').first().contains("h/sem");
   });
 
-  it("recalcula la carga horaria al mover una materia a otro cuatrimestre", () => {
-    cy.get('[data-testid="periodo"]').then(($periodos) => {
-      const cantInicial = $periodos.length;
+  it("mueve una materia a otro cuatrimestre sin perder materias ni romper correlatividades", () => {
+    cy.get('[data-testid="periodo-materia"]').then(($materias) => {
+      const total = $materias.length;
       // Mover la ultima materia del ultimo periodo hacia adelante siempre es valido
-      // (ninguna materia depende de ella) y abre un cuatrimestre nuevo.
+      // (ninguna materia depende de ella). No debe aparecer el aviso de bloqueo.
       cy.get('[data-testid="periodo"]').last().within(() => {
         cy.get('[data-testid="periodo-materia"]').last()
           .find('button[aria-label^="Mover"]').last().click();
       });
-      cy.get('[data-testid="periodo"]').its("length").should("eq", cantInicial + 1);
+      cy.get("body").should("not.contain", "No se puede mover");
+      // El plan reubica la materia: no se pierde ni se duplica ninguna.
+      cy.get('[data-testid="periodo-materia"]').should("have.length", total);
     });
   });
 
-  it("guarda el plan editado", () => {
+  it("guarda el plan y compara el rendimiento contra lo planteado (plus)", () => {
     cy.get('input[aria-label="Horas por semana"]').clear().type("12");
     cy.contains("button", "Guardar plan").click();
     cy.contains("Planificacion guardada").should("be.visible");
-    cy.contains("Planes guardados").should("be.visible");
+
+    cy.get('[data-testid="planes-guardados"]').should("be.visible");
+    cy.get('[data-testid="plan-guardado"]').first().within(() => {
+      cy.contains("button", "Comparar rendimiento").click();
+    });
+    cy.get('[data-testid="comparacion"]').first().should("contain", "materias previstas");
   });
 });

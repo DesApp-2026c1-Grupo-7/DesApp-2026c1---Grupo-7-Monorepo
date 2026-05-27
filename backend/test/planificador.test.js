@@ -261,6 +261,52 @@ test('no se puede aprobar una materia sin sus correlativas', async () => {
   assert.equal(res.status, 400);
 });
 
+test('compara el rendimiento real contra un plan guardado (plus)', async () => {
+  // Guardamos un plan cuyo primer periodo ya transcurrio (anio pasado) con M1A y M1B.
+  const anioPasado = new Date().getFullYear() - 1;
+  const saved = await request(app)
+    .post('/api/academico/planes-guardados')
+    .set('Authorization', `Bearer ${studentToken}`)
+    .send({
+      nombre: 'Plan a comparar',
+      horasPorSemana: 12,
+      periodos: [
+        { anio: anioPasado, cuatrimestre: 1, horasUsadas: 8, materias: [
+          { _id: S.M1A, nombre: 'Materia 1A', codigo: 'M1A', creditos: 4, horasSemanalesEstimadas: 4 },
+          { _id: S.M1B, nombre: 'Materia 1B', codigo: 'M1B', creditos: 4, horasSemanalesEstimadas: 4 }
+        ] }
+      ]
+    })
+    .expect(201);
+  const planId = saved.body.plan._id;
+
+  // Todavia no aprobamos nada: deberiamos estar atrasados (0 de 2 esperadas).
+  let comp = await request(app)
+    .get(`/api/academico/planes-guardados/${planId}/comparacion`)
+    .set('Authorization', `Bearer ${studentToken}`)
+    .expect(200);
+  assert.equal(comp.body.materiasEsperadas, 2);
+  assert.equal(comp.body.materiasCumplidas, 0);
+  assert.equal(comp.body.porcentajeCumplimiento, 0);
+  assert.notEqual(comp.body.estado, 'al-dia');
+
+  // Aprobamos M1A y regularizamos M1B: el cumplimiento sube a 2 de 2.
+  await setEstado(S.M1A, 'Aprobada').expect(200);
+  await request(app)
+    .post('/api/academico/situacion')
+    .set('Authorization', `Bearer ${studentToken}`)
+    .send({ materiaId: S.M1B, estado: 'Regular', cuatrimestre: 1, anioCursada: anioPasado })
+    .expect(200);
+
+  comp = await request(app)
+    .get(`/api/academico/planes-guardados/${planId}/comparacion`)
+    .set('Authorization', `Bearer ${studentToken}`)
+    .expect(200);
+  assert.equal(comp.body.materiasCumplidas, 2);
+  assert.equal(comp.body.porcentajeCumplimiento, 100);
+  assert.equal(comp.body.estado, 'al-dia');
+});
+
 test('guarda y recupera planes de cursada', async () => {
   const plan = await getPlanificador(100);
 

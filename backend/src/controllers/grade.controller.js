@@ -819,6 +819,68 @@ const saveStudyPlan = async (req, res) => {
   }
 };
 
+// Plus de la consigna: a medida que el estudiante regulariza/aprueba materias, compara su
+// rendimiento real contra el plan que se había planteado (un SavedStudyPlan).
+const getComparacionPlanGuardado = async (req, res) => {
+  try {
+    const plan = await SavedStudyPlan.findOne({ _id: req.params.id, estudiante: req.user.id });
+    if (!plan) return res.status(404).json({ mensaje: 'Plan guardado no encontrado' });
+
+    const grades = await Grade.find({ estudiante: req.user.id });
+    // "Cumplir" un período del plan = haber regularizado o aprobado la materia.
+    const cumplidoIds = new Set(
+      grades.filter((g) => UNLOCKING_STATES.includes(g.estado)).map((g) => g.materia.toString())
+    );
+
+    const now = new Date();
+    const anioActual = now.getFullYear();
+    const cuatrimestreActual = now.getMonth() < 6 ? 1 : 2;
+    // Un período "ya transcurrió" si es de un año anterior o del año en curso hasta el cuatri actual.
+    const periodoTranscurrido = (p) =>
+      p.anio < anioActual || (p.anio === anioActual && p.cuatrimestre <= cuatrimestreActual);
+
+    let materiasEsperadas = 0;
+    let materiasCumplidas = 0;
+    const periodos = plan.periodos.map((p) => {
+      const transcurrido = periodoTranscurrido(p);
+      const total = p.materias.length;
+      const hechas = p.materias.filter((m) => m.materia && cumplidoIds.has(m.materia.toString())).length;
+      if (transcurrido) {
+        materiasEsperadas += total;
+        materiasCumplidas += hechas;
+      }
+      return {
+        anio: p.anio,
+        cuatrimestre: p.cuatrimestre,
+        transcurrido,
+        totalMaterias: total,
+        cumplidas: hechas,
+        materiasAtrasadas: p.materias
+          .filter((m) => m.materia && !cumplidoIds.has(m.materia.toString()))
+          .map((m) => ({ nombre: m.nombre, codigo: m.codigo }))
+      };
+    });
+
+    const diferencia = materiasCumplidas - materiasEsperadas;
+    const estado = diferencia >= 0 ? 'al-dia' : diferencia >= -2 ? 'leve-desvio' : 'atrasado';
+
+    res.json({
+      plan: plan.nombre,
+      horasPorSemana: plan.horasPorSemana,
+      anioActual,
+      cuatrimestreActual,
+      materiasEsperadas,
+      materiasCumplidas,
+      diferencia,
+      estado,
+      porcentajeCumplimiento: materiasEsperadas > 0 ? Math.round((materiasCumplidas / materiasEsperadas) * 100) : 100,
+      periodos
+    });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al comparar con el plan guardado', error: error.message });
+  }
+};
+
 const deleteGrade = async (req, res) => {
   try {
     const { materiaId } = req.params;
@@ -855,5 +917,6 @@ module.exports = {
   getRendimientoPlan,
   listSavedStudyPlans,
   saveStudyPlan,
+  getComparacionPlanGuardado,
   deleteGrade
 };
