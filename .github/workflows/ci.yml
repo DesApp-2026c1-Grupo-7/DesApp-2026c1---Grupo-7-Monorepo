@@ -55,3 +55,47 @@ jobs:
         run: npm run lint --if-present
       - name: Build
         run: npm run build --if-present
+
+  e2e:
+    name: E2E (Cypress)
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    env:
+      MONGO_URI: mongodb://localhost:27017/desapp_e2e
+      JWT_SECRET: e2e-secret
+      PORT: 5000
+      VITE_API_URL: http://localhost:5000/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Instalar dependencias backend
+        working-directory: backend
+        run: npm ci
+      - name: Instalar dependencias frontend
+        working-directory: frontend
+        run: npm ci
+      - name: Levantar backend (seed incluido)
+        working-directory: backend
+        run: |
+          npm start &
+          npx wait-on -t 60000 http://localhost:5000/
+      - name: Correr Cypress
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: frontend
+          start: npm run dev
+          wait-on: http://localhost:5173
+          wait-on-timeout: 120
+      - name: Subir videos de Cypress
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-videos
+          path: frontend/cypress/videos
+          if-no-files-found: ignore

@@ -675,63 +675,56 @@ const getPlanificador = async (req, res) => {
         .map((m) => [m._id.toString(), m])
     );
 
-    // Para el primer periodo del planificador, consideramos las que están cursando/regulares como "aprobadas" 
-    // para que desbloqueen sus correlativas INMEDIATAS. 
-    // Pero NO las agregamos permanentemente a virtualApprovedIds desde el inicio si queremos que sea progresivo.
-    let currentVirtualApproved = new Set([...approvedIds]);
-    
-    // Subjects that are currently being taken or are regular. 
-    // They "virtually" unlock subjects for the FIRST period only.
+    // Materias que ya están cursando o regulares: se asumen "aprobadas" para desbloquear
+    // correlativas en la proyección (optimista, alineado con "¿qué pasa si regularizo?").
     const inProgressIds = new Set(
       grades.filter((g) => ['Cursando', 'Regular'].includes(g.estado))
         .map((g) => g.materia.toString())
     );
 
-    // Detectamos el próximo cuatrimestre según la fecha actual
+    // Próximo cuatrimestre según la fecha actual
     const now = new Date();
     const month = now.getMonth(); // 0-11
-    let anio = now.getFullYear();
-    let cuatrimestre = month < 6 ? 2 : 1; 
-    if (month >= 6) anio++;
+    let currentAnio = now.getFullYear();
+    let currentCuatrimestre = month < 6 ? 2 : 1;
+    if (month >= 6) currentAnio++;
 
-    // El usuario requiere que el planificador contemple todas las materias habilitadas
-    // (un paso por delante de su situación actual) y las distribuya según las horas.
-    const unlockingContext = new Set([...approvedIds, ...inProgressIds]);
+    // Conjunto de materias "aprobadas virtualmente": arranca con lo aprobado + en curso y
+    // crece a medida que el planificador ubica materias, desbloqueando sus correlativas.
+    const virtualApproved = new Set([...approvedIds, ...inProgressIds]);
+
+    let remaining = [...pending.values()];
     const periodos = [];
-
-    // Filtramos todas las materias que el alumno YA podría cursar (Nivel 1)
-    const targetSubjects = [...pending.values()]
-      .filter((m) => (m.correlativas || []).every((c) => unlockingContext.has(c._id.toString())))
-      .sort((a, b) => {
-        // Priorizamos materias de carrera (anio > 0) sobre materias UNAHUR/Optativas (anio 0)
-        const anioA = a.anio === 0 ? 99 : a.anio;
-        const anioB = b.anio === 0 ? 99 : b.anio;
-        if (anioA !== anioB) return anioA - anioB;
-
-        // Priorizamos las materias que coinciden con el cuatrimestre inicial
-        const matchA = (a.cuatrimestre === cuatrimestre || a.cuatrimestre === 0) ? 0 : 1;
-        const matchB = (b.cuatrimestre === cuatrimestre || b.cuatrimestre === 0) ? 0 : 1;
-        if (matchA !== matchB) return matchA - matchB;
-
-        return a.cuatrimestre - b.cuatrimestre || a.nombre.localeCompare(b.nombre);
-      });
-
-    let subjectsToPlan = [...targetSubjects];
-    let currentAnio = anio;
-    let currentCuatrimestre = cuatrimestre;
+    let stagnation = 0;
     let guard = 0;
 
-    // Distribuimos el pool de materias habilitadas en periodos sucesivos
-    while (subjectsToPlan.length > 0 && guard < 20) {
-      guard++;
-      const materiasPeriodo = [];
-      let horasUsadas = 0;
-      const remaining = [];
+    const correlativasCumplidas = (m) =>
+      (m.correlativas || []).every((c) => virtualApproved.has(c._id.toString()));
 
-      for (const materia of subjectsToPlan) {
+    const ordenarPeriodo = (a, b) => {
+      // Priorizamos materias de carrera (anio > 0) sobre UNAHUR/Optativas (anio 0)
+      const anioA = a.anio === 0 ? 99 : a.anio;
+      const anioB = b.anio === 0 ? 99 : b.anio;
+      if (anioA !== anioB) return anioA - anioB;
+      return a.cuatrimestre - b.cuatrimestre || a.nombre.localeCompare(b.nombre);
+    };
+
+    // Distribuimos TODAS las materias pendientes en cuatrimestres sucesivos hasta recibirse,
+    // respetando correlatividades (desbloqueo progresivo), la oferta por cuatrimestre y las horas.
+    while (remaining.length > 0 && guard < 40) {
+      guard++;
+
+      const elegibles = remaining
+        .filter(correlativasCumplidas)
+        .filter((m) => m.cuatrimestre === 0 || m.cuatrimestre === currentCuatrimestre)
+        .sort(ordenarPeriodo);
+
+      const materiasPeriodo = [];
+      const placedIds = new Set();
+      let horasUsadas = 0;
+
+      for (const materia of elegibles) {
         const horasMateria = Math.max(1, materia.horasSemanales || 4);
-        
-        // Si la materia entra en este periodo, la sumamos
         if (horasUsadas + horasMateria <= horasPorSemana) {
           materiasPeriodo.push({
             _id: materia._id,
@@ -740,29 +733,26 @@ const getPlanificador = async (req, res) => {
             creditos: materia.creditos,
             horasSemanalesEstimadas: horasMateria,
             anio: materia.anio,
-            cuatrimestre: materia.cuatrimestre
+            cuatrimestre: materia.cuatrimestre,
+            correlativas: (materia.correlativas || []).map((c) => c._id)
           });
           horasUsadas += horasMateria;
-        } else {
-          // Si no entra, queda para el siguiente periodo
-          remaining.push(materia);
+          placedIds.add(materia._id.toString());
         }
       }
 
-      if (materiasPeriodo.length > 0) {
-        periodos.push({ 
-          anio: currentAnio, 
-          cuatrimestre: currentCuatrimestre, 
-          horasUsadas, 
-          materias: materiasPeriodo 
-        });
+      if (placedIds.size > 0) {
+        periodos.push({ anio: currentAnio, cuatrimestre: currentCuatrimestre, horasUsadas, materias: materiasPeriodo });
+        placedIds.forEach((id) => virtualApproved.add(id));
+        remaining = remaining.filter((m) => !placedIds.has(m._id.toString()));
+        stagnation = 0;
       } else {
-        // Si ninguna materia entra (ej: una materia pide 10h y el límite es 8h),
-        // evitamos bucle infinito y salimos.
-        break;
+        // Sin avance este cuatri: las elegibles pueden ser del otro cuatri o estar bloqueadas.
+        // Si pasa un año completo (ambos cuatris) sin ubicar nada, cortamos para evitar bucles.
+        stagnation++;
+        if (stagnation >= 2) break;
       }
 
-      subjectsToPlan = remaining;
       currentCuatrimestre = currentCuatrimestre === 1 ? 2 : 1;
       if (currentCuatrimestre === 1) currentAnio++;
     }
@@ -770,10 +760,14 @@ const getPlanificador = async (req, res) => {
     res.json({
       horasPorSemana,
       periodos,
-      pendientesNoPlanificadas: subjectsToPlan.map((m) => ({
+      // Materias que no se pudieron ubicar: requieren más horas que el límite semanal o
+      // dependen de correlativas que tampoco entran (deadlock por presupuesto de horas).
+      pendientesNoPlanificadas: remaining.map((m) => ({
         _id: m._id,
         nombre: m.nombre,
-        codigo: m.codigo
+        codigo: m.codigo,
+        horasSemanalesEstimadas: Math.max(1, m.horasSemanales || 4),
+        correlativas: (m.correlativas || []).map((c) => c._id)
       }))
     });
   } catch (error) {
@@ -825,6 +819,68 @@ const saveStudyPlan = async (req, res) => {
   }
 };
 
+// Plus de la consigna: a medida que el estudiante regulariza/aprueba materias, compara su
+// rendimiento real contra el plan que se había planteado (un SavedStudyPlan).
+const getComparacionPlanGuardado = async (req, res) => {
+  try {
+    const plan = await SavedStudyPlan.findOne({ _id: req.params.id, estudiante: req.user.id });
+    if (!plan) return res.status(404).json({ mensaje: 'Plan guardado no encontrado' });
+
+    const grades = await Grade.find({ estudiante: req.user.id });
+    // "Cumplir" un período del plan = haber regularizado o aprobado la materia.
+    const cumplidoIds = new Set(
+      grades.filter((g) => UNLOCKING_STATES.includes(g.estado)).map((g) => g.materia.toString())
+    );
+
+    const now = new Date();
+    const anioActual = now.getFullYear();
+    const cuatrimestreActual = now.getMonth() < 6 ? 1 : 2;
+    // Un período "ya transcurrió" si es de un año anterior o del año en curso hasta el cuatri actual.
+    const periodoTranscurrido = (p) =>
+      p.anio < anioActual || (p.anio === anioActual && p.cuatrimestre <= cuatrimestreActual);
+
+    let materiasEsperadas = 0;
+    let materiasCumplidas = 0;
+    const periodos = plan.periodos.map((p) => {
+      const transcurrido = periodoTranscurrido(p);
+      const total = p.materias.length;
+      const hechas = p.materias.filter((m) => m.materia && cumplidoIds.has(m.materia.toString())).length;
+      if (transcurrido) {
+        materiasEsperadas += total;
+        materiasCumplidas += hechas;
+      }
+      return {
+        anio: p.anio,
+        cuatrimestre: p.cuatrimestre,
+        transcurrido,
+        totalMaterias: total,
+        cumplidas: hechas,
+        materiasAtrasadas: p.materias
+          .filter((m) => m.materia && !cumplidoIds.has(m.materia.toString()))
+          .map((m) => ({ nombre: m.nombre, codigo: m.codigo }))
+      };
+    });
+
+    const diferencia = materiasCumplidas - materiasEsperadas;
+    const estado = diferencia >= 0 ? 'al-dia' : diferencia >= -2 ? 'leve-desvio' : 'atrasado';
+
+    res.json({
+      plan: plan.nombre,
+      horasPorSemana: plan.horasPorSemana,
+      anioActual,
+      cuatrimestreActual,
+      materiasEsperadas,
+      materiasCumplidas,
+      diferencia,
+      estado,
+      porcentajeCumplimiento: materiasEsperadas > 0 ? Math.round((materiasCumplidas / materiasEsperadas) * 100) : 100,
+      periodos
+    });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al comparar con el plan guardado', error: error.message });
+  }
+};
+
 const deleteGrade = async (req, res) => {
   try {
     const { materiaId } = req.params;
@@ -861,5 +917,6 @@ module.exports = {
   getRendimientoPlan,
   listSavedStudyPlans,
   saveStudyPlan,
+  getComparacionPlanGuardado,
   deleteGrade
 };
