@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import "../../styles/StudySessions.css";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
@@ -6,6 +6,7 @@ import api from "../../services/api";
 interface Session {
   _id: string;
   materia: {
+    _id: string;
     nombre: string;
     codigo: string;
   } | null;
@@ -48,7 +49,7 @@ const StudySessions = () => {
     return userStr ? JSON.parse(userStr) : null;
   }, []);
 
-  const fetchSessions = async (isMounted: boolean) => {
+  const fetchSessions = useCallback(async (isMounted: boolean) => {
     try {
       const res = await api.get("/sesiones");
       if (isMounted) {
@@ -63,13 +64,15 @@ const StudySessions = () => {
         setLoading(false);
       }
     }
-  };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
-    fetchSessions(isMounted);
+    (async () => {
+      await fetchSessions(isMounted);
+    })();
     return () => { isMounted = false; };
-  }, []);
+  }, [fetchSessions]);
 
   const handleJoin = async (sessionId: string) => {
     setActionLoading(sessionId);
@@ -77,8 +80,9 @@ const StudySessions = () => {
       const res = await api.post(`/sesiones/${sessionId}/join`);
       alert(res.data.mensaje);
       fetchSessions(true);
-    } catch (err: any) {
-      alert(err.response?.data?.mensaje || "Error al unirse a la sesión");
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { mensaje?: string } } };
+      alert(axiosErr.response?.data?.mensaje || "Error al unirse a la sesión");
     } finally {
       setActionLoading(null);
     }
@@ -90,8 +94,9 @@ const StudySessions = () => {
       const res = await api.post(`/sesiones/manage-request`, { sessionId, userId, action });
       alert(res.data.mensaje);
       fetchSessions(true);
-    } catch (err: any) {
-      alert(err.response?.data?.mensaje || "Error al gestionar la solicitud");
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { mensaje?: string } } };
+      alert(axiosErr.response?.data?.mensaje || "Error al gestionar la solicitud");
     } finally {
       setActionLoading(null);
     }
@@ -104,8 +109,9 @@ const StudySessions = () => {
       const res = await api.post(`/sesiones/${sessionId}/leave`);
       alert(res.data.mensaje);
       fetchSessions(true);
-    } catch (err: any) {
-      alert(err.response?.data?.mensaje || "Error al darse de baja");
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { mensaje?: string } } };
+      alert(axiosErr.response?.data?.mensaje || "Error al darse de baja");
     } finally {
       setActionLoading(null);
     }
@@ -118,8 +124,9 @@ const StudySessions = () => {
       const res = await api.delete(`/sesiones/${sessionId}`);
       alert(res.data.mensaje);
       fetchSessions(true);
-    } catch (err: any) {
-      alert(err.response?.data?.mensaje || "Error al cancelar la sesión");
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { mensaje?: string } } };
+      alert(axiosErr.response?.data?.mensaje || "Error al cancelar la sesión");
     } finally {
       setActionLoading(null);
     }
@@ -163,7 +170,7 @@ const StudySessions = () => {
 
       return true;
     });
-  }, [sessions, searchQuery, modalityFilter, dateFilter, onlyAvailable]);
+  }, [sessions, searchQuery, modalityFilter, dateFilter, onlyAvailable, currentUser?.id]);
 
   const formatFecha = (isoString: string) => {
     const date = new Date(isoString);

@@ -100,17 +100,6 @@ const ExternalProfile = () => {
     }
   };
 
-
-  const getBadgeClass = (estado: string) => {
-    switch (estado) {
-      case "Aprobada": return "badge green";
-      case "Regular": return "badge blue";
-      case "Cursando": return "badge yellow";
-      case "Pendiente": return "badge gray";
-      default: return "badge";
-    }
-  };
-
   if (loading) return <div className="profile-container"><p>Cargando perfil...</p></div>;
 
   if (error) {
