@@ -8,6 +8,10 @@ const AcademicOffer = require('../models/AcademicOffer');
 const Final = require('../models/Final');
 const CreditActivity = require('../models/CreditActivity');
 const SavedStudyPlan = require('../models/SavedStudyPlan');
+const StudySession = require('../models/StudySession');
+const Invitation = require('../models/Invitation');
+const Notification = require('../models/Notification');
+const Event = require('../models/Event');
 const logger = require('./logger');
 
 async function resetDatabase() {
@@ -20,7 +24,11 @@ async function resetDatabase() {
     StudyPlan.deleteMany({}),
     Subject.deleteMany({}),
     Career.deleteMany({}),
-    User.deleteMany({})
+    User.deleteMany({}),
+    StudySession.deleteMany({}),
+    Invitation.deleteMany({}),
+    Notification.deleteMany({}),
+    Event.deleteMany({})
   ]);
 }
 

@@ -72,7 +72,127 @@ const sendUserNotFoundEmail = async (to, requestedEmail) => {
   return transporter.sendMail(mailOptions);
 };
 
+const sendSessionConfirmationEmail = async (to, studentName, session) => {
+  const fecha = new Date(session.fechaHora).toLocaleString('es-AR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const infoAdicional = session.tipo === 'virtual' 
+    ? `<p><strong>Link de la sesión:</strong> <a href="${session.link}">${session.link}</a></p>`
+    : `<p><strong>Ubicación:</strong> ${session.ubicacion}</p>`;
+
+  const mailOptions = {
+    from: `"Asistente Académico" <${process.env.MAIL_FROM || 'no-reply@asistente.edu'}>`,
+    to,
+    subject: `Confirmación de inscripción: Sesión de ${session.materia.nombre}`,
+    text: `¡Hola ${studentName}! Tu inscripción a la sesión de estudio de ${session.materia.nombre} ha sido confirmada.
+    Tema: ${session.tema}
+    Fecha: ${fecha}
+    ${session.tipo === 'virtual' ? `Link: ${session.link}` : `Ubicación: ${session.ubicacion}`}
+    
+    ¡Muchos éxitos en tu estudio!`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
+        <h2 style="color: #4A90E2;">¡Inscripción Confirmada!</h2>
+        <p>Hola <strong>${studentName}</strong>,</p>
+        <p>Tu inscripción a la siguiente sesión de estudio ha sido confirmada:</p>
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>Materia:</strong> ${session.materia.nombre}</p>
+          <p style="margin: 5px 0;"><strong>Tema:</strong> ${session.tema}</p>
+          <p style="margin: 5px 0;"><strong>Fecha y Hora:</strong> ${fecha}</p>
+          ${infoAdicional}
+          ${session.descripcion ? `<p style="margin: 5px 0;"><strong>Descripción:</strong> ${session.descripcion}</p>` : ''}
+        </div>
+        <p>¡Muchos éxitos en tu estudio!</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 0.8rem; color: #777;">Este es un mensaje automático, por favor no respondas a este correo.</p>
+      </div>
+    `
+  };
+
+  return transporter.sendMail(mailOptions);
+};
+
+const sendSessionCancellationEmail = async (to, studentName, session) => {
+  const mailOptions = {
+    from: `"Asistente Académico" <${process.env.MAIL_FROM || 'no-reply@asistente.edu'}>`,
+    to,
+    subject: `Sesión cancelada: ${session.materia.nombre}`,
+    text: `Hola ${studentName}, te informamos que la sesión de estudio de ${session.materia.nombre} sobre "${session.tema}" ha sido cancelada por el organizador.
+    Sentimos los inconvenientes.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
+        <h2 style="color: #E24A4A;">Sesión Cancelada</h2>
+        <p>Hola <strong>${studentName}</strong>,</p>
+        <p>Te informamos que la siguiente sesión de estudio ha sido cancelada por el organizador:</p>
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>Materia:</strong> ${session.materia.nombre}</p>
+          <p style="margin: 5px 0;"><strong>Tema:</strong> ${session.tema}</p>
+        </div>
+        <p>Sentimos los inconvenientes que esto pueda causarte.</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 0.8rem; color: #777;">Este es un mensaje automático, por favor no respondas a este correo.</p>
+      </div>
+    `
+  };
+
+  return transporter.sendMail(mailOptions);
+};
+
+const sendSessionReminderEmail = async (to, studentName, session) => {
+  const fecha = new Date(session.fechaHora).toLocaleString('es-AR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const infoAdicional = session.tipo === 'virtual' 
+    ? `<p><strong>Link de la sesión:</strong> <a href="${session.link}">${session.link}</a></p>`
+    : `<p><strong>Ubicación:</strong> ${session.ubicacion}</p>`;
+
+  const mailOptions = {
+    from: `"Asistente Académico" <${process.env.MAIL_FROM || 'no-reply@asistente.edu'}>`,
+    to,
+    subject: `Recordatorio: Sesión de ${session.materia.nombre} mañana`,
+    text: `¡Hola ${studentName}! Mañana tienes una sesión de estudio de ${session.materia.nombre}.
+    Tema: ${session.tema}
+    Fecha: ${fecha}
+    ${session.tipo === 'virtual' ? `Link: ${session.link}` : `Ubicación: ${session.ubicacion}`}
+    
+    ¡Te esperamos!`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
+        <h2 style="color: #4A90E2;">¡Recordatorio de Sesión!</h2>
+        <p>Hola <strong>${studentName}</strong>,</p>
+        <p>Te recordamos que mañana tienes una sesión de estudio:</p>
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>Materia:</strong> ${session.materia.nombre}</p>
+          <p style="margin: 5px 0;"><strong>Tema:</strong> ${session.tema}</p>
+          <p style="margin: 5px 0;"><strong>Fecha y Hora:</strong> ${fecha}</p>
+          ${infoAdicional}
+        </div>
+        <p>¡Te esperamos para seguir aprendiendo juntos!</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 0.8rem; color: #777;">Este es un mensaje automático, por favor no respondas a este correo.</p>
+      </div>
+    `
+  };
+
+  return transporter.sendMail(mailOptions);
+};
+
 module.exports = {
   sendInvitationEmail,
-  sendUserNotFoundEmail
+  sendUserNotFoundEmail,
+  sendSessionConfirmationEmail,
+  sendSessionCancellationEmail,
+  sendSessionReminderEmail
 };

@@ -100,17 +100,6 @@ const ExternalProfile = () => {
     }
   };
 
-
-  const getBadgeClass = (estado: string) => {
-    switch (estado) {
-      case "Aprobada": return "badge green";
-      case "Regular": return "badge blue";
-      case "Cursando": return "badge yellow";
-      case "Pendiente": return "badge gray";
-      default: return "badge";
-    }
-  };
-
   if (loading) return <div className="profile-container"><p>Cargando perfil...</p></div>;
 
   if (error) {
@@ -196,36 +185,33 @@ const ExternalProfile = () => {
 
         {profile.situacionAcademica && (
           <div className="profile-section card" style={{ gridColumn: '1 / -1' }}>
-            <h3>Situación Académica</h3>
-            <div className="table-container" style={{ marginTop: '1rem' }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Materia</th>
-                    <th>Año</th>
-                    <th>Estado</th>
-                    <th>Nota</th>
-                    <th>Fecha</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {profile.situacionAcademica.length > 0 ? (
-                    profile.situacionAcademica.map((m) => (
-                      <tr key={m._id}>
-                        <td>{m.materia.nombre}</td>
-                        <td>{m.materia.anio}°</td>
-                        <td><span className={getBadgeClass(m.estado)}>{m.estado}</span></td>
-                        <td>{m.nota || "-"}</td>
-                        <td>{new Date(m.fecha).toLocaleDateString()}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>No hay registros académicos visibles.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            <div className="privacy-header">
+              <span>🎓</span>
+              <h3>Situación Académica</h3>
+            </div>
+            <div className="academic-grid" style={{ marginTop: '1rem' }}>
+              {profile.situacionAcademica.length > 0 ? (
+                profile.situacionAcademica.map((m) => (
+                  <div key={m._id} className="academic-item">
+                    <div className="academic-info">
+                      <span className="subject-name">{m.materia.nombre}</span>
+                      <span className="subject-year">
+                        {m.materia.anio === 0 ? "UNAHUR" : `${m.materia.anio}° Año`}
+                      </span>
+                    </div>
+                    <div className="academic-status">
+                      <span className={`status-badge ${m.estado.toLowerCase()}`}>
+                        {m.estado}
+                      </span>
+                      {m.nota && <span className="grade-badge">{m.nota}</span>}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '20px', color: 'var(--text-muted)' }}>
+                  No hay registros académicos visibles.
+                </p>
+              )}
             </div>
           </div>
         )}
