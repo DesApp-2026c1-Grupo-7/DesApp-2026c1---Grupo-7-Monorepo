@@ -118,7 +118,7 @@
     height: 64px;
   }
 
-  .user-info {
+  .navbar .user-info {
     display: none !important;
   }
 

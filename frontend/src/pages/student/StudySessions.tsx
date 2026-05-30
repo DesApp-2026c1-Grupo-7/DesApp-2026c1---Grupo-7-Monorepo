@@ -133,6 +133,7 @@ const StudySessions = () => {
   };
 
   const filteredSessions = useMemo(() => {
+    const now = new Date();
     return sessions.filter((s) => {
       // 1. Filtro por materia
       if (searchQuery) {
@@ -142,12 +143,27 @@ const StudySessions = () => {
         }
       }
 
-      // 2. Filtro por modalidad / creador
+      // 2. Filtro por modalidad / creador / inscripciones / cerradas
+      const sessionDate = new Date(s.fechaHora);
+      const isClosed = sessionDate < now;
+
       if (modalityFilter === "mine") {
         if (s.creador?._id !== currentUser?.id) return false;
+      } else if (modalityFilter === "enrolled") {
+        if (!s.participantes.includes(currentUser?.id)) return false;
+      } else if (modalityFilter === "closed") {
+        if (!isClosed) return false;
       } else if (modalityFilter !== "all" && s.tipo !== modalityFilter) {
         return false;
       }
+
+      // Si no es el filtro específico de "cerradas", ocultamos las pasadas por defecto en "all" y otros filtros
+      // a menos que el usuario esté buscando específicamente algo que incluya historial. 
+      // Por consistencia con la mayoría de apps, "Todas" suele mostrar futuras.
+      // Pero el usuario pidió "Agregar la posibilidad de buscar por Cerradas", 
+      // lo que implica que "Todas" quizás debería seguir mostrando activas o todas.
+      // Vamos a permitir que "all" muestre todo, pero el botón dirá "Cerrada".
+      // Si prefieres que "all" solo muestre activas, avisame. Por ahora permito verlas.
 
       // 3. Filtro por fecha específica
       if (dateFilter) {
@@ -218,6 +234,8 @@ const StudySessions = () => {
           <option value="presencial">Presencial</option>
           <option value="virtual">Virtual</option>
           <option value="mine">Mis sesiones creadas</option>
+          <option value="enrolled">Mis inscripciones</option>
+          <option value="closed">Cerradas</option>
         </select>
 
         <input 
@@ -281,9 +299,10 @@ const StudySessions = () => {
               return solUserId === currentUser?.id && sol.estado === 'pendiente';
             });
             const isFull = !!s.cupos && s.participantes.length >= s.cupos;
+            const isClosed = new Date(s.fechaHora) < new Date();
 
             return (
-              <div key={s._id} className="session-card">
+              <div key={s._id} className="session-card" style={{ opacity: isClosed ? 0.7 : 1 }}>
                 <div className="session-top">
                   <div>
                     <h3 style={{ marginBottom: 4 }}>{s.materia?.nombre || "Materia no disponible"}</h3>
@@ -295,12 +314,13 @@ const StudySessions = () => {
 
                   <span
                     className={`badge ${
+                      isClosed ? "badge-gray" : 
                       s.tipo === "presencial"
                         ? "badge-blue"
                         : "badge-purple"
                     }`}
                   >
-                    {s.tipo === "presencial" ? "🏢 Presencial" : "💻 Virtual"}
+                    {isClosed ? "🚫 Cerrada" : s.tipo === "presencial" ? "🏢 Presencial" : "💻 Virtual"}
                   </span>
                 </div>
 
@@ -318,7 +338,7 @@ const StudySessions = () => {
                 )}
 
                 {/* Gestión de solicitudes para el dueño */}
-                {isOwner && s.solicitudes.some(sol => sol.estado === 'pendiente') && (
+                {isOwner && !isClosed && s.solicitudes.some(sol => sol.estado === 'pendiente') && (
                   <div className="pending-requests-section" style={{ background: '#fef3c7', padding: '10px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #fcd34d' }}>
                     <p style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '8px' }}>Solicitudes pendientes:</p>
                     {s.solicitudes.filter(sol => sol.estado === 'pendiente').map(sol => {
@@ -360,12 +380,16 @@ const StudySessions = () => {
                       className="progress" 
                       style={{ 
                         width: s.cupos ? `${(s.participantes.length / s.cupos) * 100}%` : '100%',
-                        background: s.cupos && (s.participantes.length >= s.cupos) ? '#ef4444' : '#2563eb'
+                        background: isClosed ? '#9ca3af' : s.cupos && (s.participantes.length >= s.cupos) ? '#ef4444' : '#2563eb'
                       }} 
                     />
                   </div>
 
-                  {isOwner ? (
+                  {isClosed ? (
+                    <button className="btn-secondary" disabled style={{ color: '#6b7280', borderColor: '#d1d5db' }}>
+                      Cerrada
+                    </button>
+                  ) : isOwner ? (
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button 
                         className="btn-secondary" 

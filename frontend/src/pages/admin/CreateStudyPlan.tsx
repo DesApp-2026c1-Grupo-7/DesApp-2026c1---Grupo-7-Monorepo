@@ -4,6 +4,7 @@ import { Search, Trash2, Settings2 } from "lucide-react";
 import api from "../../services/api";
 import "../../styles/CreateCareer.css";
 
+interface Career { _id: string; nombre: string; }
 interface Subject { _id: string; nombre: string; codigo: string; }
 
 interface PlanMateria {
@@ -21,6 +22,7 @@ interface PlanMateria {
 
 export default function CreateStudyPlan() {
   const navigate = useNavigate();
+  const [careers, setCareers] = useState<Career[]>([]);
   const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
   const [form, setForm] = useState({
     nombre: "",
@@ -31,27 +33,31 @@ export default function CreateStudyPlan() {
     nivelInglesRequerido: "B1",
     estado: "Vigente"
   });
-  
+
   const [planMaterias, setPlanMaterias] = useState<PlanMateria[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [corrSearchTerm, setCorrSearchTerm] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    api.get("/materias")
-      .then((s) => { setAllSubjects(s.data); })
-      .catch(() => {});
+    Promise.all([
+      api.get("/carreras"),
+      api.get("/materias")
+    ]).then(([c, s]) => {
+      setCareers(c.data);
+      setAllSubjects(s.data);
+    }).catch(() => {});
   }, []);
 
   const filteredSearch = useMemo(() => {
     if (!searchTerm) return [];
     const term = searchTerm.toLowerCase();
     const alreadySelected = new Set(planMaterias.map(m => m.materia));
-    return allSubjects.filter(s => 
-      !alreadySelected.has(s._id) && 
+    return allSubjects.filter(s =>
+      !alreadySelected.has(s._id) &&
       (s.nombre.toLowerCase().includes(term) || s.codigo.toLowerCase().includes(term))
     ).slice(0, 10);
   }, [searchTerm, allSubjects, planMaterias]);
@@ -86,8 +92,8 @@ export default function CreateStudyPlan() {
 
   const toggleCorrelativa = (index: number, cid: string) => {
     const current = planMaterias[index].correlativas;
-    const next = current.includes(cid) 
-      ? current.filter(id => id !== cid) 
+    const next = current.includes(cid)
+      ? current.filter(id => id !== cid)
       : [...current, cid];
     updateMateria(index, 'correlativas', next);
   };
@@ -142,9 +148,19 @@ export default function CreateStudyPlan() {
             <input value={form.nombre} onChange={(e) => setForm({...form, nombre: e.target.value})} required disabled={loading} placeholder="Ej: Plan 2023" />
           </div>
 
-          <div className="form-group">
-            <label>Año del Plan</label>
-            <input type="number" min={2000} max={2100} value={form.anio} onChange={(e) => setForm({...form, anio: Number(e.target.value)})} disabled={loading} />
+          <div className="form-grid-2">
+            <div className="form-group">
+              <label>Año del Plan</label>
+              <input type="number" min={2000} max={2100} value={form.anio} onChange={(e) => setForm({...form, anio: Number(e.target.value)})} disabled={loading} />
+            </div>
+
+            <div className="form-group">
+              <label>Carrera</label>
+              <select value={form.carrera} onChange={(e) => setForm({...form, carrera: e.target.value})} disabled={loading} required>
+                <option value="">-- Seleccionar carrera --</option>
+                {careers.map((c) => <option key={c._id} value={c._id}>{c.nombre}</option>)}
+              </select>
+            </div>
           </div>
 
           <div className="form-grid-3">
