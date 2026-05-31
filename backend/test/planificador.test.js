@@ -191,6 +191,23 @@ test('las materias en curso se excluyen del plan y desbloquean sus correlativas'
   assert.ok('M1B' in m, 'M1B se desbloquea porque M1A esta en curso');
 });
 
+test('una materia en curso no habilita a su correlativa en el primer cuatrimestre', async () => {
+  // M1A esta en curso (no aprobada). M1B (que requiere M1A) puede planificarse, pero NO en el
+  // primer cuatrimestre proyectado: recien una vez que M1A se apruebe (segundo periodo en adelante).
+  await setEstado(S.M1A, 'Cursando').expect(200);
+
+  const res = await getPlanificador(100);
+  const primero = res.body.periodos[0];
+
+  assert.ok(res.body.primerPeriodo, 'el planificador informa el primer periodo proyectado');
+  const m1bEnPrimero = (primero?.materias || []).some((mat) => mat.codigo === 'M1B');
+  assert.ok(!m1bEnPrimero, 'M1B no puede ir en el primer cuatrimestre con M1A solo en curso');
+
+  // Igualmente M1B queda planificada mas adelante (el plan llega hasta recibirse).
+  const m = mapaPeriodos(res.body.periodos);
+  assert.ok('M1B' in m && m.M1B >= 1, 'M1B se planifica recien a partir del segundo periodo');
+});
+
 test('una materia aprobada se excluye y habilita la siguiente', async () => {
   await setEstado(S.M1A, 'Aprobada').expect(200);
 

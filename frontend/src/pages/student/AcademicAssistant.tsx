@@ -11,8 +11,14 @@ interface Subject {
   creditos: number;
   horasSemanalesEstimadas?: number;
   correlativas?: string[];
+  correlativasEnCurso?: string[];
   esOptativa?: boolean;
   esUnahur?: boolean;
+}
+
+interface Periodo {
+  anio: number;
+  cuatrimestre: number;
 }
 
 interface FinalPendiente {
@@ -80,6 +86,7 @@ const AcademicAssistant = () => {
   const [avance, setAvance] = useState<Avance | null>(null);
   const [rendimiento, setRendimiento] = useState<RendimientoPlan | null>(null);
   const [planificador, setPlanificador] = useState<PlanPeriodo[]>([]);
+  const [primerPeriodo, setPrimerPeriodo] = useState<Periodo | null>(null);
   const [pendientesPlan, setPendientesPlan] = useState<Subject[]>([]);
   const [planesGuardados, setPlanesGuardados] = useState<SavedPlan[]>([]);
   const [comparaciones, setComparaciones] = useState<Record<string, ComparacionPlan>>({});
@@ -131,6 +138,7 @@ const AcademicAssistant = () => {
     setAvance(a.data);
     setMateriasCursando(i.data.map((row: { materia: Subject }) => row.materia).filter(Boolean));
     setPlanificador(p.data.periodos || []);
+    setPrimerPeriodo(p.data.primerPeriodo || null);
     setPendientesPlan(p.data.pendientesNoPlanificadas || []);
     setRendimiento(r.data);
     setPlanesGuardados(saved.data);
@@ -259,18 +267,28 @@ const AcademicAssistant = () => {
   const horasDePeriodo = (materias: Subject[]) =>
     materias.reduce((sum, m) => sum + (m.horasSemanalesEstimadas ?? m.creditos ?? 0), 0);
 
+  const esPrimerPeriodo = (p: Periodo) =>
+    !!primerPeriodo && p.anio === primerPeriodo.anio && p.cuatrimestre === primerPeriodo.cuatrimestre;
+
   // Una planificación es válida si toda materia tiene sus correlativas (que estén dentro del
-  // plan) en un cuatrimestre estrictamente anterior. Las correlativas que no figuran en el plan
-  // se asumen ya aprobadas (por eso la materia pudo planificarse).
-  const validarPlan = (periodos: PlanPeriodo[]): { ok: boolean; materia?: string } => {
+  // plan) en un cuatrimestre estrictamente anterior. Las correlativas aprobadas no figuran en el
+  // plan (no restringen). Las correlativas que están solo "en curso" todavía no están aprobadas:
+  // por eso la materia que depende de ellas no puede ubicarse en el primer cuatrimestre proyectado.
+  const validarPlan = (periodos: PlanPeriodo[]): { ok: boolean; motivo?: string } => {
     const periodoDe = new Map<string, number>();
     periodos.forEach((p, idx) => p.materias.forEach((m) => periodoDe.set(m._id, idx)));
     for (let idx = 0; idx < periodos.length; idx++) {
       for (const m of periodos[idx].materias) {
         for (const corrId of m.correlativas ?? []) {
           if (periodoDe.has(corrId) && periodoDe.get(corrId)! >= idx) {
-            return { ok: false, materia: m.nombre };
+            return { ok: false, motivo: `${m.nombre} quedaría en el mismo cuatrimestre o antes que sus correlativas.` };
           }
+        }
+        if ((m.correlativasEnCurso?.length ?? 0) > 0 && esPrimerPeriodo(periodos[idx])) {
+          return {
+            ok: false,
+            motivo: `${m.nombre} no puede ir en el primer cuatrimestre: su correlativa (${m.correlativasEnCurso!.join(", ")}) todavía no está aprobada.`
+          };
         }
       }
     }
@@ -304,7 +322,7 @@ const AcademicAssistant = () => {
 
     const validez = validarPlan(next);
     if (!validez.ok) {
-      setError(`No se puede mover: ${validez.materia} quedaría en el mismo cuatrimestre o antes que sus correlativas.`);
+      setError(`No se puede mover: ${validez.motivo}`);
       return;
     }
     setPlanificador(next);
