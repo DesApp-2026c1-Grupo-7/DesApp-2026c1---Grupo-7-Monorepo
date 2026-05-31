@@ -3,18 +3,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import api from "../../services/api";
 import "../../styles/CreateCareer.css";
 
-interface StudyPlan {
-  _id: string;
-  nombre: string;
-  anio: number;
-  carrera?: { _id: string; nombre: string };
-}
-
 export default function EditCareer() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [plans, setPlans] = useState<StudyPlan[]>([]);
-  const [selectedPlanId, setSelectedPlanId] = useState("");
   const [form, setForm] = useState({
     nombre: "",
     codigo: "",
@@ -30,12 +21,9 @@ export default function EditCareer() {
   useEffect(() => {
     (async () => {
       try {
-        const [cR, pR] = await Promise.all([
-          api.get(`/carreras/${id}`),
-          api.get("/planes")
-        ]);
+        const res = await api.get(`/carreras/${id}`);
         
-        const c = cR.data;
+        const c = res.data;
         setForm({
           nombre: c.nombre || "",
           codigo: c.codigo || "",
@@ -44,13 +32,6 @@ export default function EditCareer() {
           instituto: c.instituto || "",
           duracionAnios: c.duracionAnios || 5
         });
-
-        const allPlans = pR.data as StudyPlan[];
-        setPlans(allPlans);
-        
-        // Buscar si hay algún plan vinculado a esta carrera para mostrarlo por defecto
-        const currentPlan = allPlans.find(p => p.carrera?._id === id);
-        if (currentPlan) setSelectedPlanId(currentPlan._id);
 
       } catch (e: unknown) {
         const ax = e as { response?: { data?: { mensaje?: string } } };
@@ -74,13 +55,6 @@ export default function EditCareer() {
         ...form,
         duracionAnios: Number(form.duracionAnios)
       });
-
-      // Vincular el plan seleccionado (si cambió)
-      if (selectedPlanId) {
-        await api.put(`/planes/${selectedPlanId}`, {
-          carrera: id
-        });
-      }
 
       navigate("/admin/carreras");
     } catch (err: unknown) {
@@ -131,26 +105,6 @@ export default function EditCareer() {
           <div className="form-group">
             <label>Duración estimada (años)</label>
             <input type="number" min={1} value={form.duracionAnios} onChange={(e) => onChange("duracionAnios", Number(e.target.value))} disabled={loading} />
-          </div>
-
-          <div className="form-group" style={{ marginTop: '1rem', padding: '1.5rem', background: 'var(--bg-soft)', borderRadius: '12px', border: '1px dashed var(--border-strong)' }}>
-            <label style={{ fontWeight: 700 }}>Plan de Estudio Vinculado</label>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-              Selecciona el plan que representa la estructura académica actual de esta carrera.
-            </p>
-            <select 
-              value={selectedPlanId} 
-              onChange={(e) => setSelectedPlanId(e.target.value)} 
-              disabled={loading}
-              style={{ background: 'var(--bg-card-solid)' }}
-            >
-              <option value="">-- Sin plan asignado --</option>
-              {plans.map((p) => (
-                <option key={p._id} value={p._id}>
-                  {p.nombre} ({p.anio}) {p.carrera?._id === id ? '[Actual]' : p.carrera ? `[De ${p.carrera.nombre}]` : ''}
-                </option>
-              ))}
-            </select>
           </div>
 
           <div className="form-actions" style={{ marginTop: '2rem' }}>

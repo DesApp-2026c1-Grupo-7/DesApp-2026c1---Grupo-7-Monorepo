@@ -393,12 +393,12 @@ const AcademicAssistant = () => {
 
       {avance && Object.keys(avance.avancePorAnio).length > 0 && (
         <div className="section">
-          <h3>Avance por anio</h3>
+          <h3>Avance por año</h3>
           {Object.entries(avance.avancePorAnio)
             .sort(([a], [b]) => Number(a) - Number(b))
             .map(([anio, row]) => (
               <div key={anio} className="projection">
-                <strong>Anio {anio}</strong>
+                <strong>Año {anio}</strong>
                 <p>Aprobadas: {row.aprobadas} · Regulares: {row.regulares} · Cursando: {row.cursando} · Total: {row.total ?? "-"}</p>
               </div>
             ))}
@@ -409,8 +409,8 @@ const AcademicAssistant = () => {
         <h3>Materias disponibles</h3>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "12px 0" }}>
           <select value={filterAnio} onChange={(e) => setFilterAnio(e.target.value)}>
-            <option value="todos">Todos los anios</option>
-            {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{y} anio</option>)}
+            <option value="todos">Todos los años</option>
+            {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{y} año</option>)}
           </select>
           <select value={showOptativas} onChange={(e) => setShowOptativas(e.target.value as "todas" | "obligatorias" | "optativas")}>
             <option value="todas">Todas</option>

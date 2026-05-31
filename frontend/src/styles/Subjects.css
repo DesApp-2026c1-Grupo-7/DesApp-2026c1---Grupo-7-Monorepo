@@ -99,10 +99,15 @@
 .table-header,
 .table-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 0.5fr 1fr 1fr 1fr;
+  grid-template-columns: 2.5fr 1fr 1.5fr 100px;
   padding: 16px;
   align-items: center;
-  min-width: 900px; /* Force scroll */
+  min-width: 800px; /* Force scroll */
+}
+
+.table-header span:last-child,
+.table-row .actions {
+  justify-self: end;
 }
 
 .table-header {

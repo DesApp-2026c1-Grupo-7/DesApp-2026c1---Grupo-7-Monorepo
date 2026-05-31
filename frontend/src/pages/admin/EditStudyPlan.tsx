@@ -181,7 +181,7 @@ export default function EditStudyPlan() {
             <div className="form-group">
               <label>Carrera</label>
               <select value={form.carrera} onChange={(e) => setForm({...form, carrera: e.target.value})} disabled={loading} required>
-                <option value="">-- Seleccionar --</option>
+                <option value="">-- Seleccionar carrera --</option>
                 {careers.map((c) => <option key={c._id} value={c._id}>{c.nombre}</option>)}
               </select>
             </div>
