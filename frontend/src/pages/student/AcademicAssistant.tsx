@@ -378,7 +378,7 @@ const AcademicAssistant = () => {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
             <div style={{ padding: 12, background: "#eff6ff", borderRadius: 8 }}>
               <strong>Avance general</strong>
-              <div style={{ fontSize: 24, fontWeight: 700 }}>{Math.round((avance.aprobadas / avance.totalMaterias) * 100)}%</div>
+              <div style={{ fontSize: 24, fontWeight: 700 }}>{avance.porcentajeAvance}%</div>
               <small>{avance.aprobadas} de {avance.totalMaterias} materias</small>
             </div>
             <div style={{ padding: 12, background: "#f0fdf4", borderRadius: 8 }}>
@@ -412,36 +412,80 @@ const AcademicAssistant = () => {
       {avance && Object.keys(avance.avancePorAnio).length > 0 && (
         <div className="section">
           <h3>Avance por año</h3>
-          {Object.entries(avance.avancePorAnio)
-            .sort(([a], [b]) => Number(a) - Number(b))
-            .map(([anio, row]) => (
-              <div key={anio} className="projection">
-                <strong>Año {anio}</strong>
-                <p>Aprobadas: {row.aprobadas} · Regulares: {row.regulares} · Cursando: {row.cursando} · Total: {row.total ?? "-"}</p>
-              </div>
-            ))}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
+            {Object.entries(avance.avancePorAnio)
+              .sort(([a], [b]) => Number(a) - Number(b))
+              .map(([anio, row]) => {
+                const total = row.total ?? 0;
+                const faltantes = Math.max(0, total - row.aprobadas - row.regulares - row.cursando);
+                const completo = total > 0 && row.aprobadas === total;
+                const porcentaje = total > 0 ? Math.round((row.aprobadas / total) * 100) : 0;
+                return (
+                  <div
+                    key={anio}
+                    style={{
+                      padding: 14, borderRadius: 10, border: "1px solid #e5e7eb",
+                      background: completo ? "#f0fdf4" : "#fff"
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <strong>Año {anio}</strong>
+                      {completo
+                        ? <span className="badge" style={{ background: "#16a34a", color: "#fff" }}>✓ Completo</span>
+                        : <span style={{ fontSize: "0.85rem", color: "#6b7280" }}>{porcentaje}%</span>}
+                    </div>
+                    <div style={{ height: 6, background: "#e5e7eb", borderRadius: 999, overflow: "hidden", marginBottom: 10 }}>
+                      <div style={{ width: `${porcentaje}%`, height: "100%", background: completo ? "#16a34a" : "#3b82f6" }} />
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, fontSize: "0.85rem" }}>
+                      <span style={{ padding: "2px 8px", borderRadius: 6, background: "#dcfce7", color: "#166534" }}>Aprobadas: {row.aprobadas}</span>
+                      <span style={{ padding: "2px 8px", borderRadius: 6, background: "#dbeafe", color: "#1e40af" }}>Regulares: {row.regulares}</span>
+                      <span style={{ padding: "2px 8px", borderRadius: 6, background: "#fef9c3", color: "#854d0e" }}>Cursando: {row.cursando}</span>
+                      <span style={{ padding: "2px 8px", borderRadius: 6, background: "#fee2e2", color: "#991b1b" }}>Faltantes: {faltantes}</span>
+                      <span style={{ padding: "2px 8px", borderRadius: 6, background: "#f3f4f6", color: "#374151" }}>Total: {total}</span>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
         </div>
       )}
 
       <div className="section">
         <h3>Materias disponibles</h3>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "12px 0" }}>
-          <select value={filterAnio} onChange={(e) => setFilterAnio(e.target.value)}>
-            <option value="todos">Todos los años</option>
-            {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{y} año</option>)}
-          </select>
-          <select value={showOptativas} onChange={(e) => setShowOptativas(e.target.value as "todas" | "obligatorias" | "optativas")}>
-            <option value="todas">Todas</option>
-            <option value="obligatorias">Obligatorias</option>
-            <option value="optativas">Optativas</option>
-          </select>
-          <input type="number" value={oferta.anio} onChange={(e) => setOferta((s) => ({ ...s, anio: Number(e.target.value) }))} />
-          <select value={oferta.cuatrimestre} onChange={(e) => setOferta((s) => ({ ...s, cuatrimestre: Number(e.target.value) }))}>
-            <option value={1}>1C</option>
-            <option value={2}>2C</option>
-            <option value={0}>Anual</option>
-          </select>
+        <p className="subtitle">Materias en las que podés inscribirte según tus correlativas y la oferta académica del período.</p>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", margin: "12px 0" }}>
+          <label style={{ display: "flex", flexDirection: "column", fontSize: "0.8rem", color: "#6b7280", gap: 2 }}>
+            Año
+            <select value={filterAnio} onChange={(e) => setFilterAnio(e.target.value)}>
+              <option value="todos">Todos los años</option>
+              {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{y} año</option>)}
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", fontSize: "0.8rem", color: "#6b7280", gap: 2 }}>
+            Tipo
+            <select value={showOptativas} onChange={(e) => setShowOptativas(e.target.value as "todas" | "obligatorias" | "optativas")}>
+              <option value="todas">Todas</option>
+              <option value="obligatorias">Obligatorias</option>
+              <option value="optativas">Optativas</option>
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", fontSize: "0.8rem", color: "#6b7280", gap: 2 }}>
+            Oferta - Año
+            <input type="number" value={oferta.anio} onChange={(e) => setOferta((s) => ({ ...s, anio: Number(e.target.value) }))} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", fontSize: "0.8rem", color: "#6b7280", gap: 2 }}>
+            Oferta - Período
+            <select value={oferta.cuatrimestre} onChange={(e) => setOferta((s) => ({ ...s, cuatrimestre: Number(e.target.value) }))}>
+              <option value={1}>1C</option>
+              <option value={2}>2C</option>
+              <option value={0}>Anual</option>
+            </select>
+          </label>
         </div>
+        {filteredDisponibles.length === 0 && !loading && (
+          <p style={{ color: "#666", fontStyle: "italic" }}>No hay materias disponibles para inscribirte con este filtro.</p>
+        )}
         {filteredDisponibles.map((s) => (
           <div key={s._id} className={`subject ${s.esUnahur ? 'warning' : 'success'}`} style={s.esUnahur ? { background: '#fef3c7', borderColor: '#fcd34d' } : {}}>
             <div>
