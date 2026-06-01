@@ -177,7 +177,7 @@ async function seedAcademicOffer(subjectsMap) {
   const cuatrimestre = now.getMonth() < 7 ? 1 : 2;
   // Ofrecemos las materias de 1er anio de ambos cuatrimestres + las transversales UNAHUR,
   // para que un estudiante nuevo tenga materias en las que inscribirse de entrada.
-  const codigosOferta = ['IP', 'MAT', 'OC', 'ING1', 'PROG1', 'ED', 'BD1', 'ING2', 'UNA-AMB', 'UNA-CTS'];
+  const codigosOferta = ['IP', 'MAT', 'OC', 'ING1', 'PROG1', 'ED', 'BD1', 'ING2', 'UNA-AMB', 'UNA-CTS', 'UNA-DDHH', 'UNA-COM'];
   await AcademicOffer.findOneAndUpdate(
     { anio: now.getFullYear(), cuatrimestre },
     {
