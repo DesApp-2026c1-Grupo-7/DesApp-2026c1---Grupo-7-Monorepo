@@ -675,8 +675,11 @@ const getPlanificador = async (req, res) => {
         .map((m) => [m._id.toString(), m])
     );
 
-    // Materias que ya están cursando o regulares: se asumen "aprobadas" para desbloquear
-    // correlativas en la proyección (optimista, alineado con "¿qué pasa si regularizo?").
+    // Materias que ya están cursando o regulares: todavía NO están aprobadas, así que no
+    // habilitan a sus correlativas para el primer cuatrimestre proyectado. Se asumen
+    // aprobadas recién a partir del segundo período (se completarían durante el primero),
+    // para que una materia (ej: AM2) nunca quede en el primer cuatri sin tener aprobada su
+    // correlativa (ej: AM1), pero el plan igual llegue hasta recibirse.
     const inProgressIds = new Set(
       grades.filter((g) => ['Cursando', 'Regular'].includes(g.estado))
         .map((g) => g.materia.toString())
@@ -689,9 +692,15 @@ const getPlanificador = async (req, res) => {
     let currentCuatrimestre = month < 6 ? 2 : 1;
     if (month >= 6) currentAnio++;
 
-    // Conjunto de materias "aprobadas virtualmente": arranca con lo aprobado + en curso y
-    // crece a medida que el planificador ubica materias, desbloqueando sus correlativas.
-    const virtualApproved = new Set([...approvedIds, ...inProgressIds]);
+    // Primer período proyectado (el cuatrimestre inmediato siguiente). Las materias cuya
+    // correlativa esté solo "en curso" no pueden ubicarse en este período.
+    const primerPeriodo = { anio: currentAnio, cuatrimestre: currentCuatrimestre };
+
+    // Conjunto de materias "aprobadas virtualmente": arranca SOLO con lo aprobado y crece a
+    // medida que el planificador ubica materias (y, tras el primer período, con las que están
+    // en curso), desbloqueando sus correlativas progresivamente.
+    const virtualApproved = new Set([...approvedIds]);
+    let enCursoDesbloqueado = false;
 
     let remaining = [...pending.values()];
     const periodos = [];
@@ -734,7 +743,12 @@ const getPlanificador = async (req, res) => {
             horasSemanalesEstimadas: horasMateria,
             anio: materia.anio,
             cuatrimestre: materia.cuatrimestre,
-            correlativas: (materia.correlativas || []).map((c) => c._id)
+            correlativas: (materia.correlativas || []).map((c) => c._id),
+            // Correlativas que al momento de planificar están solo en curso (no aprobadas):
+            // sirven para que el front impida mover la materia al primer cuatrimestre.
+            correlativasEnCurso: (materia.correlativas || [])
+              .filter((c) => inProgressIds.has(c._id.toString()))
+              .map((c) => c.nombre)
           });
           horasUsadas += horasMateria;
           placedIds.add(materia._id.toString());
@@ -753,12 +767,20 @@ const getPlanificador = async (req, res) => {
         if (stagnation >= 2) break;
       }
 
+      // Tras el primer período proyectado, las materias en curso se consideran aprobadas y
+      // pasan a desbloquear sus correlativas para los cuatrimestres siguientes.
+      if (!enCursoDesbloqueado) {
+        inProgressIds.forEach((id) => virtualApproved.add(id));
+        enCursoDesbloqueado = true;
+      }
+
       currentCuatrimestre = currentCuatrimestre === 1 ? 2 : 1;
       if (currentCuatrimestre === 1) currentAnio++;
     }
 
     res.json({
       horasPorSemana,
+      primerPeriodo,
       periodos,
       // Materias que no se pudieron ubicar: requieren más horas que el límite semanal o
       // dependen de correlativas que tampoco entran (deadlock por presupuesto de horas).
