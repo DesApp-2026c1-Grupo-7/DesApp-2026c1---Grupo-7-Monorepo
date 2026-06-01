@@ -35,20 +35,20 @@ async function resetDatabase() {
 async function seedCareers() {
   const careersData = [
     {
-      nombre: 'Ingenieria en Sistemas',
-      codigo: 'INGSIST',
-      descripcion: 'Carrera de grado de 5 anios orientada a desarrollo de software y sistemas.',
-      titulo: 'Ingeniero/a en Sistemas',
+      nombre: 'Tecnicatura Universitaria en Programacion',
+      codigo: 'TUP',
+      descripcion: 'Carrera de pregrado (3 anios) orientada al desarrollo de software, con fuerte base en programacion, bases de datos e ingenieria de software.',
+      titulo: 'Tecnico/a Universitario/a en Programacion',
       instituto: 'Instituto de Tecnologia e Ingenieria',
-      duracionAnios: 5
+      duracionAnios: 3
     },
     {
-      nombre: 'Licenciatura en Informatica',
-      codigo: 'LICINF',
-      descripcion: 'Carrera de grado orientada a investigacion y desarrollo en informatica.',
-      titulo: 'Licenciado/a en Informatica',
+      nombre: 'Tecnicatura Universitaria en Tecnologia de la Informacion',
+      codigo: 'TUTI',
+      descripcion: 'Carrera de pregrado orientada a infraestructura, redes y administracion de sistemas.',
+      titulo: 'Tecnico/a Universitario/a en Tecnologia de la Informacion',
       instituto: 'Instituto de Tecnologia e Ingenieria',
-      duracionAnios: 5
+      duracionAnios: 3
     }
   ];
 
@@ -66,19 +66,34 @@ async function seedCareers() {
 
 async function seedSubjects(careerId) {
   const subjectsData = [
-    { nombre: 'Analisis Matematico I', codigo: 'AM1' },
-    { nombre: 'Algoritmos y Estructuras de Datos', codigo: 'AED' },
+    // 1er anio
+    { nombre: 'Introduccion a la Programacion', codigo: 'IP' },
+    { nombre: 'Matematica', codigo: 'MAT' },
+    { nombre: 'Organizacion de las Computadoras', codigo: 'OC' },
+    { nombre: 'Ingles con Orientacion en Informatica I', codigo: 'ING1' },
     { nombre: 'Programacion I', codigo: 'PROG1' },
-    { nombre: 'Analisis Matematico II', codigo: 'AM2' },
-    { nombre: 'Ingles Tecnico', codigo: 'ENG1' },
-    { nombre: 'Sistemas Operativos', codigo: 'SO' },
+    { nombre: 'Estructura de Datos', codigo: 'ED' },
     { nombre: 'Bases de Datos I', codigo: 'BD1' },
-    { nombre: 'Ingenieria de Software', codigo: 'ISW' },
-    { nombre: 'Optativa: Big Data', codigo: 'OPTBD' },
-    { nombre: 'Rock Nacional', codigo: 'UNA-ROCK' },
-    { nombre: 'La vida de Maradona', codigo: 'UNA-DIEGO' },
-    { nombre: 'Robotica', codigo: 'UNA-ROBOT' },
-    { nombre: 'La vida de las rocas', codigo: 'UNA-PIEDRA' }
+    { nombre: 'Ingles con Orientacion en Informatica II', codigo: 'ING2' },
+    // 2do anio
+    { nombre: 'Programacion II', codigo: 'PROG2' },
+    { nombre: 'Bases de Datos II', codigo: 'BD2' },
+    { nombre: 'Sistemas Operativos', codigo: 'SO' },
+    { nombre: 'Ingenieria de Software I', codigo: 'IS1' },
+    { nombre: 'Programacion III', codigo: 'PROG3' },
+    { nombre: 'Redes de Computadoras', codigo: 'RED' },
+    { nombre: 'Ingenieria de Software II', codigo: 'IS2' },
+    // 3er anio
+    { nombre: 'Desarrollo de Aplicaciones Web', codigo: 'DAW' },
+    { nombre: 'Seguridad Informatica', codigo: 'SEG' },
+    { nombre: 'Gestion de Proyectos de Software', codigo: 'GP' },
+    { nombre: 'Practica Profesionalizante', codigo: 'PP' },
+    { nombre: 'Optativa: Introduccion a la Ciencia de Datos', codigo: 'OPTCD' },
+    // Asignaturas transversales UNAHUR
+    { nombre: 'Problematica Ambiental', codigo: 'UNA-AMB' },
+    { nombre: 'Ciencia, Tecnologia y Sociedad', codigo: 'UNA-CTS' },
+    { nombre: 'Derechos Humanos y Ciudadania', codigo: 'UNA-DDHH' },
+    { nombre: 'Taller de Comunicacion', codigo: 'UNA-COM' }
   ];
 
   const created = {};
@@ -96,19 +111,37 @@ async function seedSubjects(careerId) {
 
 async function seedStudyPlan(career, subjectsMap) {
   const materiasConfig = [
-    { codigo: 'AM1', anio: 1, cuatrimestre: 1, creditos: 8, horasSemanales: 6 },
-    { codigo: 'AED', anio: 1, cuatrimestre: 1, creditos: 6, horasSemanales: 4 },
-    { codigo: 'PROG1', anio: 1, cuatrimestre: 2, creditos: 6, horasSemanales: 4, correlativas: ['AED'] },
-    { codigo: 'AM2', anio: 1, cuatrimestre: 2, creditos: 8, horasSemanales: 6, correlativas: ['AM1'] },
-    { codigo: 'ENG1', anio: 2, cuatrimestre: 1, creditos: 4, horasSemanales: 2 },
-    { codigo: 'SO', anio: 2, cuatrimestre: 2, creditos: 6, horasSemanales: 4, correlativas: ['PROG1'] },
-    { codigo: 'BD1', anio: 3, cuatrimestre: 1, creditos: 6, horasSemanales: 4, correlativas: ['PROG1'] },
-    { codigo: 'ISW', anio: 3, cuatrimestre: 2, creditos: 6, horasSemanales: 4, correlativas: ['BD1', 'SO'] },
-    { codigo: 'OPTBD', anio: 4, cuatrimestre: 2, creditos: 4, horasSemanales: 4, esOptativa: true, correlativas: ['BD1'] },
-    { codigo: 'UNA-ROCK', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
-    { codigo: 'UNA-DIEGO', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
-    { codigo: 'UNA-ROBOT', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
-    { codigo: 'UNA-PIEDRA', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true }
+    // 1er anio - 1er cuatrimestre
+    { codigo: 'IP', anio: 1, cuatrimestre: 1, creditos: 8, horasSemanales: 6 },
+    { codigo: 'MAT', anio: 1, cuatrimestre: 1, creditos: 8, horasSemanales: 6 },
+    { codigo: 'OC', anio: 1, cuatrimestre: 1, creditos: 6, horasSemanales: 4 },
+    { codigo: 'ING1', anio: 1, cuatrimestre: 1, creditos: 4, horasSemanales: 3 },
+    // 1er anio - 2do cuatrimestre
+    { codigo: 'PROG1', anio: 1, cuatrimestre: 2, creditos: 8, horasSemanales: 6, correlativas: ['IP'] },
+    { codigo: 'ED', anio: 1, cuatrimestre: 2, creditos: 6, horasSemanales: 4, correlativas: ['IP'] },
+    { codigo: 'BD1', anio: 1, cuatrimestre: 2, creditos: 6, horasSemanales: 4, correlativas: ['IP'] },
+    { codigo: 'ING2', anio: 1, cuatrimestre: 2, creditos: 4, horasSemanales: 3, correlativas: ['ING1'] },
+    // 2do anio - 1er cuatrimestre
+    { codigo: 'PROG2', anio: 2, cuatrimestre: 1, creditos: 8, horasSemanales: 6, correlativas: ['PROG1', 'ED'] },
+    { codigo: 'BD2', anio: 2, cuatrimestre: 1, creditos: 6, horasSemanales: 4, correlativas: ['BD1'] },
+    { codigo: 'SO', anio: 2, cuatrimestre: 1, creditos: 6, horasSemanales: 4, correlativas: ['OC'] },
+    { codigo: 'IS1', anio: 2, cuatrimestre: 1, creditos: 6, horasSemanales: 4, correlativas: ['PROG1', 'BD1'] },
+    // 2do anio - 2do cuatrimestre
+    { codigo: 'PROG3', anio: 2, cuatrimestre: 2, creditos: 8, horasSemanales: 6, correlativas: ['PROG2', 'BD2'] },
+    { codigo: 'RED', anio: 2, cuatrimestre: 2, creditos: 6, horasSemanales: 4, correlativas: ['SO'] },
+    { codigo: 'IS2', anio: 2, cuatrimestre: 2, creditos: 6, horasSemanales: 4, correlativas: ['IS1', 'PROG2'] },
+    // 3er anio - 1er cuatrimestre
+    { codigo: 'DAW', anio: 3, cuatrimestre: 1, creditos: 6, horasSemanales: 5, correlativas: ['PROG3'] },
+    { codigo: 'SEG', anio: 3, cuatrimestre: 1, creditos: 6, horasSemanales: 4, correlativas: ['RED'] },
+    { codigo: 'GP', anio: 3, cuatrimestre: 1, creditos: 4, horasSemanales: 3, correlativas: ['IS2'] },
+    // 3er anio - 2do cuatrimestre
+    { codigo: 'PP', anio: 3, cuatrimestre: 2, creditos: 10, horasSemanales: 8, correlativas: ['PROG3', 'IS2', 'BD2'] },
+    { codigo: 'OPTCD', anio: 3, cuatrimestre: 2, creditos: 4, horasSemanales: 4, esOptativa: true, correlativas: ['BD2'] },
+    // Asignaturas transversales UNAHUR (electivas, sin cuatrimestre fijo)
+    { codigo: 'UNA-AMB', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
+    { codigo: 'UNA-CTS', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
+    { codigo: 'UNA-DDHH', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
+    { codigo: 'UNA-COM', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true }
   ];
 
   const materiasFormatted = materiasConfig.map(m => ({
@@ -129,9 +162,9 @@ async function seedStudyPlan(career, subjectsMap) {
       anio: 2023,
       carrera: career._id,
       materias: materiasFormatted,
-      creditosNecesarios: 85,
-      materiasUnahurRequeridas: 8,
-      nivelInglesRequerido: 'B2',
+      creditosNecesarios: 120,
+      materiasUnahurRequeridas: 3,
+      nivelInglesRequerido: 'B1',
       estado: 'Vigente',
       activo: true
     },
@@ -142,16 +175,54 @@ async function seedStudyPlan(career, subjectsMap) {
 async function seedAcademicOffer(subjectsMap) {
   const now = new Date();
   const cuatrimestre = now.getMonth() < 7 ? 1 : 2;
-  const subjects = Object.values(subjectsMap);
+  // Ofrecemos las materias de 1er anio de ambos cuatrimestres + las transversales UNAHUR,
+  // para que un estudiante nuevo tenga materias en las que inscribirse de entrada.
+  const codigosOferta = ['IP', 'MAT', 'OC', 'ING1', 'PROG1', 'ED', 'BD1', 'ING2', 'UNA-AMB', 'UNA-CTS'];
   await AcademicOffer.findOneAndUpdate(
     { anio: now.getFullYear(), cuatrimestre },
     {
       anio: now.getFullYear(),
       cuatrimestre,
-      materias: subjects.slice(0, 5).map((s) => s._id)
+      materias: codigosOferta.map((cod) => subjectsMap[cod]._id)
     },
     { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
   );
+}
+
+// Situacion academica de demo para que el asistente (planificador, "que pasa si",
+// avance por anio) tenga datos interesantes apenas se levanta el proyecto.
+async function seedDemoGrades(student, subjectsMap) {
+  const yaTieneNotas = await Grade.countDocuments({ estudiante: student._id });
+  if (yaTieneNotas > 0) return;
+
+  const notas = [
+    // 1er anio 1C completo
+    { codigo: 'IP', estado: 'Aprobada', nota: 8, anioCursada: 2024, cuatrimestre: 1 },
+    { codigo: 'MAT', estado: 'Aprobada', nota: 7, anioCursada: 2024, cuatrimestre: 1 },
+    { codigo: 'OC', estado: 'Aprobada', nota: 9, anioCursada: 2024, cuatrimestre: 1 },
+    { codigo: 'ING1', estado: 'Aprobada', nota: 8, anioCursada: 2024, cuatrimestre: 1 },
+    // 1er anio 2C: algunas aprobadas, una regular
+    { codigo: 'PROG1', estado: 'Aprobada', nota: 8, anioCursada: 2024, cuatrimestre: 2 },
+    { codigo: 'BD1', estado: 'Aprobada', nota: 7, anioCursada: 2024, cuatrimestre: 2 },
+    { codigo: 'ED', estado: 'Regular', anioCursada: 2024, cuatrimestre: 2 },
+    // En curso ahora: su correlativa (PROG3) NO debe habilitarse en el primer cuatri del plan
+    { codigo: 'PROG2', estado: 'Cursando', anioCursada: 2025, cuatrimestre: 1 }
+  ];
+
+  for (const n of notas) {
+    const subject = subjectsMap[n.codigo];
+    if (!subject) continue;
+    await Grade.create({
+      estudiante: student._id,
+      materia: subject._id,
+      estado: n.estado,
+      nota: n.nota,
+      anioCursada: n.anioCursada,
+      cuatrimestre: n.cuatrimestre,
+      fecha: Date.now()
+    });
+  }
+  logger.info('Situacion academica de demo cargada para el estudiante por defecto.');
 }
 
 async function seedUsers() {
@@ -162,9 +233,9 @@ async function seedUsers() {
     }
 
     const careers = await seedCareers();
-    const careerIngSist = careers[0];
-    const subjectsMap = await seedSubjects(careerIngSist._id);
-    const plan = await seedStudyPlan(careerIngSist, subjectsMap);
+    const careerTup = careers[0];
+    const subjectsMap = await seedSubjects(careerTup._id);
+    const plan = await seedStudyPlan(careerTup, subjectsMap);
 
     const adminEmail = 'admin@universidad.edu';
     let admin = await User.findOne({ email: adminEmail });
@@ -186,12 +257,12 @@ async function seedUsers() {
         email: studentEmail,
         password: await bcrypt.hash('estudiante123', 10),
         role: 'student',
-        carrera: careerIngSist._id,
+        carrera: careerTup._id,
         planEstudio: plan._id
       });
       logger.info('Usuario estudiante por defecto creado.');
     } else {
-      student.carrera = student.carrera || careerIngSist._id;
+      student.carrera = student.carrera || careerTup._id;
       student.planEstudio = student.planEstudio || plan._id;
       await student.save();
     }
@@ -204,12 +275,13 @@ async function seedUsers() {
         email: student2Email,
         password: await bcrypt.hash('estudiante123', 10),
         role: 'student',
-        carrera: careerIngSist._id,
+        carrera: careerTup._id,
         planEstudio: plan._id
       });
       logger.info('Segundo usuario estudiante por defecto creado.');
     }
 
+    await seedDemoGrades(student, subjectsMap);
     await seedAcademicOffer(subjectsMap);
     logger.info('Sembrado de datos completado exitosamente.');
 

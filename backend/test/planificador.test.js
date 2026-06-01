@@ -324,6 +324,42 @@ test('compara el rendimiento real contra un plan guardado (plus)', async () => {
   assert.equal(comp.body.estado, 'al-dia');
 });
 
+test('la comparacion detalla por periodo las materias que quedaron atrasadas (etapa 3)', async () => {
+  // Plan: un cuatri ya transcurrido con 2 materias planeadas (M1A y M1B).
+  const anioPasado = new Date().getFullYear() - 1;
+  const saved = await request(app)
+    .post('/api/academico/planes-guardados')
+    .set('Authorization', `Bearer ${studentToken}`)
+    .send({
+      nombre: 'Plan con atraso',
+      horasPorSemana: 12,
+      periodos: [
+        { anio: anioPasado, cuatrimestre: 1, horasUsadas: 8, materias: [
+          { _id: S.M1A, nombre: 'Materia 1A', codigo: 'M1A', creditos: 4, horasSemanalesEstimadas: 4 },
+          { _id: S.M1B, nombre: 'Materia 1B', codigo: 'M1B', creditos: 4, horasSemanalesEstimadas: 4 }
+        ] }
+      ]
+    })
+    .expect(201);
+
+  // Solo cumplo una de las dos materias planeadas para ese periodo.
+  await setEstado(S.M1A, 'Aprobada').expect(200);
+
+  const comp = await request(app)
+    .get(`/api/academico/planes-guardados/${saved.body.plan._id}/comparacion`)
+    .set('Authorization', `Bearer ${studentToken}`)
+    .expect(200);
+
+  const periodo = comp.body.periodos.find((p) => p.anio === anioPasado && p.cuatrimestre === 1);
+  assert.ok(periodo, 'la comparacion incluye el periodo planeado');
+  assert.equal(periodo.transcurrido, true);
+  assert.equal(periodo.totalMaterias, 2);
+  assert.equal(periodo.cumplidas, 1);
+  assert.equal(periodo.materiasAtrasadas.length, 1);
+  assert.equal(periodo.materiasAtrasadas[0].codigo, 'M1B');
+  assert.notEqual(comp.body.estado, 'al-dia');
+});
+
 test('guarda y recupera planes de cursada', async () => {
   const plan = await getPlanificador(100);
 

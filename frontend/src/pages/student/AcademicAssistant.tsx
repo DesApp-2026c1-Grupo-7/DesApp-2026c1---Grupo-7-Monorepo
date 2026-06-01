@@ -78,6 +78,14 @@ interface ComparacionPlan {
   diferencia: number;
   estado: "al-dia" | "leve-desvio" | "atrasado";
   porcentajeCumplimiento: number;
+  periodos?: {
+    anio: number;
+    cuatrimestre: number;
+    transcurrido: boolean;
+    totalMaterias: number;
+    cumplidas: number;
+    materiasAtrasadas: { nombre: string; codigo: string }[];
+  }[];
 }
 
 const AcademicAssistant = () => {
@@ -687,10 +695,41 @@ const AcademicAssistant = () => {
                     </button>
                   </div>
                   {comp && (
-                    <p style={{ marginTop: 8 }} data-testid="comparacion">
-                      Cumpliste {comp.materiasCumplidas} de {comp.materiasEsperadas} materias previstas
-                      {" "}({comp.porcentajeCumplimiento}%) · Estado: <strong>{comp.estado.replace("-", " ")}</strong>
-                    </p>
+                    <div style={{ marginTop: 8 }} data-testid="comparacion">
+                      <p>
+                        Cumpliste {comp.materiasCumplidas} de {comp.materiasEsperadas} materias previstas
+                        {" "}({comp.porcentajeCumplimiento}%) · Estado: <strong>{comp.estado.replace("-", " ")}</strong>
+                      </p>
+                      {comp.periodos && comp.periodos.filter((p) => p.transcurrido).length > 0 && (
+                        <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+                          {comp.periodos.filter((p) => p.transcurrido).map((p) => {
+                            const cerrado = p.cumplidas >= p.totalMaterias;
+                            return (
+                              <div
+                                key={`${p.anio}-${p.cuatrimestre}`}
+                                style={{
+                                  fontSize: "0.85rem", padding: "6px 10px", borderRadius: 6,
+                                  background: cerrado ? "#f0fdf4" : "#fef2f2",
+                                  border: `1px solid ${cerrado ? "#bbf7d0" : "#fecaca"}`
+                                }}
+                              >
+                                <strong>{p.anio} - {p.cuatrimestre === 0 ? "Anual" : `${p.cuatrimestre}C`}:</strong>{" "}
+                                planeaste {p.totalMaterias}, cumpliste {p.cumplidas}
+                                {p.materiasAtrasadas.length > 0 && (
+                                  <span> · atrasadas: {p.materiasAtrasadas.map((m) => m.codigo).join(", ")}</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                          {comp.estado !== "al-dia" && (
+                            <p style={{ fontSize: "0.85rem", color: "#92400e", margin: "4px 0 0" }}>
+                              Cargá lo que aprobaste/regularizaste en tu situación académica y usá
+                              "Regenerar plan automático" para recalcular el plan con tu atraso.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               );
