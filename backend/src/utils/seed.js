@@ -196,15 +196,20 @@ async function seedDemoGrades(student, subjectsMap) {
   if (yaTieneNotas > 0) return;
 
   const notas = [
-    // 1er anio 1C completo
+    // 1er anio COMPLETO (para mostrar el badge "Completo" en avance por anio)
     { codigo: 'IP', estado: 'Aprobada', nota: 8, anioCursada: 2024, cuatrimestre: 1 },
     { codigo: 'MAT', estado: 'Aprobada', nota: 7, anioCursada: 2024, cuatrimestre: 1 },
     { codigo: 'OC', estado: 'Aprobada', nota: 9, anioCursada: 2024, cuatrimestre: 1 },
     { codigo: 'ING1', estado: 'Aprobada', nota: 8, anioCursada: 2024, cuatrimestre: 1 },
-    // 1er anio 2C: algunas aprobadas, una regular
     { codigo: 'PROG1', estado: 'Aprobada', nota: 8, anioCursada: 2024, cuatrimestre: 2 },
+    { codigo: 'ED', estado: 'Aprobada', nota: 7, anioCursada: 2024, cuatrimestre: 2 },
     { codigo: 'BD1', estado: 'Aprobada', nota: 7, anioCursada: 2024, cuatrimestre: 2 },
-    { codigo: 'ED', estado: 'Regular', anioCursada: 2024, cuatrimestre: 2 },
+    { codigo: 'ING2', estado: 'Aprobada', nota: 9, anioCursada: 2024, cuatrimestre: 2 },
+    // 2do anio en marcha
+    // BD2 aprobada: deja a PROG3 bloqueada UNICAMENTE por PROG2 (en curso), ideal para
+    // la demo de "que pasa si" (regularizo PROG2 -> se habilita PROG3).
+    { codigo: 'BD2', estado: 'Aprobada', nota: 8, anioCursada: 2025, cuatrimestre: 1 },
+    { codigo: 'IS1', estado: 'Regular', anioCursada: 2025, cuatrimestre: 1 },
     // En curso ahora: su correlativa (PROG3) NO debe habilitarse en el primer cuatri del plan
     { codigo: 'PROG2', estado: 'Cursando', anioCursada: 2025, cuatrimestre: 1 }
   ];

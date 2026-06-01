@@ -1,8 +1,9 @@
 // Demo E2E del Planificador de cursada (Asistente Academico).
 //
-// Usa el estudiante sembrado por defecto (seed): su plan tiene una cadena de
-// correlatividades (AED -> PROG1 -> SO/BD1 -> ISW, AM1 -> AM2), asi que el
-// planificador arma varios cuatrimestres hasta recibirse.
+// Usa el estudiante sembrado por defecto (seed): carrera TUP (UNAHUR) con una cadena
+// de correlatividades real (IP -> PROG1 -> PROG2 -> PROG3, BD1 -> BD2, OC -> SO -> RED...),
+// asi que el planificador arma varios cuatrimestres hasta recibirse. El estudiante tiene
+// 1er anio aprobado y PROG2 "Cursando" (su correlativa PROG3 no debe ir en el primer cuatri).
 //
 // Requiere el backend (npm run dev) y el frontend (npm run dev) levantados,
 // con la base sembrada (seed) corrida al menos una vez.
@@ -36,6 +37,16 @@ describe("Planificador de cursada", () => {
     cy.get('[data-testid="periodo-materia"]').its("length").should("be.greaterThan", 1);
     // Cada periodo muestra su carga horaria semanal.
     cy.get('[data-testid="periodo"]').first().contains("h/sem");
+  });
+
+  it("no ubica en el primer cuatrimestre una materia cuya correlativa esta en curso", () => {
+    // PROG2 esta "Cursando" (no aprobada) en el seed y PROG3 depende de PROG2:
+    // PROG3 NO puede aparecer en el primer cuatrimestre del plan.
+    cy.get('[data-testid="periodo"]').first().within(() => {
+      cy.get('[data-testid="periodo-materia"]').should("not.contain", "Programacion III");
+    });
+    // Pero el plan igual la incluye mas adelante (llega hasta recibirse).
+    cy.get('[data-testid="planificador"]').should("contain", "Programacion III");
   });
 
   it("mueve una materia a otro cuatrimestre sin perder materias ni romper correlatividades", () => {
