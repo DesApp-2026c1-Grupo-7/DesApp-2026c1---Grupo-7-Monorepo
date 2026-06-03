@@ -12,6 +12,7 @@ const upload = multer({
 
 // Situación académica
 router.get('/situacion', auth, gradeController.getStudentSituation);
+router.get('/pendientes', auth, gradeController.getPendingSubjects);
 router.post('/situacion', auth, gradeController.updateGrade);
 router.post('/situacion/bulk', auth, gradeController.bulkLoadSituation);
 router.post('/situacion/preview-excel', auth, upload.single('file'), importController.previewSituationExcel);
@@ -33,6 +34,7 @@ router.post('/que-pasa-si', auth, gradeController.getQuePasaSi);
 router.get('/planificador', auth, gradeController.getPlanificador);
 router.get('/planes-guardados', auth, gradeController.listSavedStudyPlans);
 router.post('/planes-guardados', auth, gradeController.saveStudyPlan);
+router.get('/planes-guardados/:id/comparacion', auth, gradeController.getComparacionPlanGuardado);
 router.get('/actividades-creditos', auth, gradeController.listCreditActivities);
 router.post('/actividades-creditos', auth, gradeController.createCreditActivity);
 

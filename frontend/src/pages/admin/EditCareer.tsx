@@ -12,35 +12,34 @@ export default function EditCareer() {
     descripcion: "",
     titulo: "",
     instituto: "",
-    duracionAnios: 5,
-    creditosNecesarios: 0,
-    materiasUnahurRequeridas: 0,
-    nivelInglesRequerido: "B1",
-    cantidadMaterias: 0
+    duracionAnios: 5
   });
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    api.get(`/carreras/${id}`)
-      .then((r) => {
-        const c = r.data;
+    (async () => {
+      try {
+        const res = await api.get(`/carreras/${id}`);
+        
+        const c = res.data;
         setForm({
           nombre: c.nombre || "",
           codigo: c.codigo || "",
           descripcion: c.descripcion || "",
           titulo: c.titulo || "",
           instituto: c.instituto || "",
-          duracionAnios: c.duracionAnios || 5,
-          creditosNecesarios: c.creditosNecesarios || 0,
-          materiasUnahurRequeridas: c.materiasUnahurRequeridas || 0,
-          nivelInglesRequerido: c.nivelInglesRequerido || "B1",
-          cantidadMaterias: c.cantidadMaterias || 0
+          duracionAnios: c.duracionAnios || 5
         });
-      })
-      .catch((e) => setError(e.response?.data?.mensaje || "Error al cargar la carrera"))
-      .finally(() => setFetching(false));
+
+      } catch (e: unknown) {
+        const ax = e as { response?: { data?: { mensaje?: string } } };
+        setError(ax.response?.data?.mensaje || "Error al cargar datos");
+      } finally {
+        setFetching(false);
+      }
+    })();
   }, [id]);
 
   const onChange = (key: string, value: string | number) => {
@@ -54,11 +53,9 @@ export default function EditCareer() {
     try {
       await api.put(`/carreras/${id}`, {
         ...form,
-        duracionAnios: Number(form.duracionAnios),
-        creditosNecesarios: Number(form.creditosNecesarios),
-        materiasUnahurRequeridas: Number(form.materiasUnahurRequeridas),
-        cantidadMaterias: Number(form.cantidadMaterias)
+        duracionAnios: Number(form.duracionAnios)
       });
+
       navigate("/admin/carreras");
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
@@ -72,58 +69,45 @@ export default function EditCareer() {
 
   return (
     <div className="create-career-page">
-      <div className="create-career-container">
+      <div className="create-career-container" style={{ maxWidth: 700 }}>
         <h1>Editar Carrera</h1>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+          Los requisitos académicos específicos como créditos e inglés se editan desde los Planes de Estudio.
+        </p>
         <form className="create-career-form" onSubmit={handleSubmit}>
           {error && <p style={{ color: "var(--error)", marginBottom: "1rem" }}>{error}</p>}
 
-          {[
-            ["nombre", "Nombre"],
-            ["codigo", "Codigo"],
-            ["titulo", "Titulo que otorga"],
-            ["instituto", "Instituto"]
-          ].map(([key, label]) => (
-            <div className="form-group" key={key}>
-              <label>{label}</label>
-              <input value={String(form[key as keyof typeof form])} onChange={(e) => onChange(key, e.target.value)} required disabled={loading} />
-            </div>
-          ))}
+          <div className="form-group">
+            <label>Nombre de la carrera</label>
+            <input value={form.nombre} onChange={(e) => onChange("nombre", e.target.value)} required disabled={loading} />
+          </div>
 
           <div className="form-group">
-            <label>Descripcion</label>
+            <label>Código</label>
+            <input value={form.codigo} onChange={(e) => onChange("codigo", e.target.value)} required disabled={loading} />
+          </div>
+
+          <div className="form-group">
+            <label>Título que otorga</label>
+            <input value={form.titulo} onChange={(e) => onChange("titulo", e.target.value)} required disabled={loading} />
+          </div>
+
+          <div className="form-group">
+            <label>Instituto</label>
+            <input value={form.instituto} onChange={(e) => onChange("instituto", e.target.value)} required disabled={loading} />
+          </div>
+
+          <div className="form-group">
+            <label>Descripción</label>
             <textarea rows={3} value={form.descripcion} onChange={(e) => onChange("descripcion", e.target.value)} disabled={loading} />
           </div>
 
           <div className="form-group">
-            <label>Duracion estimada (anios)</label>
+            <label>Duración estimada (años)</label>
             <input type="number" min={1} value={form.duracionAnios} onChange={(e) => onChange("duracionAnios", Number(e.target.value))} disabled={loading} />
           </div>
 
-          <div className="form-group">
-            <label>Cantidad de materias</label>
-            <input type="number" min={0} value={form.cantidadMaterias} onChange={(e) => onChange("cantidadMaterias", Number(e.target.value))} disabled={loading} />
-          </div>
-
-          <div className="form-group">
-            <label>Cantidad de materias UNAHUR</label>
-            <input type="number" min={0} value={form.materiasUnahurRequeridas} onChange={(e) => onChange("materiasUnahurRequeridas", Number(e.target.value))} disabled={loading} />
-          </div>
-
-          <div className="form-group">
-            <label>Creditos necesarios</label>
-            <input type="number" min={0} value={form.creditosNecesarios} onChange={(e) => onChange("creditosNecesarios", Number(e.target.value))} disabled={loading} />
-          </div>
-
-          <div className="form-group">
-            <label>Nivel de ingles</label>
-            <select value={form.nivelInglesRequerido} onChange={(e) => onChange("nivelInglesRequerido", e.target.value)} disabled={loading}>
-              {["Ninguno", "A1", "A2", "B1", "B2", "C1", "C2"].map((nivel) => (
-                <option key={nivel} value={nivel}>{nivel}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-actions">
+          <div className="form-actions" style={{ marginTop: '2rem' }}>
             <button type="button" className="btn-secondary" onClick={() => navigate("/admin/carreras")} disabled={loading}>Cancelar</button>
             <button type="submit" className="btn-primary" disabled={loading}>{loading ? "Guardando..." : "Guardar Cambios"}</button>
           </div>

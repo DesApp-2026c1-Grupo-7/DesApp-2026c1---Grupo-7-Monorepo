@@ -10,6 +10,7 @@ let student1Token;
 let student1Id;
 let student2Token;
 let student2Id;
+let subjectId;
 
 async function createBootstrapAdmin() {
   const User = require('../src/models/User');
@@ -50,6 +51,17 @@ test.before(async () => {
     });
   assert.equal(career.status, 201);
   const careerId = career.body.career._id;
+
+  const subject = await request(app)
+    .post('/api/materias')
+    .set('Authorization', `Bearer ${adminToken}`)
+    .send({
+      nombre: 'Base de Datos',
+      codigo: 'BD',
+      carrera: careerId
+    });
+  assert.equal(subject.status, 201);
+  subjectId = subject.body.subject._id;
 
   const reg1 = await request(app)
     .post('/api/auth/register')
@@ -212,4 +224,50 @@ test('evento: requiere contenido no vacío', async () => {
     .set('Authorization', `Bearer ${student1Token}`)
     .send({ contenido: 'x'.repeat(501) })
     .expect(400);
+});
+
+test('sesiones: proponer una sesión con todos los campos requeridos', async () => {
+  const data = {
+    materia: subjectId,
+    tema: 'Repaso Parcial 1',
+    tipo: 'presencial',
+    ubicacion: 'Biblioteca Central',
+    fechaHora: '2026-06-01T10:00:00',
+    duracion: { horas: 2, minutos: 30 },
+    cupos: 5,
+    descripcion: 'Vamos a resolver el examen del año pasado',
+    requiereAprobacion: true
+  };
+
+  const res = await request(app)
+    .post('/api/sesiones')
+    .set('Authorization', `Bearer ${student1Token}`)
+    .send(data)
+    .expect(201);
+
+  assert.equal(res.body.tema, 'Repaso Parcial 1');
+  assert.equal(res.body.tipo, 'presencial');
+  assert.equal(res.body.ubicacion, 'Biblioteca Central');
+  assert.equal(res.body.requiereAprobacion, true);
+  assert.equal(res.body.materia.nombre, 'Base de Datos');
+  assert.equal(res.body.creador.nombre, 'Ana Lopez');
+});
+
+test('sesiones: fallar si faltan campos obligatorios', async () => {
+  await request(app)
+    .post('/api/sesiones')
+    .set('Authorization', `Bearer ${student1Token}`)
+    .send({ tema: 'Sin materia' })
+    .expect(400);
+});
+
+test('sesiones: obtener listado de sesiones activas', async () => {
+  const res = await request(app)
+    .get('/api/sesiones')
+    .set('Authorization', `Bearer ${student2Token}`)
+    .expect(200);
+
+  assert.ok(Array.isArray(res.body));
+  assert.ok(res.body.length >= 1);
+  assert.ok(res.body.some(s => s.tema === 'Repaso Parcial 1'));
 });

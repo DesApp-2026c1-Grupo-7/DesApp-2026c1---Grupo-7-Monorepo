@@ -153,12 +153,16 @@ const Social = () => {
       setMessage({ text: response.data.mensaje, type: "success" });
       setInviteEmail("");
       loadData(); // Recargar para ver la nueva invitación enviada
+      
+      // Auto-dismiss message
+      setTimeout(() => setMessage(null), 4000);
     } catch (error: unknown) {
       const axiosErr = error as { response?: { data?: { mensaje?: string } } };
       setMessage({ 
         text: axiosErr.response?.data?.mensaje || "Error al enviar la invitación", 
         type: "error" 
       });
+      setTimeout(() => setMessage(null), 4000);
     } finally {
       setInviting(false);
     }
@@ -166,6 +170,12 @@ const Social = () => {
 
   return (
     <div className="social-container">
+      {message && (
+        <div className={`profile-alert ${message.type}`}>
+          <span>{message.type === 'success' ? '✅' : '❌'}</span>
+          {message.text}
+        </div>
+      )}
       <h1>Red Social</h1>
       <p className="subtitle">Conecta con otros estudiantes y amplía tu red académica</p>
 
@@ -247,11 +257,6 @@ const Social = () => {
             {inviting ? "Enviando..." : "Enviar Invitación"}
           </button>
         </form>
-        {message && (
-          <div className={`profile-alert ${message.type}`} style={{ marginTop: '1rem', padding: '10px' }}>
-            {message.text}
-          </div>
-        )}
       </div>
 
       {/* Invitaciones Pendientes */}
@@ -339,17 +344,6 @@ const Social = () => {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Post box (Placeholder) */}
-      <div className="card post-box">
-        <div className="post-input">
-          <div className="avatar" />
-          <textarea placeholder="¿Qué estás pensando?" />
-        </div>
-        <div className="post-actions">
-          <button className="btn primary">Publicar</button>
-        </div>
       </div>
     </div>
   );

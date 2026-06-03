@@ -12,12 +12,42 @@ const studyPlanSchema = new mongoose.Schema({
   },
   carrera: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Career',
-    required: true
+    ref: 'Career'
   },
   materias: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Subject'
+    materia: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Subject',
+      required: true
+    },
+    anio: {
+      type: Number,
+      required: true
+    },
+    cuatrimestre: {
+      type: Number, // 1, 2 o 0 (anual)
+      required: true
+    },
+    creditos: {
+      type: Number,
+      default: 0
+    },
+    horasSemanales: {
+      type: Number,
+      default: 4
+    },
+    correlativas: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Subject'
+    }],
+    esOptativa: {
+      type: Boolean,
+      default: false
+    },
+    esUnahur: {
+      type: Boolean,
+      default: false
+    }
   }],
   creditosNecesarios: {
     type: Number,

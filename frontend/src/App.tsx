@@ -17,6 +17,7 @@ import ExternalProfile from "./pages/student/ExternalProfile";
 import AcceptInvitation from "./pages/student/AcceptInvitation";
 import StudySessions from "./pages/student/StudySessions";
 import CreateSession from "./pages/student/CreateSession";
+import EditSession from "./pages/student/EditSession";
 import Materials from "./pages/student/Materials";
 import Notifications from "./pages/student/Notifications";
 
@@ -88,6 +89,7 @@ const App = () => {
           <Route path="aceptar-invitacion" element={<AcceptInvitation />} />
           <Route path="sessions" element={<StudySessions />} />
           <Route path="create-session" element={<CreateSession />} />
+          <Route path="edit-session/:id" element={<EditSession />} />
           <Route path="materials" element={<Materials />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="profile" element={<Profile />} />

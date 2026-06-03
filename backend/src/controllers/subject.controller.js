@@ -3,16 +3,13 @@ const StudyPlan = require('../models/StudyPlan');
 
 const getSubjects = async (req, res) => {
   try {
-    const { carrera, anio, esOptativa } = req.query;
+    const { carrera } = req.query;
     const filter = {};
     if (carrera) filter.carrera = carrera;
-    if (anio) filter.anio = Number(anio);
-    if (esOptativa !== undefined) filter.esOptativa = esOptativa === 'true';
 
     const subjects = await Subject.find(filter)
       .populate('carrera', 'nombre codigo')
-      .populate('correlativas', 'nombre codigo')
-      .sort({ anio: 1, cuatrimestre: 1, nombre: 1 });
+      .sort({ nombre: 1 });
 
     res.json(subjects);
   } catch (error) {
@@ -23,8 +20,7 @@ const getSubjects = async (req, res) => {
 const getSubjectById = async (req, res) => {
   try {
     const subject = await Subject.findById(req.params.id)
-      .populate('carrera', 'nombre codigo')
-      .populate('correlativas', 'nombre codigo anio');
+      .populate('carrera', 'nombre codigo');
     if (!subject) {
       return res.status(404).json({ mensaje: 'Materia no encontrada' });
     }
@@ -36,7 +32,7 @@ const getSubjectById = async (req, res) => {
 
 const createSubject = async (req, res) => {
   try {
-    const { nombre, codigo, anio, cuatrimestre, creditos, carrera, correlativas, esOptativa, esUnahur } = req.body;
+    const { nombre, codigo, carrera } = req.body;
 
     const existingSubject = await Subject.findOne({ codigo });
     if (existingSubject) {
@@ -46,13 +42,7 @@ const createSubject = async (req, res) => {
     const subject = new Subject({
       nombre,
       codigo,
-      anio,
-      cuatrimestre,
-      creditos: creditos || 0,
-      carrera: carrera || null,
-      correlativas: correlativas || [],
-      esOptativa: !!esOptativa,
-      esUnahur: esUnahur !== false
+      carrera: carrera || null
     });
 
     await subject.save();
@@ -68,13 +58,7 @@ const updateSubject = async (req, res) => {
     const allowedFields = [
       'nombre',
       'codigo',
-      'anio',
-      'cuatrimestre',
-      'creditos',
-      'carrera',
-      'correlativas',
-      'esOptativa',
-      'esUnahur'
+      'carrera'
     ];
     const update = {};
     for (const field of allowedFields) {
@@ -106,14 +90,14 @@ const deleteSubject = async (req, res) => {
 
     // Si forma parte de algún plan, removerla del plan
     await StudyPlan.updateMany(
-      { materias: subjectId },
-      { $pull: { materias: subjectId } }
+      { 'materias.materia': subjectId },
+      { $pull: { materias: { materia: subjectId } } }
     );
 
-    // Si es correlativa de otra materia, removerla
-    await Subject.updateMany(
-      { correlativas: subjectId },
-      { $pull: { correlativas: subjectId } }
+    // Si es correlativa de otra materia en algún plan, removerla
+    await StudyPlan.updateMany(
+      { 'materias.correlativas': subjectId },
+      { $pull: { 'materias.$[].correlativas': subjectId } }
     );
 
     const subject = await Subject.findByIdAndDelete(subjectId);

@@ -43,6 +43,7 @@ const ExternalProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -73,13 +74,20 @@ const ExternalProfile = () => {
   const handleInvite = async () => {
     if (!profile) return;
     setProcessing(true);
+    setMessage(null);
     try {
       // Usamos destinatarioId para que funcione aunque el email esté oculto
-      await api.post("/invitaciones/enviar", { destinatarioId: profile._id });
+      const response = await api.post("/invitaciones/enviar", { destinatarioId: profile._id });
+      setMessage({ text: response.data.mensaje || "Invitación enviada con éxito", type: "success" });
       await fetchProfile(); // Recargar para actualizar estado
+      setTimeout(() => setMessage(null), 4000);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { mensaje?: string } } };
-      alert(axiosErr.response?.data?.mensaje || "Error al enviar invitación");
+      setMessage({ 
+        text: axiosErr.response?.data?.mensaje || "Error al enviar invitación", 
+        type: "error" 
+      });
+      setTimeout(() => setMessage(null), 4000);
     } finally {
       setProcessing(false);
     }
@@ -88,26 +96,22 @@ const ExternalProfile = () => {
   const handleAccept = async () => {
     if (!profile?.invitacionPendiente?._id) return;
     setProcessing(true);
+    setMessage(null);
     try {
       // Usamos invitacionId en lugar del token por seguridad y simplicidad
-      await api.post("/invitaciones/aceptar", { invitacionId: profile.invitacionPendiente._id });
+      const response = await api.post("/invitaciones/aceptar", { invitacionId: profile.invitacionPendiente._id });
+      setMessage({ text: response.data.mensaje || "Invitación aceptada", type: "success" });
       await fetchProfile();
+      setTimeout(() => setMessage(null), 4000);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { mensaje?: string } } };
-      alert(axiosErr.response?.data?.mensaje || "Error al aceptar invitación");
+      setMessage({ 
+        text: axiosErr.response?.data?.mensaje || "Error al aceptar invitación", 
+        type: "error" 
+      });
+      setTimeout(() => setMessage(null), 4000);
     } finally {
       setProcessing(false);
-    }
-  };
-
-
-  const getBadgeClass = (estado: string) => {
-    switch (estado) {
-      case "Aprobada": return "badge green";
-      case "Regular": return "badge blue";
-      case "Cursando": return "badge yellow";
-      case "Pendiente": return "badge gray";
-      default: return "badge";
     }
   };
 
@@ -163,26 +167,48 @@ const ExternalProfile = () => {
 
   return (
     <div className="profile-container">
-      <div className="profile-header card">
-        <div className="profile-info-main">
-          <div className="profile-avatar-container">
+      {message && (
+        <div className={`profile-alert ${message.type}`}>
+          <span>{message.type === 'success' ? '✅' : '❌'}</span>
+          {message.text}
+        </div>
+      )}
+      <h1>Perfil del Estudiante</h1>
+      <p className="subtitle">Conoce más sobre tus compañeros y su camino académico</p>
+
+      <div className="card profile-header-card">
+        <div className="avatar-wrapper">
+          <div className="avatar-main">
             {profile.foto ? (
-              <img src={profile.foto} alt={profile.nombre} className="profile-avatar" />
+              <img src={profile.foto} alt={profile.nombre} />
             ) : (
-              <div className="profile-avatar-placeholder">
-                👤
-              </div>
+              "👤"
             )}
-          </div>
-          <div className="profile-text">
-            <h1>{profile.nombre}</h1>
-            <p className="profile-career">{profile.carrera?.nombre || "Estudiante"}</p>
-            {profile.email && <p className="profile-email">{profile.email}</p>}
           </div>
         </div>
 
-        <div className="profile-actions">
-          {renderActions()}
+        <div className="user-info-main">
+          <h2>{profile.nombre}</h2>
+          <span className="role-badge">
+            {profile.carrera?.nombre || "Estudiante"}
+          </span>
+
+          <div className="user-meta-grid" style={{ justifyContent: 'center', textAlign: 'center' }}>
+            {profile.email && (
+              <div className="meta-item">
+                <label>Email</label>
+                <span>{profile.email}</span>
+              </div>
+            )}
+            <div className="meta-item">
+              <label>Estado</label>
+              <span>{profile.esContacto ? "En tus contactos" : "No es contacto"}</span>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+            {renderActions()}
+          </div>
         </div>
       </div>
 
@@ -196,36 +222,33 @@ const ExternalProfile = () => {
 
         {profile.situacionAcademica && (
           <div className="profile-section card" style={{ gridColumn: '1 / -1' }}>
-            <h3>Situación Académica</h3>
-            <div className="table-container" style={{ marginTop: '1rem' }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Materia</th>
-                    <th>Año</th>
-                    <th>Estado</th>
-                    <th>Nota</th>
-                    <th>Fecha</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {profile.situacionAcademica.length > 0 ? (
-                    profile.situacionAcademica.map((m) => (
-                      <tr key={m._id}>
-                        <td>{m.materia.nombre}</td>
-                        <td>{m.materia.anio}°</td>
-                        <td><span className={getBadgeClass(m.estado)}>{m.estado}</span></td>
-                        <td>{m.nota || "-"}</td>
-                        <td>{new Date(m.fecha).toLocaleDateString()}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>No hay registros académicos visibles.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            <div className="privacy-header">
+              <span>🎓</span>
+              <h3>Situación Académica</h3>
+            </div>
+            <div className="academic-grid" style={{ marginTop: '1rem' }}>
+              {profile.situacionAcademica.length > 0 ? (
+                profile.situacionAcademica.map((m) => (
+                  <div key={m._id} className="academic-item">
+                    <div className="academic-info">
+                      <span className="subject-name">{m.materia.nombre}</span>
+                      <span className="subject-year">
+                        {m.materia.anio === 0 ? "UNAHUR" : `${m.materia.anio}° Año`}
+                      </span>
+                    </div>
+                    <div className="academic-status">
+                      <span className={`status-badge ${m.estado.toLowerCase()}`}>
+                        {m.estado}
+                      </span>
+                      {m.nota && <span className="grade-badge">{m.nota}</span>}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '20px', color: 'var(--text-muted)' }}>
+                  No hay registros académicos visibles.
+                </p>
+              )}
             </div>
           </div>
         )}

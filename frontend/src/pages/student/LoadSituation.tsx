@@ -46,7 +46,7 @@ const LoadSituation = () => {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    api.get("/materias").then((r) => setSubjects(r.data)).catch(() => {});
+    api.get("/academico/pendientes").then((r) => setSubjects(r.data)).catch(() => {});
   }, []);
 
   const updateRow = (idx: number, key: keyof ManualRow, value: string | number) => {
@@ -134,8 +134,15 @@ const LoadSituation = () => {
   };
 
   const downloadTemplate = () => {
-    const csv = ["codigo,estado,nota,cuatrimestre,anio", "ALG,Aprobada,9,1,2026"].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    // Usamos punto y coma para mejor compatibilidad con Excel (especialmente en locales en español)
+    // y agregamos el BOM de UTF-8 (\ufeff) para que Excel reconozca correctamente los caracteres especiales.
+    const csvContent = [
+      "codigo;estado;nota;cuatrimestre;anio",
+      "AM1;Aprobada;9;1;2024",
+      "AED;Regular;;2;2024"
+    ].join("\n");
+    
+    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

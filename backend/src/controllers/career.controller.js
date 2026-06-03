@@ -46,11 +46,7 @@ const createCareer = async (req, res) => {
       descripcion,
       titulo,
       instituto,
-      duracionAnios,
-      cantidadMaterias,
-      materiasUnahurRequeridas,
-      creditosNecesarios,
-      nivelInglesRequerido
+      duracionAnios
     } = req.body;
 
     const existingCareer = await Career.findOne({ $or: [{ nombre }, { codigo }] });
@@ -64,11 +60,7 @@ const createCareer = async (req, res) => {
       descripcion,
       titulo,
       instituto,
-      duracionAnios,
-      cantidadMaterias: cantidadMaterias || 0,
-      materiasUnahurRequeridas: materiasUnahurRequeridas || 0,
-      creditosNecesarios: creditosNecesarios || 0,
-      nivelInglesRequerido: nivelInglesRequerido || 'B1'
+      duracionAnios
     });
 
     await career.save();
@@ -86,11 +78,7 @@ const updateCareer = async (req, res) => {
       descripcion,
       titulo,
       instituto,
-      duracionAnios,
-      cantidadMaterias,
-      materiasUnahurRequeridas,
-      creditosNecesarios,
-      nivelInglesRequerido
+      duracionAnios
     } = req.body;
 
     const career = await Career.findByIdAndUpdate(
@@ -101,11 +89,7 @@ const updateCareer = async (req, res) => {
         descripcion,
         titulo,
         instituto,
-        duracionAnios,
-        cantidadMaterias,
-        materiasUnahurRequeridas,
-        creditosNecesarios,
-        nivelInglesRequerido
+        duracionAnios
       },
       { new: true, runValidators: true }
     );

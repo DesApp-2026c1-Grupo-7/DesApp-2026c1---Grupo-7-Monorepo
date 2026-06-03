@@ -33,10 +33,7 @@ test.before(async () => {
       descripcion: 'Plan de prueba',
       titulo: 'Tecnico/a Universitario/a en Programacion',
       instituto: 'Instituto de Tecnologia',
-      duracionAnios: 3,
-      cantidadMaterias: 3,
-      creditosNecesarios: 12,
-      nivelInglesRequerido: 'B1'
+      duracionAnios: 3
     });
   assert.equal(career.status, 201);
   careerId = career.body.career._id;
@@ -44,25 +41,14 @@ test.before(async () => {
   adminToken = await login('admin@test.com', 'admin123');
 
   for (const subject of [
-    { nombre: 'Algoritmos', codigo: 'ALG', anio: 1, cuatrimestre: 1, creditos: 4, carrera: careerId },
-    { nombre: 'Programacion I', codigo: 'PROG1', anio: 1, cuatrimestre: 2, creditos: 4, carrera: careerId },
-    { nombre: 'Base de Datos', codigo: 'BD', anio: 2, cuatrimestre: 1, creditos: 4, carrera: careerId }
+    { nombre: 'Algoritmos', codigo: 'ALG', carrera: careerId },
+    { nombre: 'Programacion I', codigo: 'PROG1', carrera: careerId },
+    { nombre: 'Base de Datos', codigo: 'BD', carrera: careerId }
   ]) {
     const res = await request(app).post('/api/materias').set('Authorization', `Bearer ${adminToken}`).send(subject);
     assert.equal(res.status, 201);
     subjectIds[subject.codigo] = res.body.subject._id;
   }
-
-  await request(app)
-    .put(`/api/materias/${subjectIds.PROG1}`)
-    .set('Authorization', `Bearer ${adminToken}`)
-    .send({ correlativas: [subjectIds.ALG] })
-    .expect(200);
-  await request(app)
-    .put(`/api/materias/${subjectIds.BD}`)
-    .set('Authorization', `Bearer ${adminToken}`)
-    .send({ correlativas: [subjectIds.PROG1] })
-    .expect(200);
 
   const plan = await request(app)
     .post('/api/planes')
@@ -71,7 +57,11 @@ test.before(async () => {
       nombre: 'Plan 2026',
       anio: 2026,
       carrera: careerId,
-      materias: Object.values(subjectIds),
+      materias: [
+        { materia: subjectIds.ALG, anio: 1, cuatrimestre: 1, creditos: 4, correlativas: [] },
+        { materia: subjectIds.PROG1, anio: 1, cuatrimestre: 2, creditos: 4, correlativas: [subjectIds.ALG] },
+        { materia: subjectIds.BD, anio: 2, cuatrimestre: 1, creditos: 4, correlativas: [subjectIds.PROG1] }
+      ],
       creditosNecesarios: 12,
       materiasUnahurRequeridas: 0,
       nivelInglesRequerido: 'B1',
@@ -84,7 +74,6 @@ test.before(async () => {
     nombre: 'Estudiante Uno',
     email: 'student@test.com',
     password: 'student123',
-    role: 'admin',
     carrera: careerId,
     planEstudio: planId
   }).expect(201);
@@ -177,7 +166,7 @@ test('excel tiene preview editable y confirmacion posterior', async () => {
   await request(app)
     .post('/api/academico/situacion/confirm-excel')
     .set('Authorization', `Bearer ${studentToken}`)
-    .send({ records: validRows })
+    .send({ records: validRows.map(r => ({ ...r, materiaId: r.materiaId })) })
     .expect(200);
 });
 
@@ -216,7 +205,7 @@ test('oferta, que-pasa-si, planificador y creditos completan el asistente', asyn
   assert.equal(avance.body.creditosActividades, 2);
 
   const planificador = await request(app)
-    .get('/api/academico/planificador?horasPorSemana=4')
+    .get('/api/academico/planificador?horasPorSemana=10')
     .set('Authorization', `Bearer ${studentToken}`)
     .expect(200);
   assert.ok(planificador.body.periodos.length >= 1);
@@ -225,6 +214,9 @@ test('oferta, que-pasa-si, planificador y creditos completan el asistente', asyn
     .get('/api/academico/rendimiento-plan?anioInicio=2026&anio=2026')
     .set('Authorization', `Bearer ${studentToken}`)
     .expect(200);
+  // Con el nuevo modelo, AM1 y AED son 1er año 1C, PROG1 y AM2 son 1er año 2C.
+  // En el test: ALG (1-1), PROG1 (1-2), BD (2-1).
+  // Si estamos en 2026 y empezó en 2026, debería haber aprobado ALG y PROG1 para estar al día.
   assert.equal(rendimiento.body.materiasEsperadasAprobadas, 2);
 
   const saved = await request(app)
@@ -232,7 +224,7 @@ test('oferta, que-pasa-si, planificador y creditos completan el asistente', asyn
     .set('Authorization', `Bearer ${studentToken}`)
     .send({
       nombre: 'Plan prueba',
-      horasPorSemana: 4,
+      horasPorSemana: 10,
       periodos: planificador.body.periodos
     })
     .expect(201);

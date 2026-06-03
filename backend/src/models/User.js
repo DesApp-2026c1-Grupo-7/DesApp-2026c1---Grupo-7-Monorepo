@@ -64,6 +64,18 @@ const userSchema = new mongoose.Schema({
     mostrarEventos: {
       type: Boolean,
       default: true
+    },
+    publicarInscripciones: {
+      type: Boolean,
+      default: true
+    },
+    publicarRegularizaciones: {
+      type: Boolean,
+      default: true
+    },
+    publicarAprobaciones: {
+      type: Boolean,
+      default: true
     }
   },
   contactos: [{

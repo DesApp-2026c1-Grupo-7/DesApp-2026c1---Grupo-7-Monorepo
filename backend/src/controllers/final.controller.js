@@ -1,5 +1,6 @@
 const Final = require('../models/Final');
 const Grade = require('../models/Grade');
+const { createAcademicEvent } = require('../utils/academicEvents');
 
 const REGULAR_YEARS = 2;
 
@@ -51,7 +52,8 @@ const getFinalesPendientes = async (req, res) => {
         fechaRegular: g.fecha,
         intentosPrevios,
         venceRegularidad: addYears(g.fecha, REGULAR_YEARS),
-        yaInscripto: !!inscripcionActiva
+        yaInscripto: !!inscripcionActiva,
+        finalId: inscripcionActiva ? inscripcionActiva._id : null
       });
     }
 
@@ -106,7 +108,8 @@ const registrarResultadoFinal = async (req, res) => {
       { _id: req.params.id, estudiante: req.user.id },
       { estado, nota },
       { new: true, runValidators: true }
-    );
+    ).populate('materia', 'nombre');
+    
     if (!final) {
       return res.status(404).json({ mensaje: 'Final no encontrado' });
     }
@@ -114,10 +117,19 @@ const registrarResultadoFinal = async (req, res) => {
     // Si aprobó, actualizar Grade a 'Aprobada'
     if (estado === 'Aprobado') {
       await Grade.findOneAndUpdate(
-        { estudiante: req.user.id, materia: final.materia },
-        { estado: 'Aprobada', nota },
+        { estudiante: req.user.id, materia: final.materia._id },
+        { 
+          estado: 'Aprobada', 
+          nota,
+          fecha: final.fecha // Registramos la fecha del final como fecha de aprobación
+        },
         { runValidators: true }
       );
+      
+      // Crear evento académico si corresponde
+      if (final.materia) {
+        await createAcademicEvent(req.user.id, 'Aprobada', final.materia.nombre);
+      }
     }
 
     res.json({ mensaje: 'Resultado registrado', final });

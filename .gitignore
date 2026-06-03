@@ -50,3 +50,8 @@ frontend/.env
 
 # Sprint summaries
 resumen-sprint-1.txt
+
+# Cypress (artefactos de corridas E2E)
+frontend/cypress/videos/
+frontend/cypress/screenshots/
+frontend/cypress/downloads/
