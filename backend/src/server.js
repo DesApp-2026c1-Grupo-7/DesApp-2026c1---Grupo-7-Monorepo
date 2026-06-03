@@ -10,14 +10,17 @@ const PORT = process.env.PORT || 5000;
 
 async function start() {
   try {
+    console.log('Iniciando servidor...');
     await connectDB();
+    console.log('Conexión a DB establecida.');
     await seedUsers();
+    console.log('Proceso de seeding finalizado.');
     initReminderService();
     app.listen(PORT, () => {
-      logger.info(`Servidor escuchando en http://localhost:${PORT}`);
+      console.log(`Servidor escuchando en http://localhost:${PORT}`);
     });
   } catch (err) {
-    logger.error('No se pudo iniciar el servidor:', err.message);
+    console.error('No se pudo iniciar el servidor:', err.message);
     process.exit(1);
   }
 }

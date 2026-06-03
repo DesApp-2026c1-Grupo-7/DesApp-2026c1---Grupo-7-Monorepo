@@ -136,10 +136,13 @@ test('perfil público: visible si es público, bloqueado si es privado', async (
     .send({ configuracionPrivacidad: { perfil: 'privado' } })
     .expect(200);
 
-  await request(app)
+  const resPriv = await request(app)
     .get(`/api/perfil/${student2Id}`)
     .set('Authorization', `Bearer ${student1Token}`)
-    .expect(403);
+    .expect(200);
+  
+  // No debe ver la bio ni el email (si está oculto)
+  assert.strictEqual(resPriv.body.bio, undefined);
 });
 
 test('invitaciones: enviar, listar pendientes, aceptar y convertirse en contactos', async () => {

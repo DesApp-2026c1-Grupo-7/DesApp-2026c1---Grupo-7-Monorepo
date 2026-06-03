@@ -1,9 +1,20 @@
 const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
+
+let mongod = null;
 
 async function connectDB() {
-  const uri = process.env.MONGO_URI;
+  let uri = process.env.MONGO_URI;
+
+  // Soporte para base de datos en memoria si se solicita o si no hay URI
+  if (process.env.USE_MEMORY_DB === 'true') {
+    console.log('[db] Iniciando MongoDB en memoria...');
+    mongod = await MongoMemoryServer.create();
+    uri = mongod.getUri();
+  }
+
   if (!uri) {
-    throw new Error('Falta MONGO_URI en el entorno. Revisar backend/.env.example');
+    throw new Error('Falta MONGO_URI en el entorno y USE_MEMORY_DB no es true.');
   }
 
   mongoose.connection.on('connected', () => {
@@ -22,6 +33,9 @@ async function connectDB() {
 
 async function disconnectDB() {
   await mongoose.disconnect();
+  if (mongod) {
+    await mongod.stop();
+  }
 }
 
 module.exports = { connectDB, disconnectDB };

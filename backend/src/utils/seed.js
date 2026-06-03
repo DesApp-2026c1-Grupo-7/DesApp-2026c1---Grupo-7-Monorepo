@@ -12,9 +12,9 @@ const StudySession = require('../models/StudySession');
 const Invitation = require('../models/Invitation');
 const Notification = require('../models/Notification');
 const Event = require('../models/Event');
-const logger = require('./logger');
 
 async function resetDatabase() {
+  console.log('[seed] Borrando base de datos...');
   await Promise.all([
     AcademicOffer.deleteMany({}),
     CreditActivity.deleteMany({}),
@@ -30,6 +30,7 @@ async function resetDatabase() {
     Notification.deleteMany({}),
     Event.deleteMany({})
   ]);
+  console.log('[seed] Base de datos limpia.');
 }
 
 async function seedCareers() {
@@ -61,12 +62,12 @@ async function seedCareers() {
     );
     created.push(career);
   }
+  console.log(`[seed] ${created.length} Carreras creadas/actualizadas.`);
   return created;
 }
 
 async function seedSubjects(careerId) {
   const subjectsData = [
-    // 1er anio
     { nombre: 'Introduccion a la Programacion', codigo: 'IP' },
     { nombre: 'Matematica', codigo: 'MAT' },
     { nombre: 'Organizacion de las Computadoras', codigo: 'OC' },
@@ -75,7 +76,6 @@ async function seedSubjects(careerId) {
     { nombre: 'Estructura de Datos', codigo: 'ED' },
     { nombre: 'Bases de Datos I', codigo: 'BD1' },
     { nombre: 'Ingles con Orientacion en Informatica II', codigo: 'ING2' },
-    // 2do anio
     { nombre: 'Programacion II', codigo: 'PROG2' },
     { nombre: 'Bases de Datos II', codigo: 'BD2' },
     { nombre: 'Sistemas Operativos', codigo: 'SO' },
@@ -83,13 +83,11 @@ async function seedSubjects(careerId) {
     { nombre: 'Programacion III', codigo: 'PROG3' },
     { nombre: 'Redes de Computadoras', codigo: 'RED' },
     { nombre: 'Ingenieria de Software II', codigo: 'IS2' },
-    // 3er anio
     { nombre: 'Desarrollo de Aplicaciones Web', codigo: 'DAW' },
     { nombre: 'Seguridad Informatica', codigo: 'SEG' },
     { nombre: 'Gestion de Proyectos de Software', codigo: 'GP' },
     { nombre: 'Practica Profesionalizante', codigo: 'PP' },
     { nombre: 'Optativa: Introduccion a la Ciencia de Datos', codigo: 'OPTCD' },
-    // Asignaturas transversales UNAHUR
     { nombre: 'Problematica Ambiental', codigo: 'UNA-AMB' },
     { nombre: 'Ciencia, Tecnologia y Sociedad', codigo: 'UNA-CTS' },
     { nombre: 'Derechos Humanos y Ciudadania', codigo: 'UNA-DDHH' },
@@ -105,39 +103,32 @@ async function seedSubjects(careerId) {
     );
     created[s.codigo] = subject;
   }
-
+  console.log(`[seed] ${Object.keys(created).length} Materias creadas/actualizadas.`);
   return created;
 }
 
 async function seedStudyPlan(career, subjectsMap) {
   const materiasConfig = [
-    // 1er anio - 1er cuatrimestre
     { codigo: 'IP', anio: 1, cuatrimestre: 1, creditos: 8, horasSemanales: 6 },
     { codigo: 'MAT', anio: 1, cuatrimestre: 1, creditos: 8, horasSemanales: 6 },
     { codigo: 'OC', anio: 1, cuatrimestre: 1, creditos: 6, horasSemanales: 4 },
     { codigo: 'ING1', anio: 1, cuatrimestre: 1, creditos: 4, horasSemanales: 3 },
-    // 1er anio - 2do cuatrimestre
     { codigo: 'PROG1', anio: 1, cuatrimestre: 2, creditos: 8, horasSemanales: 6, correlativas: ['IP'] },
     { codigo: 'ED', anio: 1, cuatrimestre: 2, creditos: 6, horasSemanales: 4, correlativas: ['IP'] },
     { codigo: 'BD1', anio: 1, cuatrimestre: 2, creditos: 6, horasSemanales: 4, correlativas: ['IP'] },
     { codigo: 'ING2', anio: 1, cuatrimestre: 2, creditos: 4, horasSemanales: 3, correlativas: ['ING1'] },
-    // 2do anio - 1er cuatrimestre
     { codigo: 'PROG2', anio: 2, cuatrimestre: 1, creditos: 8, horasSemanales: 6, correlativas: ['PROG1', 'ED'] },
     { codigo: 'BD2', anio: 2, cuatrimestre: 1, creditos: 6, horasSemanales: 4, correlativas: ['BD1'] },
     { codigo: 'SO', anio: 2, cuatrimestre: 1, creditos: 6, horasSemanales: 4, correlativas: ['OC'] },
     { codigo: 'IS1', anio: 2, cuatrimestre: 1, creditos: 6, horasSemanales: 4, correlativas: ['PROG1', 'BD1'] },
-    // 2do anio - 2do cuatrimestre
     { codigo: 'PROG3', anio: 2, cuatrimestre: 2, creditos: 8, horasSemanales: 6, correlativas: ['PROG2', 'BD2'] },
     { codigo: 'RED', anio: 2, cuatrimestre: 2, creditos: 6, horasSemanales: 4, correlativas: ['SO'] },
     { codigo: 'IS2', anio: 2, cuatrimestre: 2, creditos: 6, horasSemanales: 4, correlativas: ['IS1', 'PROG2'] },
-    // 3er anio - 1er cuatrimestre
     { codigo: 'DAW', anio: 3, cuatrimestre: 1, creditos: 6, horasSemanales: 5, correlativas: ['PROG3'] },
     { codigo: 'SEG', anio: 3, cuatrimestre: 1, creditos: 6, horasSemanales: 4, correlativas: ['RED'] },
     { codigo: 'GP', anio: 3, cuatrimestre: 1, creditos: 4, horasSemanales: 3, correlativas: ['IS2'] },
-    // 3er anio - 2do cuatrimestre
     { codigo: 'PP', anio: 3, cuatrimestre: 2, creditos: 10, horasSemanales: 8, correlativas: ['PROG3', 'IS2', 'BD2'] },
     { codigo: 'OPTCD', anio: 3, cuatrimestre: 2, creditos: 4, horasSemanales: 4, esOptativa: true, correlativas: ['BD2'] },
-    // Asignaturas transversales UNAHUR (electivas, sin cuatrimestre fijo)
     { codigo: 'UNA-AMB', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
     { codigo: 'UNA-CTS', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
     { codigo: 'UNA-DDHH', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
@@ -155,7 +146,7 @@ async function seedStudyPlan(career, subjectsMap) {
     esUnahur: !!m.esUnahur
   }));
 
-  return StudyPlan.findOneAndUpdate(
+  const plan = await StudyPlan.findOneAndUpdate(
     { carrera: career._id, anio: 2023 },
     {
       nombre: 'Plan 2023',
@@ -170,13 +161,13 @@ async function seedStudyPlan(career, subjectsMap) {
     },
     { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
   );
+  console.log('[seed] Plan de estudio creado.');
+  return plan;
 }
 
 async function seedAcademicOffer(subjectsMap) {
   const now = new Date();
   const cuatrimestre = now.getMonth() < 7 ? 1 : 2;
-  // Ofrecemos las materias de 1er anio de ambos cuatrimestres + las transversales UNAHUR,
-  // para que un estudiante nuevo tenga materias en las que inscribirse de entrada.
   const codigosOferta = ['IP', 'MAT', 'OC', 'ING1', 'PROG1', 'ED', 'BD1', 'ING2', 'UNA-AMB', 'UNA-CTS', 'UNA-DDHH', 'UNA-COM'];
   await AcademicOffer.findOneAndUpdate(
     { anio: now.getFullYear(), cuatrimestre },
@@ -187,54 +178,14 @@ async function seedAcademicOffer(subjectsMap) {
     },
     { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
   );
-}
-
-// Situacion academica de demo para que el asistente (planificador, "que pasa si",
-// avance por anio) tenga datos interesantes apenas se levanta el proyecto.
-async function seedDemoGrades(student, subjectsMap) {
-  const yaTieneNotas = await Grade.countDocuments({ estudiante: student._id });
-  if (yaTieneNotas > 0) return;
-
-  const notas = [
-    // 1er anio COMPLETO (para mostrar el badge "Completo" en avance por anio)
-    { codigo: 'IP', estado: 'Aprobada', nota: 8, anioCursada: 2024, cuatrimestre: 1 },
-    { codigo: 'MAT', estado: 'Aprobada', nota: 7, anioCursada: 2024, cuatrimestre: 1 },
-    { codigo: 'OC', estado: 'Aprobada', nota: 9, anioCursada: 2024, cuatrimestre: 1 },
-    { codigo: 'ING1', estado: 'Aprobada', nota: 8, anioCursada: 2024, cuatrimestre: 1 },
-    { codigo: 'PROG1', estado: 'Aprobada', nota: 8, anioCursada: 2024, cuatrimestre: 2 },
-    { codigo: 'ED', estado: 'Aprobada', nota: 7, anioCursada: 2024, cuatrimestre: 2 },
-    { codigo: 'BD1', estado: 'Aprobada', nota: 7, anioCursada: 2024, cuatrimestre: 2 },
-    { codigo: 'ING2', estado: 'Aprobada', nota: 9, anioCursada: 2024, cuatrimestre: 2 },
-    // 2do anio en marcha
-    // BD2 aprobada: deja a PROG3 bloqueada UNICAMENTE por PROG2 (en curso), ideal para
-    // la demo de "que pasa si" (regularizo PROG2 -> se habilita PROG3).
-    { codigo: 'BD2', estado: 'Aprobada', nota: 8, anioCursada: 2025, cuatrimestre: 1 },
-    { codigo: 'IS1', estado: 'Regular', anioCursada: 2025, cuatrimestre: 1 },
-    // En curso ahora: su correlativa (PROG3) NO debe habilitarse en el primer cuatri del plan
-    { codigo: 'PROG2', estado: 'Cursando', anioCursada: 2025, cuatrimestre: 1 }
-  ];
-
-  for (const n of notas) {
-    const subject = subjectsMap[n.codigo];
-    if (!subject) continue;
-    await Grade.create({
-      estudiante: student._id,
-      materia: subject._id,
-      estado: n.estado,
-      nota: n.nota,
-      anioCursada: n.anioCursada,
-      cuatrimestre: n.cuatrimestre,
-      fecha: Date.now()
-    });
-  }
-  logger.info('Situacion academica de demo cargada para el estudiante por defecto.');
+  console.log('[seed] Oferta académica creada.');
 }
 
 async function seedUsers() {
+  console.log('[seed] Iniciando proceso de sembrado...');
   try {
     if (process.env.SEED_RESET !== 'false') {
       await resetDatabase();
-      logger.info('Base reiniciada antes de cargar seeds por defecto.');
     }
 
     const careers = await seedCareers();
@@ -251,47 +202,59 @@ async function seedUsers() {
         password: await bcrypt.hash('admin123', 10),
         role: 'admin'
       });
-      logger.info('Usuario administrador por defecto creado.');
+      console.log('[seed] Admin creado.');
     }
 
-    const studentEmail = 'estudiante@universidad.edu';
-    let student = await User.findOne({ email: studentEmail });
-    if (!student) {
-      student = await User.create({
-        nombre: 'Estudiante de Prueba',
-        email: studentEmail,
+    const s1Email = 'estudiante1@universidad.edu';
+    let s1 = await User.findOne({ email: s1Email });
+    if (!s1) {
+      s1 = await User.create({
+        nombre: 'Estudiante Uno',
+        email: s1Email,
         password: await bcrypt.hash('estudiante123', 10),
         role: 'student',
         carrera: careerTup._id,
-        planEstudio: plan._id
+        planEstudio: plan._id,
+        configuracionPrivacidad: { perfil: 'publico' }
       });
-      logger.info('Usuario estudiante por defecto creado.');
-    } else {
-      student.carrera = student.carrera || careerTup._id;
-      student.planEstudio = student.planEstudio || plan._id;
-      await student.save();
+      console.log('[seed] Estudiante 1 (Público) creado.');
     }
 
-    const student2Email = 'estudiante2@universidad.edu';
-    let student2 = await User.findOne({ email: student2Email });
-    if (!student2) {
-      student2 = await User.create({
-        nombre: 'Segundo Estudiante',
-        email: student2Email,
+    const s2Email = 'estudiante2@universidad.edu';
+    let s2 = await User.findOne({ email: s2Email });
+    if (!s2) {
+      s2 = await User.create({
+        nombre: 'Estudiante Dos',
+        email: s2Email,
         password: await bcrypt.hash('estudiante123', 10),
         role: 'student',
         carrera: careerTup._id,
-        planEstudio: plan._id
+        planEstudio: plan._id,
+        configuracionPrivacidad: { perfil: 'publico' }
       });
-      logger.info('Segundo usuario estudiante por defecto creado.');
+      console.log('[seed] Estudiante 2 (Público) creado.');
     }
 
-    await seedDemoGrades(student, subjectsMap);
+    const s3Email = 'estudiante3@universidad.edu';
+    let s3 = await User.findOne({ email: s3Email });
+    if (!s3) {
+      s3 = await User.create({
+        nombre: 'Estudiante Tres',
+        email: s3Email,
+        password: await bcrypt.hash('estudiante123', 10),
+        role: 'student',
+        carrera: careerTup._id,
+        planEstudio: plan._id,
+        configuracionPrivacidad: { perfil: 'privado' }
+      });
+      console.log('[seed] Estudiante 3 (Privado) creado.');
+    }
+
     await seedAcademicOffer(subjectsMap);
-    logger.info('Sembrado de datos completado exitosamente.');
+    console.log('[seed] Sembrado de datos finalizado exitosamente.');
 
   } catch (error) {
-    logger.error('Error durante el seeding:', error.message);
+    console.error('[seed] ERROR CRÍTICO:', error.message);
   }
 }
 

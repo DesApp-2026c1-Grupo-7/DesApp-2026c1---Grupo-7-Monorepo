@@ -83,12 +83,8 @@ const getPublicProfile = async (req, res) => {
     const isOwner = req.user && req.user.id === req.params.id;
     const isPublic = user.configuracionPrivacidad.perfil === 'publico';
     const isContact = user.contactos.some(c => c.toString() === req.user.id);
+    const canSeeFull = isOwner || isContact || isPublic;
     
-    // Si es privado y no es el dueño ni contacto, denegar acceso
-    if (!isPublic && !isOwner && !isContact) {
-      return res.status(403).json({ mensaje: 'Este perfil es privado. Solo sus contactos pueden verlo.' });
-    }
-
     // Verificar si hay una invitación pendiente
     let invitacionPendiente = null;
     if (!isOwner && !isContact) {
@@ -104,7 +100,6 @@ const getPublicProfile = async (req, res) => {
       _id: user._id,
       nombre: user.nombre,
       carrera: user.carrera,
-      bio: user.bio,
       foto: user.foto,
       configuracionPrivacidad: user.configuracionPrivacidad,
       esContacto: isContact,
@@ -114,11 +109,14 @@ const getPublicProfile = async (req, res) => {
       } : null
     };
 
-    if (isOwner || user.configuracionPrivacidad.mostrarEmail) {
-      publicData.email = user.email;
+    if (canSeeFull) {
+      publicData.bio = user.bio;
+      if (user.configuracionPrivacidad.mostrarEmail || isOwner || isContact) {
+        publicData.email = user.email;
+      }
     }
 
-    if (isOwner || user.configuracionPrivacidad.mostrarSituacionAcademica) {
+    if (isOwner || (isContact && user.configuracionPrivacidad.mostrarSituacionAcademica) || (isPublic && user.configuracionPrivacidad.mostrarSituacionAcademica)) {
       const situacion = await Grade.find({ estudiante: user._id })
         .populate('materia', 'nombre anio')
         .sort({ fecha: -1 });

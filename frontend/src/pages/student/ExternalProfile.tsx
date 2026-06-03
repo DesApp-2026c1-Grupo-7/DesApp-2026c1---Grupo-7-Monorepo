@@ -165,6 +165,8 @@ const ExternalProfile = () => {
     );
   };
 
+  const isPrivate = profile.configuracionPrivacidad.perfil === 'privado' && !profile.esContacto;
+
   return (
     <div className="profile-container">
       {message && (
@@ -188,7 +190,12 @@ const ExternalProfile = () => {
         </div>
 
         <div className="user-info-main">
-          <h2>{profile.nombre}</h2>
+          <h2>
+            {profile.nombre}
+            {profile.configuracionPrivacidad.perfil === 'privado' && (
+              <span title="Perfil Privado" style={{ marginLeft: '10px', fontSize: '1.2rem' }}>🔒</span>
+            )}
+          </h2>
           <span className="role-badge">
             {profile.carrera?.nombre || "Estudiante"}
           </span>
@@ -215,12 +222,18 @@ const ExternalProfile = () => {
       <div className="profile-grid">
         <div className="profile-section card">
           <h3>Sobre mí</h3>
-          <p className="bio-text">
-            {profile.bio || "Este usuario aún no ha escrito una biografía."}
-          </p>
+          {isPrivate ? (
+            <p className="bio-text" style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>
+              La biografía de este usuario es privada. Conéctate con él para verla.
+            </p>
+          ) : (
+            <p className="bio-text">
+              {profile.bio || "Este usuario aún no ha escrito una biografía."}
+            </p>
+          )}
         </div>
 
-        {profile.situacionAcademica && (
+        {profile.situacionAcademica ? (
           <div className="profile-section card" style={{ gridColumn: '1 / -1' }}>
             <div className="privacy-header">
               <span>🎓</span>
@@ -250,6 +263,13 @@ const ExternalProfile = () => {
                 </p>
               )}
             </div>
+          </div>
+        ) : isPrivate && (
+          <div className="profile-section card" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px' }}>
+            <div style={{ fontSize: '32px', marginBottom: '10px' }}>🔒</div>
+            <p style={{ color: 'var(--text-muted)' }}>
+              La situación académica es privada. Solo los contactos de {profile.nombre} pueden verla.
+            </p>
           </div>
         )}
       </div>
