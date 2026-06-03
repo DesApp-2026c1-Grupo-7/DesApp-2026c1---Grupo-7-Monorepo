@@ -58,7 +58,7 @@ interface RendimientoPlan {
   plan: string | null;
   anioInicio: number;
   materiasEsperadasAprobadas: number;
-  materiasAprobadasEsperadas: number;
+  materiasAprobadasReales: number;
   diferencia: number;
   estado: "al-dia" | "leve-desvio" | "atrasado";
   porcentajeCumplimiento: number;
@@ -386,8 +386,20 @@ const AcademicAssistant = () => {
       <h1>Asistente Academico</h1>
       <p className="subtitle">Analisis actual, oferta, simulaciones y planificador.</p>
 
-      {error && <div className="assistant-alert error">{error}</div>}
-      {success && <div className="assistant-alert success">{success}</div>}
+      {error && (
+        <div className="assistant-alert error" role="alert">
+          <span className="assistant-alert__icon" aria-hidden="true">!</span>
+          <span className="assistant-alert__message">{error}</span>
+          <button className="assistant-alert__close" onClick={() => setError("")} aria-label="Cerrar">×</button>
+        </div>
+      )}
+      {success && (
+        <div className="assistant-alert success" role="status">
+          <span className="assistant-alert__icon" aria-hidden="true">✓</span>
+          <span className="assistant-alert__message">{success}</span>
+          <button className="assistant-alert__close" onClick={() => setSuccess("")} aria-label="Cerrar">×</button>
+        </div>
+      )}
       {loading && <p>Cargando datos...</p>}
 
       {avance && (
@@ -418,7 +430,7 @@ const AcademicAssistant = () => {
           <div className="projection">
             <strong>{rendimiento.plan || "Plan actual"}</strong>
             <p>
-              Esperadas aprobadas: {rendimiento.materiasEsperadasAprobadas} · Aprobadas: {rendimiento.materiasAprobadasEsperadas}
+              Esperadas aprobadas: {rendimiento.materiasEsperadasAprobadas} · Aprobadas: {rendimiento.materiasAprobadasReales}
             </p>
             <p>
               Cumplimiento: {rendimiento.porcentajeCumplimiento}% · Estado: {rendimiento.estado.replace("-", " ")}
