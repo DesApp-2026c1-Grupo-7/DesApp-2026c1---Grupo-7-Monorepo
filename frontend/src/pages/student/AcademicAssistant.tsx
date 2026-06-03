@@ -58,7 +58,7 @@ interface RendimientoPlan {
   plan: string | null;
   anioInicio: number;
   materiasEsperadasAprobadas: number;
-  materiasAprobadasEsperadas: number;
+  materiasAprobadasReales: number;
   diferencia: number;
   estado: "al-dia" | "leve-desvio" | "atrasado";
   porcentajeCumplimiento: number;
@@ -376,8 +376,8 @@ const AcademicAssistant = () => {
       <h1>Asistente Academico</h1>
       <p className="subtitle">Analisis actual, oferta, simulaciones y planificador.</p>
 
-      {error && <div style={{ padding: 12, background: "#fee", color: "#c33", borderRadius: 8 }}>{error}</div>}
-      {success && <div style={{ padding: 12, background: "#dfd", color: "#363", borderRadius: 8 }}>{success}</div>}
+      {error && <div className="assistant-alert error">{error}</div>}
+      {success && <div className="assistant-alert success">{success}</div>}
       {loading && <p>Cargando datos...</p>}
 
       {avance && (
@@ -408,10 +408,10 @@ const AcademicAssistant = () => {
           <div className="projection">
             <strong>{rendimiento.plan || "Plan actual"}</strong>
             <p>
-              Esperadas aprobadas: {rendimiento.materiasEsperadasAprobadas} · Aprobadas: {rendimiento.materiasAprobadasEsperadas}
+              Previstas hasta hoy: {rendimiento.materiasEsperadasAprobadas} · Aprobadas reales: {rendimiento.materiasAprobadasReales}
             </p>
             <p>
-              Cumplimiento: {rendimiento.porcentajeCumplimiento}% · Estado: {rendimiento.estado.replace("-", " ")}
+              Cumplimiento: {rendimiento.porcentajeCumplimiento}% · Estado: <strong>{rendimiento.estado.replace("-", " ")}</strong>
             </p>
           </div>
         </div>
@@ -697,7 +697,7 @@ const AcademicAssistant = () => {
                   {comp && (
                     <div style={{ marginTop: 8 }} data-testid="comparacion">
                       <p>
-                        Cumpliste {comp.materiasCumplidas} de {comp.materiasEsperadas} materias previstas
+                        Aprobaste {comp.materiasCumplidas} de {comp.materiasEsperadas} materias previstas
                         {" "}({comp.porcentajeCumplimiento}%) · Estado: <strong>{comp.estado.replace("-", " ")}</strong>
                       </p>
                       {comp.periodos && comp.periodos.filter((p) => p.transcurrido).length > 0 && (
@@ -714,7 +714,7 @@ const AcademicAssistant = () => {
                                 }}
                               >
                                 <strong>{p.anio} - {p.cuatrimestre === 0 ? "Anual" : `${p.cuatrimestre}C`}:</strong>{" "}
-                                planeaste {p.totalMaterias}, cumpliste {p.cumplidas}
+                                planeaste {p.totalMaterias}, aprobaste {p.cumplidas}
                                 {p.materiasAtrasadas.length > 0 && (
                                   <span> · atrasadas: {p.materiasAtrasadas.map((m) => m.codigo).join(", ")}</span>
                                 )}

@@ -273,7 +273,7 @@ export default function Profile() {
                 <div className="academic-info">
                   <span className="subject-name">{item.materia.nombre}</span>
                   <span className="subject-year">
-                    {item.materia.anio === 0 ? "UNAHUR" : `${item.materia.anio}° Año`}
+                    {item.materia.anio ? `${item.materia.anio}° Año` : "Materia de Carrera"}
                   </span>
                 </div>
                 <div className="academic-status">

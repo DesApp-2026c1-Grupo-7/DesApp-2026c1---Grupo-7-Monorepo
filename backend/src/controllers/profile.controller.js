@@ -1,13 +1,14 @@
 const User = require('../models/User');
 const Grade = require('../models/Grade');
 const Invitation = require('../models/Invitation');
+const StudyPlan = require('../models/StudyPlan');
 
 const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id)
       .select('-password')
       .populate('carrera', 'nombre codigo')
-      .populate('planEstudio', 'nombre');
+      .populate('planEstudio');
 
     if (!user) {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
@@ -15,11 +16,30 @@ const getProfile = async (req, res) => {
 
     // Incluimos la situación académica
     const situacion = await Grade.find({ estudiante: user._id })
-      .populate('materia', 'nombre anio')
+      .populate('materia', 'nombre')
       .sort({ fecha: -1 });
 
+    // Enriquecer con el año del plan de estudios
+    let situacionEnriquecida = situacion.map(s => s.toObject());
+    
+    if (user.planEstudio && user.planEstudio.materias) {
+      const planMap = new Map(user.planEstudio.materias.map(pm => [pm.materia.toString(), pm]));
+      situacionEnriquecida = situacion.map(record => {
+        const raw = record.toObject();
+        const pm = planMap.get(record.materia?._id.toString());
+        if (pm) {
+          raw.materia = {
+            ...raw.materia,
+            anio: pm.anio,
+            cuatrimestre: pm.cuatrimestre
+          };
+        }
+        return raw;
+      });
+    }
+
     const userObj = user.toObject();
-    userObj.situacionAcademica = situacion;
+    userObj.situacionAcademica = situacionEnriquecida;
 
     res.json(userObj);
   } catch (error) {
@@ -54,14 +74,28 @@ const updateProfile = async (req, res) => {
     const updatedUser = await User.findById(user._id)
       .select('-password')
       .populate('carrera', 'nombre codigo')
-      .populate('planEstudio', 'nombre');
+      .populate('planEstudio');
 
     const situacion = await Grade.find({ estudiante: updatedUser._id })
-      .populate('materia', 'nombre anio')
+      .populate('materia', 'nombre')
       .sort({ fecha: -1 });
 
+    let situacionEnriquecida = situacion.map(s => s.toObject());
+    
+    if (updatedUser.planEstudio && updatedUser.planEstudio.materias) {
+      const planMap = new Map(updatedUser.planEstudio.materias.map(pm => [pm.materia.toString(), pm]));
+      situacionEnriquecida = situacion.map(record => {
+        const raw = record.toObject();
+        const pm = planMap.get(record.materia?._id.toString());
+        if (pm) {
+          raw.materia = { ...raw.materia, anio: pm.anio, cuatrimestre: pm.cuatrimestre };
+        }
+        return raw;
+      });
+    }
+
     const userObj = updatedUser.toObject();
-    userObj.situacionAcademica = situacion;
+    userObj.situacionAcademica = situacionEnriquecida;
 
     res.json({ mensaje: 'Perfil actualizado con éxito', user: userObj });
   } catch (error) {
@@ -72,8 +106,9 @@ const updateProfile = async (req, res) => {
 const getPublicProfile = async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
-      .select('nombre email carrera bio foto configuracionPrivacidad contactos')
-      .populate('carrera', 'nombre');
+      .select('nombre email carrera bio foto configuracionPrivacidad contactos planEstudio')
+      .populate('carrera', 'nombre')
+      .populate('planEstudio');
 
     if (!user) {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
@@ -120,9 +155,23 @@ const getPublicProfile = async (req, res) => {
 
     if (isOwner || user.configuracionPrivacidad.mostrarSituacionAcademica) {
       const situacion = await Grade.find({ estudiante: user._id })
-        .populate('materia', 'nombre anio')
+        .populate('materia', 'nombre')
         .sort({ fecha: -1 });
-      publicData.situacionAcademica = situacion;
+
+      let situacionEnriquecida = situacion.map(s => s.toObject());
+      
+      if (user.planEstudio && user.planEstudio.materias) {
+        const planMap = new Map(user.planEstudio.materias.map(pm => [pm.materia.toString(), pm]));
+        situacionEnriquecida = situacion.map(record => {
+          const raw = record.toObject();
+          const pm = planMap.get(record.materia?._id.toString());
+          if (pm) {
+            raw.materia = { ...raw.materia, anio: pm.anio, cuatrimestre: pm.cuatrimestre };
+          }
+          return raw;
+        });
+      }
+      publicData.situacionAcademica = situacionEnriquecida;
     }
 
     res.json(publicData);
