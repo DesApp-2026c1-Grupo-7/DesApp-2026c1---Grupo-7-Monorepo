@@ -138,10 +138,10 @@ async function seedStudyPlan(career, subjectsMap) {
     { codigo: 'PP', anio: 3, cuatrimestre: 2, creditos: 10, horasSemanales: 8, correlativas: ['PROG3', 'IS2', 'BD2'] },
     { codigo: 'OPTCD', anio: 3, cuatrimestre: 2, creditos: 4, horasSemanales: 4, esOptativa: true, correlativas: ['BD2'] },
     // Asignaturas transversales UNAHUR (electivas, sin cuatrimestre fijo)
-    { codigo: 'UNA-AMB', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
-    { codigo: 'UNA-CTS', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
-    { codigo: 'UNA-DDHH', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
-    { codigo: 'UNA-COM', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true }
+    { codigo: 'UNA-AMB', anio: 1, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
+    { codigo: 'UNA-CTS', anio: 1, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
+    { codigo: 'UNA-DDHH', anio: 1, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
+    { codigo: 'UNA-COM', anio: 1, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true }
   ];
 
   const materiasFormatted = materiasConfig.map(m => ({

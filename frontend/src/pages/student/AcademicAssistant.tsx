@@ -128,6 +128,16 @@ const AcademicAssistant = () => {
   const [showFinalModal, setShowFinalModal] = useState(false);
   const [finalToDelete, setFinalToDelete] = useState<{ id: string, nombre: string } | null>(null);
 
+  useEffect(() => {
+    if (error || success) {
+      const timer = setTimeout(() => {
+        setError("");
+        setSuccess("");
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, success]);
+
   const fetchAll = useCallback(async () => {
     const params = oferta.soloOferta
       ? `?soloOferta=true&anio=${oferta.anio}&cuatrimestre=${oferta.cuatrimestre}`
@@ -376,8 +386,8 @@ const AcademicAssistant = () => {
       <h1>Asistente Academico</h1>
       <p className="subtitle">Analisis actual, oferta, simulaciones y planificador.</p>
 
-      {error && <div style={{ padding: 12, background: "#fee", color: "#c33", borderRadius: 8 }}>{error}</div>}
-      {success && <div style={{ padding: 12, background: "#dfd", color: "#363", borderRadius: 8 }}>{success}</div>}
+      {error && <div className="assistant-alert error">{error}</div>}
+      {success && <div className="assistant-alert success">{success}</div>}
       {loading && <p>Cargando datos...</p>}
 
       {avance && (
