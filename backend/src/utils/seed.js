@@ -205,6 +205,11 @@ async function seedDemoGrades(student, subjectsMap) {
     { codigo: 'ED', estado: 'Aprobada', nota: 7, anioCursada: 2024, cuatrimestre: 2 },
     { codigo: 'BD1', estado: 'Aprobada', nota: 7, anioCursada: 2024, cuatrimestre: 2 },
     { codigo: 'ING2', estado: 'Aprobada', nota: 9, anioCursada: 2024, cuatrimestre: 2 },
+    // Materias UNAHUR aprobadas para que el 1er año figure como Completo
+    { codigo: 'UNA-AMB', estado: 'Aprobada', nota: 10, anioCursada: 2024, cuatrimestre: 0 },
+    { codigo: 'UNA-CTS', estado: 'Aprobada', nota: 10, anioCursada: 2024, cuatrimestre: 0 },
+    { codigo: 'UNA-DDHH', estado: 'Aprobada', nota: 10, anioCursada: 2024, cuatrimestre: 0 },
+    { codigo: 'UNA-COM', estado: 'Aprobada', nota: 10, anioCursada: 2024, cuatrimestre: 0 },
     // 2do anio en marcha
     // BD2 aprobada: deja a PROG3 bloqueada UNICAMENTE por PROG2 (en curso), ideal para
     // la demo de "que pasa si" (regularizo PROG2 -> se habilita PROG3).
