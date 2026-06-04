@@ -250,7 +250,7 @@ test('la comparacion con el plan detecta atraso respecto a lo esperado', async (
     .expect(200);
 
   assert.equal(r.body.materiasEsperadasAprobadas, 4);
-  assert.equal(r.body.materiasAprobadasEsperadas, 1);
+  assert.equal(r.body.materiasAprobadasReales, 1);
   assert.equal(r.body.estado, 'atrasado');
   assert.equal(r.body.porcentajeCumplimiento, 25);
 });
@@ -267,7 +267,7 @@ test('cuando se aprueban las materias esperadas, el plan queda al dia', async ()
     .expect(200);
 
   assert.equal(r.body.materiasEsperadasAprobadas, 4);
-  assert.equal(r.body.materiasAprobadasEsperadas, 4);
+  assert.equal(r.body.materiasAprobadasReales, 4);
   assert.equal(r.body.estado, 'al-dia');
   assert.equal(r.body.porcentajeCumplimiento, 100);
 });
@@ -307,13 +307,24 @@ test('compara el rendimiento real contra un plan guardado (plus)', async () => {
   assert.equal(comp.body.porcentajeCumplimiento, 0);
   assert.notEqual(comp.body.estado, 'al-dia');
 
-  // Aprobamos M1A y regularizamos M1B: el cumplimiento sube a 2 de 2.
+  // Para la comparacion solo cuentan las materias APROBADAS (no las regularizadas).
+  // Aprobamos M1A y regularizamos M1B: solo M1A cuenta como cumplida (1 de 2).
   await setEstado(S.M1A, 'Aprobada').expect(200);
   await request(app)
     .post('/api/academico/situacion')
     .set('Authorization', `Bearer ${studentToken}`)
     .send({ materiaId: S.M1B, estado: 'Regular', cuatrimestre: 1, anioCursada: anioPasado })
     .expect(200);
+
+  comp = await request(app)
+    .get(`/api/academico/planes-guardados/${planId}/comparacion`)
+    .set('Authorization', `Bearer ${studentToken}`)
+    .expect(200);
+  assert.equal(comp.body.materiasCumplidas, 1);
+  assert.notEqual(comp.body.estado, 'al-dia');
+
+  // Al aprobar tambien M1B, el cumplimiento sube a 2 de 2.
+  await setEstado(S.M1B, 'Aprobada').expect(200); // requiere M1A aprobada (correlativa)
 
   comp = await request(app)
     .get(`/api/academico/planes-guardados/${planId}/comparacion`)

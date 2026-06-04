@@ -233,6 +233,106 @@
   gap: 0.5rem;
 }
 
+/* ALERTS */
+.assistant-alert {
+  --alert-accent: #ef4444;
+  padding: 0.9rem 1rem 0.9rem 1.1rem;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  position: fixed;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-left: 4px solid var(--alert-accent);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+  min-width: 320px;
+  max-width: min(90%, 460px);
+  overflow: hidden;
+  animation: slideDownAlert 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  font-weight: 500;
+}
+
+.assistant-alert__icon {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--alert-accent);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.assistant-alert__message {
+  flex: 1;
+  line-height: 1.35;
+}
+
+.assistant-alert__close {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.5;
+  cursor: pointer;
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.assistant-alert__close:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* Barra que acompaña el auto-cierre de 5s */
+.assistant-alert::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--alert-accent);
+  opacity: 0.45;
+  transform-origin: left;
+  animation: alertTimer 5s linear forwards;
+}
+
+.assistant-alert.error {
+  --alert-accent: #ef4444;
+  color: #991b1b;
+}
+
+.assistant-alert.success {
+  --alert-accent: #22c55e;
+  color: #166534;
+}
+
+@keyframes slideDownAlert {
+  from { transform: translate(-50%, -24px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+@keyframes alertTimer {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-alert { animation: none; }
+  .assistant-alert::after { animation: none; opacity: 0; }
+}
+
 @media (max-width: 768px) {
   .assistant { padding: 1.5rem 1rem; }
   .assistant h1 { font-size: 1.5rem; }

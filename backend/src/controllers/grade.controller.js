@@ -493,7 +493,7 @@ const getAvanceCarrera = async (req, res) => {
       }
 
       if (['Aprobada', 'Promocion'].includes(g.estado)) {
-        if (!ps.esUnahur) avancePorAnio[ps.anio].aprobadas++;
+        avancePorAnio[ps.anio].aprobadas++;
       }
       else if (g.estado === 'Regular') avancePorAnio[ps.anio].regulares++;
       else if (['Inscripto', 'Cursando'].includes(g.estado)) avancePorAnio[ps.anio].cursando++;
@@ -535,11 +535,13 @@ const getRendimientoPlan = async (req, res) => {
     const currentYear = Number(req.query.anio || new Date().getFullYear());
     const startYear = Number(req.query.anioInicio || Math.min(currentYear, 2024));
     const elapsedAcademicYears = Math.max(1, currentYear - startYear + 1);
+    
     const expectedSubjects = planSubjects.filter((m) => m.anio <= elapsedAcademicYears);
-    const expectedIds = new Set(expectedSubjects.map((m) => m._id.toString()));
+    const allPlanIds = new Set(planSubjects.map(m => m._id.toString()));
+    
     const approved = grades.filter((g) =>
       g.materia &&
-      expectedIds.has(g.materia._id.toString()) &&
+      allPlanIds.has(g.materia._id.toString()) &&
       APPROVED_STATES.includes(g.estado)
     );
 
@@ -555,7 +557,7 @@ const getRendimientoPlan = async (req, res) => {
       anioActual: currentYear,
       aniosTranscurridos: elapsedAcademicYears,
       materiasEsperadasAprobadas: esperado,
-      materiasAprobadasEsperadas: aprobado,
+      materiasAprobadasReales: aprobado,
       diferencia,
       estado,
       porcentajeCumplimiento: esperado > 0 ? Math.round((aprobado / esperado) * 100) : 0
@@ -849,41 +851,52 @@ const getComparacionPlanGuardado = async (req, res) => {
     if (!plan) return res.status(404).json({ mensaje: 'Plan guardado no encontrado' });
 
     const grades = await Grade.find({ estudiante: req.user.id });
-    // "Cumplir" un período del plan = haber regularizado o aprobado la materia.
-    const cumplidoIds = new Set(
-      grades.filter((g) => UNLOCKING_STATES.includes(g.estado)).map((g) => g.materia.toString())
+    // Para la comparación de rendimiento, consideramos solo las materias realmente APROBADAS (Aprobada o Promoción)
+    const aprobadasIds = new Set(
+      grades.filter((g) => APPROVED_STATES.includes(g.estado)).map((g) => g.materia.toString())
     );
 
     const now = new Date();
     const anioActual = now.getFullYear();
     const cuatrimestreActual = now.getMonth() < 6 ? 1 : 2;
-    // Un período "ya transcurrió" si es de un año anterior o del año en curso hasta el cuatri actual.
     const periodoTranscurrido = (p) =>
       p.anio < anioActual || (p.anio === anioActual && p.cuatrimestre <= cuatrimestreActual);
 
     let materiasEsperadas = 0;
     let materiasCumplidas = 0;
+    
+    // Identificamos todas las materias del plan
+    const todasLasMateriasDelPlanIds = new Set();
+    plan.periodos.forEach(p => p.materias.forEach(m => {
+      if (m.materia) {
+        todasLasMateriasDelPlanIds.add(m.materia.toString());
+        materiasEsperadas++; // Contamos el total absoluto del plan
+      }
+    }));
+
+    materiasCumplidas = Array.from(todasLasMateriasDelPlanIds).filter(id => aprobadasIds.has(id)).length;
+
     const periodos = plan.periodos.map((p) => {
       const transcurrido = periodoTranscurrido(p);
       const total = p.materias.length;
-      const hechas = p.materias.filter((m) => m.materia && cumplidoIds.has(m.materia.toString())).length;
-      if (transcurrido) {
-        materiasEsperadas += total;
-        materiasCumplidas += hechas;
-      }
       return {
         anio: p.anio,
         cuatrimestre: p.cuatrimestre,
         transcurrido,
         totalMaterias: total,
-        cumplidas: hechas,
+        cumplidas: p.materias.filter((m) => m.materia && aprobadasIds.has(m.materia.toString())).length,
         materiasAtrasadas: p.materias
-          .filter((m) => m.materia && !cumplidoIds.has(m.materia.toString()))
+          .filter((m) => m.materia && !aprobadasIds.has(m.materia.toString()))
           .map((m) => ({ nombre: m.nombre, codigo: m.codigo }))
       };
     });
 
-    const diferencia = materiasCumplidas - materiasEsperadas;
+    // Para la diferencia y el estado, comparamos contra lo que DEBERÍA estar aprobado hasta hoy
+    const totalHastaHoy = plan.periodos
+      .filter(periodoTranscurrido)
+      .reduce((sum, p) => sum + p.materias.length, 0);
+
+    const diferencia = materiasCumplidas - totalHastaHoy;
     const estado = diferencia >= 0 ? 'al-dia' : diferencia >= -2 ? 'leve-desvio' : 'atrasado';
 
     res.json({
