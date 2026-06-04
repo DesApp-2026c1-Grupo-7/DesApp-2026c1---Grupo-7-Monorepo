@@ -291,7 +291,122 @@ async function seedUsers() {
       logger.info('Segundo usuario estudiante por defecto creado.');
     }
 
+    const matiasEmail = 'matiaslopez1345@gmail.com';
+    let matias = await User.findOne({ email: matiasEmail });
+    if (!matias) {
+      matias = await User.create({
+        nombre: 'Matias Lopez',
+        email: matiasEmail,
+        password: await bcrypt.hash('estudiante123', 10),
+        role: 'student',
+        carrera: careerTup._id,
+        planEstudio: plan._id,
+        configuracionPrivacidad: { perfil: 'publico' }
+      });
+      logger.info('Usuario Matias Lopez creado.');
+    }
+
+    const privadoEmail = 'estudianteprivado@universidad.edu';
+    let privado = await User.findOne({ email: privadoEmail });
+    if (!privado) {
+      privado = await User.create({
+        nombre: 'Estudiante Privado',
+        email: privadoEmail,
+        password: await bcrypt.hash('estudiante123', 10),
+        role: 'student',
+        carrera: careerTup._id,
+        planEstudio: plan._id,
+        configuracionPrivacidad: { perfil: 'privado' }
+      });
+      logger.info('Usuario Estudiante Privado creado.');
+    }
+
+    const marcosEmail = 'marcos.bejarano01@hotmail.com';
+    let marcos = await User.findOne({ email: marcosEmail });
+    if (!marcos) {
+      marcos = await User.create({
+        nombre: 'Marcos Bejarano',
+        email: marcosEmail,
+        password: await bcrypt.hash('estudiante123', 10),
+        role: 'student',
+        carrera: careerTup._id,
+        planEstudio: plan._id,
+        configuracionPrivacidad: { perfil: 'publico' }
+      });
+      logger.info('Usuario Marcos Bejarano creado.');
+    }
+
+    // Establecer contacto mutuo para la demo
+    const yaSonContactos = matias.contactos.includes(privado._id);
+    if (!yaSonContactos) {
+      matias.contactos.push(privado._id);
+      privado.contactos.push(matias._id);
+      await Promise.all([matias.save(), privado.save()]);
+      logger.info('Contacto mutuo establecido entre Matias y Estudiante Privado.');
+    }
+
     await seedDemoGrades(student, subjectsMap);
+
+    // Crear sesion de estudio para Estudiante de Prueba
+    const yaTieneSesion = await StudySession.findOne({ creador: student._id, tema: 'Repaso para el parcial' });
+    if (!yaTieneSesion) {
+      await StudySession.create({
+        creador: student._id,
+        materia: subjectsMap['IP']._id,
+        tema: 'Repaso para el parcial',
+        tipo: 'presencial',
+        ubicacion: 'Aula 305',
+        fechaHora: new Date('2026-06-10T13:00:00'),
+        duracion: { horas: 1, minutos: 30 },
+        cupos: null, // sin limite
+        descripcion: 'Repaso para el primer parcial con ayudantes',
+        requiereAprobacion: false,
+        participantes: [student._id],
+        estado: 'activa'
+      });
+      logger.info('Sesion de estudio de demo creada para Estudiante de Prueba.');
+    }
+
+    // Crear sesion de estudio para Matias Lopez
+    const yaTieneSesionMatias = await StudySession.findOne({ creador: matias._id, tema: 'Resolucion del TP 3' });
+    if (!yaTieneSesionMatias) {
+      await StudySession.create({
+        creador: matias._id,
+        materia: subjectsMap['BD1']._id,
+        tema: 'Resolucion del TP 3',
+        tipo: 'virtual',
+        link: 'https://meet.google.com/jpy-mfyd-xdp',
+        fechaHora: new Date('2026-06-21T14:30:00'),
+        duracion: { horas: 2, minutos: 0 },
+        cupos: 2,
+        descripcion: 'Guia para resolver correctamente el Trabajo Practico 3',
+        requiereAprobacion: true,
+        participantes: [matias._id],
+        estado: 'activa'
+      });
+      logger.info('Sesion de estudio de demo creada para Matias Lopez.');
+    }
+
+    // Crear sesion de estudio para Estudiante Privado
+    const yaTieneSesionPrivado = await StudySession.findOne({ creador: privado._id, tema: 'Sesion privada' });
+    if (!yaTieneSesionPrivado) {
+      await StudySession.create({
+        creador: privado._id,
+        materia: subjectsMap['MAT']._id,
+        tema: 'Sesion privada',
+        tipo: 'presencial',
+        ubicacion: 'Cafeteria',
+        fechaHora: new Date('2026-06-19T16:00:00'),
+        duracion: { horas: 0, minutos: 40 },
+        cupos: 5,
+        descripcion: 'Reunion informativa del grupo 4',
+        requiereAprobacion: true,
+        participantes: [privado._id],
+        estado: 'activa'
+      });
+      logger.info('Sesion de estudio de demo creada para Estudiante Privado.');
+    }
+
     await seedAcademicOffer(subjectsMap);
     logger.info('Sembrado de datos completado exitosamente.');
 
