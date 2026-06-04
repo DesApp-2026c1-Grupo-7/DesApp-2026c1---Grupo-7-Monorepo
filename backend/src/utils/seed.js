@@ -138,10 +138,10 @@ async function seedStudyPlan(career, subjectsMap) {
     { codigo: 'PP', anio: 3, cuatrimestre: 2, creditos: 10, horasSemanales: 8, correlativas: ['PROG3', 'IS2', 'BD2'] },
     { codigo: 'OPTCD', anio: 3, cuatrimestre: 2, creditos: 4, horasSemanales: 4, esOptativa: true, correlativas: ['BD2'] },
     // Asignaturas transversales UNAHUR (electivas, sin cuatrimestre fijo)
-    { codigo: 'UNA-AMB', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
-    { codigo: 'UNA-CTS', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
-    { codigo: 'UNA-DDHH', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
-    { codigo: 'UNA-COM', anio: 0, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true }
+    { codigo: 'UNA-AMB', anio: 1, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
+    { codigo: 'UNA-CTS', anio: 1, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
+    { codigo: 'UNA-DDHH', anio: 1, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true },
+    { codigo: 'UNA-COM', anio: 1, cuatrimestre: 0, creditos: 4, horasSemanales: 2, esOptativa: true, esUnahur: true }
   ];
 
   const materiasFormatted = materiasConfig.map(m => ({
@@ -205,6 +205,11 @@ async function seedDemoGrades(student, subjectsMap) {
     { codigo: 'ED', estado: 'Aprobada', nota: 7, anioCursada: 2024, cuatrimestre: 2 },
     { codigo: 'BD1', estado: 'Aprobada', nota: 7, anioCursada: 2024, cuatrimestre: 2 },
     { codigo: 'ING2', estado: 'Aprobada', nota: 9, anioCursada: 2024, cuatrimestre: 2 },
+    // Materias UNAHUR aprobadas para que el 1er año figure como Completo
+    { codigo: 'UNA-AMB', estado: 'Aprobada', nota: 10, anioCursada: 2024, cuatrimestre: 0 },
+    { codigo: 'UNA-CTS', estado: 'Aprobada', nota: 10, anioCursada: 2024, cuatrimestre: 0 },
+    { codigo: 'UNA-DDHH', estado: 'Aprobada', nota: 10, anioCursada: 2024, cuatrimestre: 0 },
+    { codigo: 'UNA-COM', estado: 'Aprobada', nota: 10, anioCursada: 2024, cuatrimestre: 0 },
     // 2do anio en marcha
     // BD2 aprobada: deja a PROG3 bloqueada UNICAMENTE por PROG2 (en curso), ideal para
     // la demo de "que pasa si" (regularizo PROG2 -> se habilita PROG3).
