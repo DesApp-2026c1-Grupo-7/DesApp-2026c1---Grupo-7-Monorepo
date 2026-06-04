@@ -329,6 +329,27 @@ input:disabled + .toggle-slider {
   }
 }
 
+/* GRILLA DE SECCIONES DEL PERFIL (Sobre mí, Situación Académica) */
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.profile-section {
+  min-width: 0; /* evita desbordes horizontales (clave en mobile y con foto) */
+}
+
+.profile-section img {
+  max-width: 100%;
+  height: auto;
+}
+
+@media (max-width: 768px) {
+  .profile-grid { grid-template-columns: 1fr; }
+}
+
 /* ACADEMIC SITUATION STYLES */
 .academic-grid {
   display: grid;

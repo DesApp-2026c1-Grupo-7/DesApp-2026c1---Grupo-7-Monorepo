@@ -10,8 +10,15 @@ interface Subject {
   cuatrimestre: number;
   creditos: number;
   horasSemanalesEstimadas?: number;
+  correlativas?: string[];
+  correlativasEnCurso?: string[];
   esOptativa?: boolean;
   esUnahur?: boolean;
+}
+
+interface Periodo {
+  anio: number;
+  cuatrimestre: number;
 }
 
 interface FinalPendiente {
@@ -51,7 +58,7 @@ interface RendimientoPlan {
   plan: string | null;
   anioInicio: number;
   materiasEsperadasAprobadas: number;
-  materiasAprobadasEsperadas: number;
+  materiasAprobadasReales: number;
   diferencia: number;
   estado: "al-dia" | "leve-desvio" | "atrasado";
   porcentajeCumplimiento: number;
@@ -64,13 +71,33 @@ interface SavedPlan {
   periodos: PlanPeriodo[];
 }
 
+interface ComparacionPlan {
+  plan: string;
+  materiasEsperadas: number;
+  materiasCumplidas: number;
+  diferencia: number;
+  estado: "al-dia" | "leve-desvio" | "atrasado";
+  porcentajeCumplimiento: number;
+  periodos?: {
+    anio: number;
+    cuatrimestre: number;
+    transcurrido: boolean;
+    totalMaterias: number;
+    cumplidas: number;
+    materiasAtrasadas: { nombre: string; codigo: string }[];
+  }[];
+}
+
 const AcademicAssistant = () => {
   const [disponibles, setDisponibles] = useState<Subject[]>([]);
   const [finales, setFinales] = useState<FinalPendiente[]>([]);
   const [avance, setAvance] = useState<Avance | null>(null);
   const [rendimiento, setRendimiento] = useState<RendimientoPlan | null>(null);
   const [planificador, setPlanificador] = useState<PlanPeriodo[]>([]);
+  const [primerPeriodo, setPrimerPeriodo] = useState<Periodo | null>(null);
+  const [pendientesPlan, setPendientesPlan] = useState<Subject[]>([]);
   const [planesGuardados, setPlanesGuardados] = useState<SavedPlan[]>([]);
+  const [comparaciones, setComparaciones] = useState<Record<string, ComparacionPlan>>({});
   const [simulacion, setSimulacion] = useState<{
     _id: string;
     nombre: string;
@@ -101,6 +128,16 @@ const AcademicAssistant = () => {
   const [showFinalModal, setShowFinalModal] = useState(false);
   const [finalToDelete, setFinalToDelete] = useState<{ id: string, nombre: string } | null>(null);
 
+  useEffect(() => {
+    if (error || success) {
+      const timer = setTimeout(() => {
+        setError("");
+        setSuccess("");
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, success]);
+
   const fetchAll = useCallback(async () => {
     const params = oferta.soloOferta
       ? `?soloOferta=true&anio=${oferta.anio}&cuatrimestre=${oferta.cuatrimestre}`
@@ -119,6 +156,8 @@ const AcademicAssistant = () => {
     setAvance(a.data);
     setMateriasCursando(i.data.map((row: { materia: Subject }) => row.materia).filter(Boolean));
     setPlanificador(p.data.periodos || []);
+    setPrimerPeriodo(p.data.primerPeriodo || null);
+    setPendientesPlan(p.data.pendientesNoPlanificadas || []);
     setRendimiento(r.data);
     setPlanesGuardados(saved.data);
     setLoading(false);
@@ -243,6 +282,80 @@ const AcademicAssistant = () => {
     });
   };
 
+  const horasDePeriodo = (materias: Subject[]) =>
+    materias.reduce((sum, m) => sum + (m.horasSemanalesEstimadas ?? m.creditos ?? 0), 0);
+
+  const esPrimerPeriodo = (p: Periodo) =>
+    !!primerPeriodo && p.anio === primerPeriodo.anio && p.cuatrimestre === primerPeriodo.cuatrimestre;
+
+  // Una planificación es válida si toda materia tiene sus correlativas (que estén dentro del
+  // plan) en un cuatrimestre estrictamente anterior. Las correlativas aprobadas no figuran en el
+  // plan (no restringen). Las correlativas que están solo "en curso" todavía no están aprobadas:
+  // por eso la materia que depende de ellas no puede ubicarse en el primer cuatrimestre proyectado.
+  const validarPlan = (periodos: PlanPeriodo[]): { ok: boolean; motivo?: string } => {
+    const periodoDe = new Map<string, number>();
+    periodos.forEach((p, idx) => p.materias.forEach((m) => periodoDe.set(m._id, idx)));
+    for (let idx = 0; idx < periodos.length; idx++) {
+      for (const m of periodos[idx].materias) {
+        for (const corrId of m.correlativas ?? []) {
+          if (periodoDe.has(corrId) && periodoDe.get(corrId)! >= idx) {
+            return { ok: false, motivo: `${m.nombre} quedaría en el mismo cuatrimestre o antes que sus correlativas.` };
+          }
+        }
+        if ((m.correlativasEnCurso?.length ?? 0) > 0 && esPrimerPeriodo(periodos[idx])) {
+          return {
+            ok: false,
+            motivo: `${m.nombre} no puede ir en el primer cuatrimestre: su correlativa (${m.correlativasEnCurso!.join(", ")}) todavía no está aprobada.`
+          };
+        }
+      }
+    }
+    return { ok: true };
+  };
+
+  const moverMateria = (periodoIdx: number, materiaId: string, dir: -1 | 1) => {
+    setError("");
+    setSuccess("");
+    const destino = periodoIdx + dir;
+    if (destino < 0) return;
+
+    const next: PlanPeriodo[] = planificador.map((p) => ({ ...p, materias: [...p.materias] }));
+    const materia = next[periodoIdx].materias.find((m) => m._id === materiaId);
+    if (!materia) return;
+
+    // Si movemos a la derecha más allá del último período, creamos el cuatrimestre siguiente.
+    if (destino >= next.length) {
+      const last = next[next.length - 1];
+      const sig = last.cuatrimestre === 1
+        ? { anio: last.anio, cuatrimestre: 2 }
+        : { anio: last.anio + 1, cuatrimestre: 1 };
+      next.push({ ...sig, horasUsadas: 0, materias: [] });
+    }
+
+    next[periodoIdx].materias = next[periodoIdx].materias.filter((m) => m._id !== materiaId);
+    next[destino].materias.push(materia);
+    next.forEach((p) => { p.horasUsadas = horasDePeriodo(p.materias); });
+
+    while (next.length > 1 && next[next.length - 1].materias.length === 0) next.pop();
+
+    const validez = validarPlan(next);
+    if (!validez.ok) {
+      setError(`No se puede mover: ${validez.motivo}`);
+      return;
+    }
+    setPlanificador(next);
+  };
+
+  const compararConPlan = async (planId: string) => {
+    setError("");
+    try {
+      const res = await api.get(`/academico/planes-guardados/${planId}/comparacion`);
+      setComparaciones((prev) => ({ ...prev, [planId]: res.data }));
+    } catch {
+      setError("No se pudo comparar el rendimiento con el plan guardado");
+    }
+  };
+
   const guardarPlanificador = async () => {
     setError("");
     setSuccess("");
@@ -273,8 +386,20 @@ const AcademicAssistant = () => {
       <h1>Asistente Academico</h1>
       <p className="subtitle">Analisis actual, oferta, simulaciones y planificador.</p>
 
-      {error && <div style={{ padding: 12, background: "#fee", color: "#c33", borderRadius: 8 }}>{error}</div>}
-      {success && <div style={{ padding: 12, background: "#dfd", color: "#363", borderRadius: 8 }}>{success}</div>}
+      {error && (
+        <div className="assistant-alert error" role="alert">
+          <span className="assistant-alert__icon" aria-hidden="true">!</span>
+          <span className="assistant-alert__message">{error}</span>
+          <button className="assistant-alert__close" onClick={() => setError("")} aria-label="Cerrar">×</button>
+        </div>
+      )}
+      {success && (
+        <div className="assistant-alert success" role="status">
+          <span className="assistant-alert__icon" aria-hidden="true">✓</span>
+          <span className="assistant-alert__message">{success}</span>
+          <button className="assistant-alert__close" onClick={() => setSuccess("")} aria-label="Cerrar">×</button>
+        </div>
+      )}
       {loading && <p>Cargando datos...</p>}
 
       {avance && (
@@ -283,7 +408,7 @@ const AcademicAssistant = () => {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
             <div style={{ padding: 12, background: "#eff6ff", borderRadius: 8 }}>
               <strong>Avance general</strong>
-              <div style={{ fontSize: 24, fontWeight: 700 }}>{Math.round((avance.aprobadas / avance.totalMaterias) * 100)}%</div>
+              <div style={{ fontSize: 24, fontWeight: 700 }}>{avance.porcentajeAvance}%</div>
               <small>{avance.aprobadas} de {avance.totalMaterias} materias</small>
             </div>
             <div style={{ padding: 12, background: "#f0fdf4", borderRadius: 8 }}>
@@ -305,7 +430,7 @@ const AcademicAssistant = () => {
           <div className="projection">
             <strong>{rendimiento.plan || "Plan actual"}</strong>
             <p>
-              Esperadas aprobadas: {rendimiento.materiasEsperadasAprobadas} · Aprobadas: {rendimiento.materiasAprobadasEsperadas}
+              Esperadas aprobadas: {rendimiento.materiasEsperadasAprobadas} · Aprobadas: {rendimiento.materiasAprobadasReales}
             </p>
             <p>
               Cumplimiento: {rendimiento.porcentajeCumplimiento}% · Estado: {rendimiento.estado.replace("-", " ")}
@@ -316,37 +441,81 @@ const AcademicAssistant = () => {
 
       {avance && Object.keys(avance.avancePorAnio).length > 0 && (
         <div className="section">
-          <h3>Avance por anio</h3>
-          {Object.entries(avance.avancePorAnio)
-            .sort(([a], [b]) => Number(a) - Number(b))
-            .map(([anio, row]) => (
-              <div key={anio} className="projection">
-                <strong>Anio {anio}</strong>
-                <p>Aprobadas: {row.aprobadas} · Regulares: {row.regulares} · Cursando: {row.cursando} · Total: {row.total ?? "-"}</p>
-              </div>
-            ))}
+          <h3>Avance por año</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
+            {Object.entries(avance.avancePorAnio)
+              .sort(([a], [b]) => Number(a) - Number(b))
+              .map(([anio, row]) => {
+                const total = row.total ?? 0;
+                const faltantes = Math.max(0, total - row.aprobadas - row.regulares - row.cursando);
+                const completo = total > 0 && row.aprobadas === total;
+                const porcentaje = total > 0 ? Math.round((row.aprobadas / total) * 100) : 0;
+                return (
+                  <div
+                    key={anio}
+                    style={{
+                      padding: 14, borderRadius: 10, border: "1px solid #e5e7eb",
+                      background: completo ? "#f0fdf4" : "#fff"
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <strong>Año {anio}</strong>
+                      {completo
+                        ? <span className="badge" style={{ background: "#16a34a", color: "#fff" }}>✓ Completo</span>
+                        : <span style={{ fontSize: "0.85rem", color: "#6b7280" }}>{porcentaje}%</span>}
+                    </div>
+                    <div style={{ height: 6, background: "#e5e7eb", borderRadius: 999, overflow: "hidden", marginBottom: 10 }}>
+                      <div style={{ width: `${porcentaje}%`, height: "100%", background: completo ? "#16a34a" : "#3b82f6" }} />
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, fontSize: "0.85rem" }}>
+                      <span style={{ padding: "2px 8px", borderRadius: 6, background: "#dcfce7", color: "#166534" }}>Aprobadas: {row.aprobadas}</span>
+                      <span style={{ padding: "2px 8px", borderRadius: 6, background: "#dbeafe", color: "#1e40af" }}>Regulares: {row.regulares}</span>
+                      <span style={{ padding: "2px 8px", borderRadius: 6, background: "#fef9c3", color: "#854d0e" }}>Cursando: {row.cursando}</span>
+                      <span style={{ padding: "2px 8px", borderRadius: 6, background: "#fee2e2", color: "#991b1b" }}>Faltantes: {faltantes}</span>
+                      <span style={{ padding: "2px 8px", borderRadius: 6, background: "#f3f4f6", color: "#374151" }}>Total: {total}</span>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
         </div>
       )}
 
       <div className="section">
         <h3>Materias disponibles</h3>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "12px 0" }}>
-          <select value={filterAnio} onChange={(e) => setFilterAnio(e.target.value)}>
-            <option value="todos">Todos los anios</option>
-            {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{y} anio</option>)}
-          </select>
-          <select value={showOptativas} onChange={(e) => setShowOptativas(e.target.value as "todas" | "obligatorias" | "optativas")}>
-            <option value="todas">Todas</option>
-            <option value="obligatorias">Obligatorias</option>
-            <option value="optativas">Optativas</option>
-          </select>
-          <input type="number" value={oferta.anio} onChange={(e) => setOferta((s) => ({ ...s, anio: Number(e.target.value) }))} />
-          <select value={oferta.cuatrimestre} onChange={(e) => setOferta((s) => ({ ...s, cuatrimestre: Number(e.target.value) }))}>
-            <option value={1}>1C</option>
-            <option value={2}>2C</option>
-            <option value={0}>Anual</option>
-          </select>
+        <p className="subtitle">Materias en las que podés inscribirte según tus correlativas y la oferta académica del período.</p>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", margin: "12px 0" }}>
+          <label style={{ display: "flex", flexDirection: "column", fontSize: "0.8rem", color: "#6b7280", gap: 2 }}>
+            Año
+            <select value={filterAnio} onChange={(e) => setFilterAnio(e.target.value)}>
+              <option value="todos">Todos los años</option>
+              {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{y} año</option>)}
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", fontSize: "0.8rem", color: "#6b7280", gap: 2 }}>
+            Tipo
+            <select value={showOptativas} onChange={(e) => setShowOptativas(e.target.value as "todas" | "obligatorias" | "optativas")}>
+              <option value="todas">Todas</option>
+              <option value="obligatorias">Obligatorias</option>
+              <option value="optativas">Optativas</option>
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", fontSize: "0.8rem", color: "#6b7280", gap: 2 }}>
+            Oferta - Año
+            <input type="number" value={oferta.anio} onChange={(e) => setOferta((s) => ({ ...s, anio: Number(e.target.value) }))} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", fontSize: "0.8rem", color: "#6b7280", gap: 2 }}>
+            Oferta - Período
+            <select value={oferta.cuatrimestre} onChange={(e) => setOferta((s) => ({ ...s, cuatrimestre: Number(e.target.value) }))}>
+              <option value={1}>1C</option>
+              <option value={2}>2C</option>
+              <option value={0}>Anual</option>
+            </select>
+          </label>
         </div>
+        {filteredDisponibles.length === 0 && !loading && (
+          <p style={{ color: "#666", fontStyle: "italic" }}>No hay materias disponibles para inscribirte con este filtro.</p>
+        )}
         {filteredDisponibles.map((s) => (
           <div key={s._id} className={`subject ${s.esUnahur ? 'warning' : 'success'}`} style={s.esUnahur ? { background: '#fef3c7', borderColor: '#fcd34d' } : {}}>
             <div>
@@ -453,22 +622,140 @@ const AcademicAssistant = () => {
         )}
       </div>
 
-      <div className="section">
-        <h3>Planificador por horas semanales</h3>
-        <label>Horas por semana </label>
-        <input type="number" min={1} value={horasPorSemana} onChange={(e) => setHorasPorSemana(Number(e.target.value))} />
-        <input value={nombrePlan} onChange={(e) => setNombrePlan(e.target.value)} placeholder="Nombre del plan" style={{ marginLeft: 8 }} />
-        <button className="btn-primary" onClick={guardarPlanificador} style={{ marginLeft: 8 }} disabled={planificador.length === 0}>Guardar plan</button>
-        {planificador.map((periodo) => (
-          <div key={`${periodo.anio}-${periodo.cuatrimestre}`} className="projection">
-            <h4>{periodo.anio} - {periodo.cuatrimestre === 0 ? "Anual" : `${periodo.cuatrimestre}C`} ({periodo.horasUsadas} h/sem)</h4>
-            <ul>{periodo.materias.map((m) => <li key={m._id}>{m.nombre} ({m.creditos} cr., {m.horasSemanalesEstimadas ?? m.creditos} h/sem)</li>)}</ul>
+      <div className="section" data-testid="planificador">
+        <h3>Planificador de cursada</h3>
+        <p className="subtitle">
+          El sistema arma un plan hasta recibirte respetando correlatividades. Las materias que ya
+          aprobaste o estás cursando no se planifican. Podés mover materias entre cuatrimestres y la
+          carga horaria se recalcula sola.
+        </p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+          <label>Horas por semana </label>
+          <input
+            type="number"
+            min={1}
+            value={horasPorSemana}
+            aria-label="Horas por semana"
+            onChange={(e) => setHorasPorSemana(Number(e.target.value))}
+          />
+          <input value={nombrePlan} onChange={(e) => setNombrePlan(e.target.value)} placeholder="Nombre del plan" />
+          <button className="btn-primary" onClick={guardarPlanificador} disabled={planificador.length === 0}>Guardar plan</button>
+          <button className="btn-secondary" onClick={() => { fetchAll().catch(() => setError("No se pudo regenerar el plan")); }}>
+            Regenerar plan automático
+          </button>
+        </div>
+
+        {planificador.length === 0 && !loading && (
+          <p style={{ color: "#666", fontStyle: "italic" }}>
+            No hay materias pendientes para planificar. ¡Vas al día!
+          </p>
+        )}
+
+        {planificador.map((periodo, idx) => {
+          const excedido = periodo.horasUsadas > horasPorSemana;
+          return (
+            <div key={`${periodo.anio}-${periodo.cuatrimestre}-${idx}`} className="projection" data-testid="periodo">
+              <h4 style={excedido ? { color: "#b91c1c" } : {}}>
+                {periodo.anio} - {periodo.cuatrimestre === 0 ? "Anual" : `${periodo.cuatrimestre}C`}
+                {" "}({periodo.horasUsadas} / {horasPorSemana} h/sem){excedido && " ⚠ sobrecarga"}
+              </h4>
+              <ul>
+                {periodo.materias.map((m) => (
+                  <li key={m._id} data-testid="periodo-materia" style={{ justifyContent: "space-between", width: "100%" }}>
+                    <span>{m.nombre} ({m.creditos} cr., {m.horasSemanalesEstimadas ?? m.creditos} h/sem)</span>
+                    <span style={{ display: "inline-flex", gap: 4, marginLeft: "auto" }}>
+                      <button
+                        className="btn-secondary"
+                        aria-label={`Mover ${m.nombre} a un cuatrimestre anterior`}
+                        disabled={idx === 0}
+                        style={{ padding: "2px 8px" }}
+                        onClick={() => moverMateria(idx, m._id, -1)}
+                      >
+                        ◀
+                      </button>
+                      <button
+                        className="btn-secondary"
+                        aria-label={`Mover ${m.nombre} a un cuatrimestre posterior`}
+                        style={{ padding: "2px 8px" }}
+                        onClick={() => moverMateria(idx, m._id, 1)}
+                      >
+                        ▶
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+
+        {pendientesPlan.length > 0 && (
+          <div style={{ marginTop: 12, padding: 12, background: "#fef3c7", borderRadius: 8, border: "1px solid #fcd34d" }} data-testid="pendientes-plan">
+            <strong>No se pudieron ubicar ({pendientesPlan.length})</strong>
+            <p style={{ fontSize: "0.85rem", margin: "4px 0" }}>
+              Requieren más horas semanales que el límite indicado o dependen de materias que tampoco entran.
+              Subí las horas por semana para incluirlas.
+            </p>
+            <ul>{pendientesPlan.map((m) => <li key={m._id}>{m.nombre} ({m.horasSemanalesEstimadas} h/sem)</li>)}</ul>
           </div>
-        ))}
+        )}
+
         {planesGuardados.length > 0 && (
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 12 }} data-testid="planes-guardados">
             <strong>Planes guardados</strong>
-            <ul>{planesGuardados.map((plan) => <li key={plan._id}>{plan.nombre} ({plan.horasPorSemana} h/sem, {plan.periodos.length} periodos)</li>)}</ul>
+            <p className="subtitle" style={{ marginBottom: 8 }}>
+              Compará tu avance real contra el plan que te habías planteado.
+            </p>
+            {planesGuardados.map((plan) => {
+              const comp = comparaciones[plan._id];
+              return (
+                <div key={plan._id} className="projection" data-testid="plan-guardado">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span>{plan.nombre} ({plan.horasPorSemana} h/sem, {plan.periodos.length} periodos)</span>
+                    <button className="btn-secondary" onClick={() => compararConPlan(plan._id)}>
+                      Comparar rendimiento
+                    </button>
+                  </div>
+                  {comp && (
+                    <div style={{ marginTop: 8 }} data-testid="comparacion">
+                      <p>
+                        Cumpliste {comp.materiasCumplidas} de {comp.materiasEsperadas} materias previstas
+                        {" "}({comp.porcentajeCumplimiento}%) · Estado: <strong>{comp.estado.replace("-", " ")}</strong>
+                      </p>
+                      {comp.periodos && comp.periodos.filter((p) => p.transcurrido).length > 0 && (
+                        <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+                          {comp.periodos.filter((p) => p.transcurrido).map((p) => {
+                            const cerrado = p.cumplidas >= p.totalMaterias;
+                            return (
+                              <div
+                                key={`${p.anio}-${p.cuatrimestre}`}
+                                style={{
+                                  fontSize: "0.85rem", padding: "6px 10px", borderRadius: 6,
+                                  background: cerrado ? "#f0fdf4" : "#fef2f2",
+                                  border: `1px solid ${cerrado ? "#bbf7d0" : "#fecaca"}`
+                                }}
+                              >
+                                <strong>{p.anio} - {p.cuatrimestre === 0 ? "Anual" : `${p.cuatrimestre}C`}:</strong>{" "}
+                                planeaste {p.totalMaterias}, cumpliste {p.cumplidas}
+                                {p.materiasAtrasadas.length > 0 && (
+                                  <span> · atrasadas: {p.materiasAtrasadas.map((m) => m.codigo).join(", ")}</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                          {comp.estado !== "al-dia" && (
+                            <p style={{ fontSize: "0.85rem", color: "#92400e", margin: "4px 0 0" }}>
+                              Cargá lo que aprobaste/regularizaste en tu situación académica y usá
+                              "Regenerar plan automático" para recalcular el plan con tu atraso.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

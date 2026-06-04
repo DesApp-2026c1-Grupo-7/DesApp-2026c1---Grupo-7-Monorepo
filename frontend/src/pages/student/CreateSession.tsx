@@ -1,28 +1,30 @@
 import { useNavigate } from "react-router-dom";
 import CreateSessionForm from "../../components/CreateSessionForm";
+import "../../styles/CreateSession.css";
 
 export default function CreateSession() {
   const navigate = useNavigate();
 
   return (
-    <div className="p-6 flex justify-center">
-      <div className="w-full max-w-2xl">
+    <div className="create-session-page">
+      <div className="create-session-container-wide">
         
         {/* Volver */}
         <button
           onClick={() => navigate("/student/sessions")}
-          className="text-blue-600 text-sm mb-3 hover:underline"
+          className="btn-back"
         >
           ← Volver a sesiones
         </button>
 
-        {/* Título */}
-        <h1 className="text-2xl font-semibold">
-          Crear Sesión de Estudio
-        </h1>
-        <p className="text-gray-500 mb-6">
-          Organiza una sesión y conecta con otros estudiantes
-        </p>
+        <div className="create-session-header-section">
+          <h1 className="create-session-main-title">
+            Crear Sesión de Estudio
+          </h1>
+          <p className="create-session-main-subtitle">
+            Organiza una sesión y conecta con otros estudiantes para potenciar tu aprendizaje
+          </p>
+        </div>
 
         {/* Form */}
         <CreateSessionForm />
