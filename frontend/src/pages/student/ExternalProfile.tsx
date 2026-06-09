@@ -233,7 +233,9 @@ const ExternalProfile = () => {
                     <div className="academic-info">
                       <span className="subject-name">{m.materia.nombre}</span>
                       <span className="subject-year">
-                        {m.materia.anio === 0 ? "UNAHUR" : `${m.materia.anio}° Año`}
+                        {m.materia.anio === undefined ? "Año no especificado" : 
+                         m.materia.anio === 0 ? "Materia Transversal" : 
+                         `${m.materia.anio}° Año`}
                       </span>
                     </div>
                     <div className="academic-status">
