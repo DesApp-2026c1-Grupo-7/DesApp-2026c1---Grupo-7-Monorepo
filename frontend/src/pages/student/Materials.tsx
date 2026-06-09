@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import api from "../../services/api";
 import "../../styles/Materials.css";
 
@@ -53,17 +53,7 @@ export default function Materials() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  useEffect(() => {
-    fetchSubjects();
-  }, []);
-
-  useEffect(() => {
-    if (selectedSubject) {
-      fetchMaterials(selectedSubject._id);
-    }
-  }, [selectedSubject, search]);
-
-  const fetchSubjects = async () => {
+  const fetchSubjects = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get("/materias");
@@ -73,9 +63,9 @@ export default function Materials() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchMaterials = async (subjectId: string) => {
+  const fetchMaterials = useCallback(async (subjectId: string) => {
     try {
       setLoading(true);
       const res = await api.get(`/materiales?materia=${subjectId}&search=${search}`);
@@ -85,7 +75,21 @@ export default function Materials() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search]);
+
+  useEffect(() => {
+    (async () => {
+      await fetchSubjects();
+    })();
+  }, [fetchSubjects]);
+
+  useEffect(() => {
+    if (selectedSubject) {
+      (async () => {
+        await fetchMaterials(selectedSubject._id);
+      })();
+    }
+  }, [selectedSubject, fetchMaterials]);
 
   const handleOpenModal = () => {
     setIsModalOpen(true);
