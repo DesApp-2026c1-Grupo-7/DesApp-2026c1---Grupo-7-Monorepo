@@ -17,5 +17,6 @@ router.use('/invitaciones', require('./invitation.routes'));
 router.use('/notificaciones', require('./notification.routes'));
 router.use('/eventos', require('./event.routes'));
 router.use('/sesiones', require('./studySession.routes'));
+router.use('/materiales', require('./material.routes'));
 
 module.exports = router;
