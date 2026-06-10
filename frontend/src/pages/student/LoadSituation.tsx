@@ -104,9 +104,7 @@ const LoadSituation = () => {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await api.post("/academico/situacion/preview-excel", fd, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
+      const res = await api.post("/academico/situacion/preview-excel", fd);
       setPreview(res.data.preview);
       setSuccess(res.data.mensaje);
     } catch (err: unknown) {
