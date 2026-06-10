@@ -65,6 +65,7 @@ const getStudySessions = async (req, res) => {
     const sesiones = await StudySession.find({ estado: 'activa' })
       .populate('creador', 'nombre foto configuracionPrivacidad contactos')
       .populate('materia', 'nombre codigo')
+      .populate('participantes', 'nombre foto')
       .populate('solicitudes.usuario', 'nombre')
       .sort({ fechaHora: 1 });
     
@@ -385,6 +386,44 @@ const cancelStudySession = async (req, res) => {
   }
 };
 
+const kickParticipant = async (req, res) => {
+  try {
+    const { id, userId } = req.params;
+    const sesion = await StudySession.findById(id);
+
+    if (!sesion) return res.status(404).json({ mensaje: 'Sesión no encontrada' });
+
+    // Solo el creador puede expulsar
+    if (sesion.creador.toString() !== req.user.id) {
+      return res.status(403).json({ mensaje: 'No tienes permiso para expulsar miembros de esta sesión' });
+    }
+
+    // No puede expulsarse a sí mismo
+    if (userId === req.user.id) {
+      return res.status(400).json({ mensaje: 'No puedes expulsarte a ti mismo' });
+    }
+
+    // Quitar de participantes
+    sesion.participantes = sesion.participantes.filter(p => p.toString() !== userId);
+    // Quitar de solicitudes aprobadas
+    sesion.solicitudes = sesion.solicitudes.filter(s => s.usuario.toString() !== userId);
+
+    await sesion.save();
+
+    // Notificar al estudiante expulsado
+    await Notification.create({
+      usuario: userId,
+      titulo: 'Has sido removido de una sesión',
+      descripcion: `El organizador te ha removido de la sesión "${sesion.tema}"`,
+      tipo: 'warning'
+    });
+
+    res.json({ mensaje: 'Miembro expulsado con éxito' });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al expulsar al miembro', error: error.message });
+  }
+};
+
 module.exports = {
   createStudySession,
   getStudySessions,
@@ -393,5 +432,6 @@ module.exports = {
   leaveStudySession,
   getStudySessionById,
   updateStudySession,
-  cancelStudySession
+  cancelStudySession,
+  kickParticipant
 };
