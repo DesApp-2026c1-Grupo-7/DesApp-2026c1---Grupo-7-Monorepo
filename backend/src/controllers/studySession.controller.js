@@ -126,13 +126,17 @@ const joinStudySession = async (req, res) => {
       sesion.solicitudes.push({ usuario: userId, estado: 'pendiente' });
       await sesion.save();
 
+      // Obtener datos del estudiante para la notificación
+      const student = await User.findById(userId);
+      const nombreCompleto = `${student.nombre}${student.apellido ? ' ' + student.apellido : ''}`;
+
       // Notificar al creador
       await Notification.create({
         usuario: sesion.creador._id,
         titulo: 'Nueva solicitud para sesión de estudio',
-        descripcion: `Un estudiante quiere unirse a tu sesión de "${sesion.tema}"`,
+        descripcion: `${nombreCompleto} quiere unirse a tu sesión de "${sesion.tema}"`,
         tipo: 'info',
-        link: `/student/sessions` // Idealmente a una pestaña de "Mis Sesiones" o similar
+        link: `/student/sessions` 
       });
 
       return res.json({ mensaje: 'Solicitud enviada. Debes esperar a que el organizador te acepte.', requiereAprobacion: true });
@@ -141,9 +145,12 @@ const joinStudySession = async (req, res) => {
       sesion.participantes.push(userId);
       await sesion.save();
 
+      // Obtener datos del estudiante para mail y notificación
+      const student = await User.findById(userId);
+      const nombreCompleto = `${student.nombre}${student.apellido ? ' ' + student.apellido : ''}`;
+
       // Enviar mail de confirmación
       try {
-        const student = await User.findById(userId);
         const sesionConMateria = await StudySession.findById(id).populate('materia', 'nombre');
         await mailService.sendSessionConfirmationEmail(student.email, student.nombre, sesionConMateria);
       } catch (mailError) {
@@ -154,7 +161,7 @@ const joinStudySession = async (req, res) => {
       await Notification.create({
         usuario: sesion.creador._id,
         titulo: 'Nuevo participante en tu sesión',
-        descripcion: `Un estudiante se ha unido a tu sesión de "${sesion.tema}"`,
+        descripcion: `${nombreCompleto} se ha unido a tu sesión de "${sesion.tema}"`,
         tipo: 'success'
       });
 
@@ -193,9 +200,12 @@ const manageJoinRequest = async (req, res) => {
       
       await sesion.save();
 
+      // Obtener datos del estudiante para mail y descripción
+      const student = await User.findById(userId);
+      const nombreCompleto = `${student.nombre}${student.apellido ? ' ' + student.apellido : ''}`;
+
       // Enviar mail de confirmación
       try {
-        const student = await User.findById(userId);
         const sesionConMateria = await StudySession.findById(sessionId).populate('materia', 'nombre');
         await mailService.sendSessionConfirmationEmail(student.email, student.nombre, sesionConMateria);
       } catch (mailError) {
@@ -209,6 +219,14 @@ const manageJoinRequest = async (req, res) => {
         descripcion: `Has sido aceptado en la sesión de "${sesion.tema}"`,
         tipo: 'success',
         link: '/student/sessions'
+      });
+
+      // Notificar al creador (opcional, pero consistente con joinStudySession)
+      await Notification.create({
+        usuario: sesion.creador._id,
+        titulo: 'Nuevo integrante aceptado',
+        descripcion: `${nombreCompleto} ahora forma parte de tu sesión "${sesion.tema}"`,
+        tipo: 'success'
       });
 
       return res.json({ mensaje: 'Solicitud aprobada con éxito' });
