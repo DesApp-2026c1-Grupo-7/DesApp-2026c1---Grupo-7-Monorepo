@@ -7,7 +7,8 @@ const {
   leaveStudySession,
   getStudySessionById,
   updateStudySession,
-  cancelStudySession 
+  cancelStudySession,
+  kickParticipant
 } = require('../controllers/studySession.controller');
 const { auth, authorize } = require('../middlewares/auth');
 
@@ -38,5 +39,8 @@ router.post('/:id/leave', authorize('student'), leaveStudySession);
 
 // Gestionar solicitudes (solo el creador, validado en el controlador)
 router.post('/manage-request', authorize('student'), manageJoinRequest);
+
+// Expulsar a un miembro (solo el creador, validado en el controlador)
+router.post('/:id/kick/:userId', authorize('student'), kickParticipant);
 
 module.exports = router;

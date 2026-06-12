@@ -2,19 +2,24 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import "../../styles/StudySessions.css";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import { Users } from "lucide-react";
+
+interface Subject {
+  _id: string;
+  nombre: string;
+  codigo: string;
+}
+
+interface User {
+  _id: string;
+  nombre: string;
+  foto?: string;
+}
 
 interface Session {
   _id: string;
-  materia: {
-    _id: string;
-    nombre: string;
-    codigo: string;
-  } | null;
-  creador: {
-    _id: string;
-    nombre: string;
-    foto?: string;
-  } | null;
+  materia: Subject | null;
+  creador: User | null;
   tema: string;
   tipo: "virtual" | "presencial";
   link?: string;
@@ -25,7 +30,7 @@ interface Session {
     minutos: number;
   };
   cupos?: number;
-  participantes: string[];
+  participantes: User[];
   solicitudes: { usuario: string | { _id: string; nombre: string }; estado: string }[];
   requiereAprobacion: boolean;
   descripcion?: string;
@@ -37,6 +42,9 @@ const StudySessions = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  
+  // Estado para modal de miembros
+  const [viewingMembers, setViewingMembers] = useState<Session | null>(null);
 
   // Estados de filtros
   const [searchQuery, setSearchQuery] = useState("");
@@ -132,6 +140,30 @@ const StudySessions = () => {
     }
   };
 
+  const handleKick = async (sessionId: string, userId: string) => {
+    if (!window.confirm("¿Estás seguro de que quieres expulsar a este miembro?")) return;
+    setActionLoading(`kick-${userId}`);
+    try {
+      const res = await api.post(`/sesiones/${sessionId}/kick/${userId}`);
+      alert(res.data.mensaje);
+      
+      // Actualizar la lista de miembros en el modal localmente para feedback inmediato
+      if (viewingMembers) {
+        setViewingMembers({
+          ...viewingMembers,
+          participantes: viewingMembers.participantes.filter(p => p._id !== userId)
+        });
+      }
+      
+      fetchSessions(true);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { mensaje?: string } } };
+      alert(axiosErr.response?.data?.mensaje || "Error al expulsar al miembro");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const filteredSessions = useMemo(() => {
     const now = new Date();
     return sessions.filter((s) => {
@@ -150,20 +182,12 @@ const StudySessions = () => {
       if (modalityFilter === "mine") {
         if (s.creador?._id !== currentUser?.id) return false;
       } else if (modalityFilter === "enrolled") {
-        if (!s.participantes.includes(currentUser?.id)) return false;
+        if (!s.participantes.some(p => p._id === currentUser?.id)) return false;
       } else if (modalityFilter === "closed") {
         if (!isClosed) return false;
       } else if (modalityFilter !== "all" && s.tipo !== modalityFilter) {
         return false;
       }
-
-      // Si no es el filtro específico de "cerradas", ocultamos las pasadas por defecto en "all" y otros filtros
-      // a menos que el usuario esté buscando específicamente algo que incluya historial. 
-      // Por consistencia con la mayoría de apps, "Todas" suele mostrar futuras.
-      // Pero el usuario pidió "Agregar la posibilidad de buscar por Cerradas", 
-      // lo que implica que "Todas" quizás debería seguir mostrando activas o todas.
-      // Vamos a permitir que "all" muestre todo, pero el botón dirá "Cerrada".
-      // Si prefieres que "all" solo muestre activas, avisame. Por ahora permito verlas.
 
       // 3. Filtro por fecha específica
       if (dateFilter) {
@@ -178,7 +202,6 @@ const StudySessions = () => {
 
       // 4. Filtro por cupos disponibles
       if (onlyAvailable === "available") {
-        // Si no tiene límite de cupos (cupos es undefined o null), siempre está disponible
         if (s.cupos && s.participantes.length >= s.cupos) {
           return false;
         }
@@ -293,7 +316,7 @@ const StudySessions = () => {
         ) : (
           filteredSessions.map((s) => {
             const isOwner = s.creador?._id === currentUser?.id;
-            const isParticipant = s.participantes.includes(currentUser?.id);
+            const isParticipant = s.participantes.some(p => p._id === currentUser?.id);
             const pendingRequest = s.solicitudes.find(sol => {
               const solUserId = typeof sol.usuario === 'string' ? sol.usuario : sol.usuario?._id;
               return solUserId === currentUser?.id && sol.estado === 'pendiente';
@@ -328,7 +351,18 @@ const StudySessions = () => {
                   <span>📅 {formatFecha(s.fechaHora)}</span>
                   <span>⏰ {formatHora(s.fechaHora)}</span>
                   <span>📍 {s.tipo === "presencial" ? s.ubicacion : "Link virtual"}</span>
-                  <span>👥 {s.participantes.length}{s.cupos ? `/${s.cupos}` : ""} participantes</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>👥 {s.participantes.length}{s.cupos ? `/${s.cupos}` : ""} participantes</span>
+                    {(isOwner || isParticipant) && (
+                      <button 
+                        className="view-members-btn"
+                        onClick={() => setViewingMembers(s)}
+                        title="Ver quiénes se unieron"
+                      >
+                        <Users size={16} /> Ver miembros
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {s.descripcion && (
@@ -444,6 +478,57 @@ const StudySessions = () => {
           })
         )}
       </div>
+
+      {/* MODAL DE MIEMBROS */}
+      {viewingMembers && (
+        <div className="modal-overlay" onClick={() => setViewingMembers(null)}>
+          <div className="members-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Miembros de la sesión</h3>
+              <button className="btn-close" onClick={() => setViewingMembers(null)}>&times;</button>
+            </div>
+            <div className="members-list">
+              <p style={{ padding: '0 20px 10px', fontSize: '0.85rem', color: '#6b7280' }}>
+                {viewingMembers.tema}
+              </p>
+              {viewingMembers.participantes.map((member) => (
+                <div key={member._id} className="member-item" style={{ justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {member.foto ? (
+                      <img src={member.foto} alt={member.nombre} className="member-photo" />
+                    ) : (
+                      <div className="member-initials">
+                        {member.nombre.substring(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="member-name">
+                      {member.nombre} {member._id === currentUser?.id ? "(Tú)" : ""}
+                      {member._id === viewingMembers.creador?._id ? " 👑" : ""}
+                    </span>
+                  </div>
+                  
+                  {/* Botón de expulsar para el creador */}
+                  {viewingMembers.creador?._id === currentUser?.id && member._id !== currentUser?.id && (
+                    <button 
+                      className="btn-secondary"
+                      style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#dc2626', borderColor: '#fca5a5' }}
+                      onClick={() => handleKick(viewingMembers._id, member._id)}
+                      disabled={actionLoading === `kick-${member._id}`}
+                    >
+                      {actionLoading === `kick-${member._id}` ? "..." : "Expulsar"}
+                    </button>
+                  )}
+                </div>
+              ))}
+              {viewingMembers.participantes.length === 0 && (
+                <p style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
+                  Aún no hay miembros en esta sesión.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
