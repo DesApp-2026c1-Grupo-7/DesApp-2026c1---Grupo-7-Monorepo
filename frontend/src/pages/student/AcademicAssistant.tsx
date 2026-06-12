@@ -43,7 +43,7 @@ interface Avance {
   materiasUnahurRequeridas: number;
   nivelInglesRequerido: string;
   materiasUnahurFaltantes: number;
-  avancePorAnio: Record<string, { aprobadas: number; regulares: number; cursando: number; total?: number }>;
+  avancePorAnio: Record<string, { aprobadas: number; regulares: number; cursando: number; total?: number; materiasFaltantes?: string[] }>;
   porcentajeAvance: number;
 }
 
@@ -471,7 +471,23 @@ const AcademicAssistant = () => {
                       <span style={{ padding: "2px 8px", borderRadius: 6, background: "#dcfce7", color: "#166534" }}>Aprobadas: {row.aprobadas}</span>
                       <span style={{ padding: "2px 8px", borderRadius: 6, background: "#dbeafe", color: "#1e40af" }}>Regulares: {row.regulares}</span>
                       <span style={{ padding: "2px 8px", borderRadius: 6, background: "#fef9c3", color: "#854d0e" }}>Cursando: {row.cursando}</span>
-                      <span style={{ padding: "2px 8px", borderRadius: 6, background: "#fee2e2", color: "#991b1b" }}>Faltantes: {faltantes}</span>
+                      <span
+                        className="faltantes-chip"
+                        style={{ padding: "2px 8px", borderRadius: 6, background: "#fee2e2", color: "#991b1b", cursor: faltantes > 0 ? "help" : "default", position: "relative" }}
+                        tabIndex={faltantes > 0 ? 0 : undefined}
+                      >
+                        Faltantes: {faltantes}
+                        {faltantes > 0 && row.materiasFaltantes && row.materiasFaltantes.length > 0 && (
+                          <span className="faltantes-tooltip" role="tooltip">
+                            <strong className="faltantes-tooltip-title">Materias faltantes de Año {anio}</strong>
+                            <ul className="faltantes-tooltip-list">
+                              {row.materiasFaltantes.map((nombre) => (
+                                <li key={nombre}>{nombre}</li>
+                              ))}
+                            </ul>
+                          </span>
+                        )}
+                      </span>
                       <span style={{ padding: "2px 8px", borderRadius: 6, background: "#f3f4f6", color: "#374151" }}>Total: {total}</span>
                     </div>
                   </div>
