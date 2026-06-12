@@ -218,11 +218,11 @@ const Situation = () => {
                     <td>{m.nota || "-"}</td>
                     <td>{new Date(m.fecha).toLocaleDateString()}</td>
                     <td>
-                      <button 
-                        className={m.estado === 'Aprobada' || m.estado === 'Promocion' ? 'btn-disabled' : 'btn-danger'}
+                      <button
+                        className={m.estado === 'Aprobada' || m.estado === 'Promocion' || m.estado === 'Regular' ? 'btn-disabled' : 'btn-danger'}
                         onClick={() => openDeleteModal(m.materia._id, m.materia.nombre)}
-                        disabled={m.estado === 'Aprobada' || m.estado === 'Promocion'}
-                        title={m.estado === 'Aprobada' || m.estado === 'Promocion' ? "No se puede dar de baja una materia aprobada" : ""}
+                        disabled={m.estado === 'Aprobada' || m.estado === 'Promocion' || m.estado === 'Regular'}
+                        title={m.estado === 'Regular' ? "No se puede dar de baja una materia regular" : m.estado === 'Aprobada' || m.estado === 'Promocion' ? "No se puede dar de baja una materia aprobada" : ""}
                       >
                         Darse de baja
                       </button>
@@ -265,11 +265,11 @@ const Situation = () => {
                 </div>
               </div>
               <div className="card-footer">
-                <button 
-                  className={m.estado === 'Aprobada' || m.estado === 'Promocion' ? 'btn-disabled' : 'btn-danger'}
+                <button
+                  className={m.estado === 'Aprobada' || m.estado === 'Promocion' || m.estado === 'Regular' ? 'btn-disabled' : 'btn-danger'}
                   style={{ width: '100%' }}
                   onClick={() => openDeleteModal(m.materia._id, m.materia.nombre)}
-                  disabled={m.estado === 'Aprobada' || m.estado === 'Promocion'}
+                  disabled={m.estado === 'Aprobada' || m.estado === 'Promocion' || m.estado === 'Regular'}
                 >
                   Darse de baja
                 </button>
