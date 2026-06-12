@@ -392,10 +392,10 @@
   pointer-events: none;
   z-index: 50;
   text-align: left;
-  /* display:none cuando esta oculto: ademas de ocultarlo, evita que su
-     contenido (nombres de materias) sea matcheado por cy.contains() de Cypress,
-     que ignora elementos display:none pero no los visibility:hidden. */
-  display: none;
+  /* El tooltip se monta/desmonta condicionalmente desde React (solo en hover/foco),
+     asi sus nombres de materias no quedan en el DOM en reposo. La animacion de
+     entrada se dispara al montar. */
+  animation: faltantesTooltipIn 0.18s ease;
 }
 
 /* Flechita inferior del tooltip */
@@ -407,15 +407,6 @@
   transform: translateX(-50%);
   border: 6px solid transparent;
   border-top-color: #1f2937;
-}
-
-.faltantes-chip:hover .faltantes-tooltip,
-.faltantes-chip:focus .faltantes-tooltip,
-.faltantes-chip:focus-within .faltantes-tooltip {
-  display: block;
-  /* las @keyframes si se disparan al pasar de display:none a block
-     (a diferencia de transition), conservando la animacion de entrada */
-  animation: faltantesTooltipIn 0.2s ease;
 }
 
 @keyframes faltantesTooltipIn {

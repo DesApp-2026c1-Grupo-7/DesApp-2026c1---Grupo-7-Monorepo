@@ -115,6 +115,9 @@ const AcademicAssistant = () => {
   });
   const [filterAnio, setFilterAnio] = useState("todos");
   const [showOptativas, setShowOptativas] = useState<"todas" | "obligatorias" | "optativas">("todas");
+  // Año cuyo tooltip de materias faltantes está abierto (hover/foco). Se renderiza
+  // de forma condicional para no dejar los nombres en el DOM cuando está cerrado.
+  const [faltantesAbierto, setFaltantesAbierto] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -475,9 +478,13 @@ const AcademicAssistant = () => {
                         className="faltantes-chip"
                         style={{ padding: "2px 8px", borderRadius: 6, background: "#fee2e2", color: "#991b1b", cursor: faltantes > 0 ? "help" : "default", position: "relative" }}
                         tabIndex={faltantes > 0 ? 0 : undefined}
+                        onMouseEnter={() => faltantes > 0 && setFaltantesAbierto(anio)}
+                        onMouseLeave={() => setFaltantesAbierto((prev) => (prev === anio ? null : prev))}
+                        onFocus={() => faltantes > 0 && setFaltantesAbierto(anio)}
+                        onBlur={() => setFaltantesAbierto((prev) => (prev === anio ? null : prev))}
                       >
                         Faltantes: {faltantes}
-                        {faltantes > 0 && row.materiasFaltantes && row.materiasFaltantes.length > 0 && (
+                        {faltantesAbierto === anio && row.materiasFaltantes && row.materiasFaltantes.length > 0 && (
                           <span className="faltantes-tooltip" role="tooltip">
                             <strong className="faltantes-tooltip-title">Materias faltantes de Año {anio}</strong>
                             <ul className="faltantes-tooltip-list">
