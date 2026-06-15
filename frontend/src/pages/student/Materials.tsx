@@ -27,6 +27,11 @@ interface Material {
   tags: string[];
   createdAt: string;
   size?: number;
+  likes: number;
+  dislikes: number;
+  totalValoraciones: number;
+  ratio: number;
+  userVote?: number;
 }
 
 export default function Materials() {
@@ -36,22 +41,8 @@ export default function Materials() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [subjectSearch, setSubjectSearch] = useState("");
+  const [sortBy, setSortBy] = useState("recientes");
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // Form state
-  const [formData, setFormData] = useState({
-    titulo: "",
-    descripcion: "",
-    materia: "",
-    tipo: "archivo",
-    categoria: "archivo",
-    url: "",
-    tags: ""
-  });
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploadLoading, setUploadLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const fetchSubjects = useCallback(async () => {
     try {
@@ -68,14 +59,15 @@ export default function Materials() {
   const fetchMaterials = useCallback(async (subjectId: string) => {
     try {
       setLoading(true);
-      const res = await api.get(`/materiales?materia=${subjectId}&search=${search}`);
+      const sortParam = sortBy === 'valoracion' ? 'valoracion' : 'recientes';
+      const res = await api.get(`/materiales?materia=${subjectId}&search=${search}&sort=${sortParam}`);
       setMaterials(res.data);
     } catch (err) {
       console.error("Error al cargar materiales", err);
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [search, sortBy]);
 
   useEffect(() => {
     (async () => {
@@ -90,6 +82,30 @@ export default function Materials() {
       })();
     }
   }, [selectedSubject, fetchMaterials]);
+
+  const handleRate = async (materialId: string, voto: number) => {
+    try {
+      await api.post(`/materiales/${materialId}/valorar`, { voto });
+      if (selectedSubject) fetchMaterials(selectedSubject._id);
+    } catch (err) {
+      console.error("Error al valorar material", err);
+    }
+  };
+
+  // Form state
+  const [formData, setFormData] = useState({
+    titulo: "",
+    descripcion: "",
+    materia: "",
+    tipo: "archivo",
+    categoria: "archivo",
+    url: "",
+    tags: ""
+  });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleOpenModal = () => {
     setIsModalOpen(true);
@@ -264,6 +280,20 @@ export default function Materials() {
         />
       </div>
 
+      {selectedSubject && (
+        <div className="sort-container">
+          <span className="sort-label">Ordenar por:</span>
+          <select 
+            className="sort-select" 
+            value={sortBy} 
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="recientes">Más recientes</option>
+            <option value="valoracion">Mejor valorados</option>
+          </select>
+        </div>
+      )}
+
       {/* CONTENIDO PRINCIPAL */}
       {loading ? (
         <div className="text-center py-10">Cargando...</div>
@@ -313,6 +343,32 @@ export default function Materials() {
                   {m.tags?.map((tag, idx) => (
                     <span key={idx} className="tag">#{tag}</span>
                   ))}
+                </div>
+
+                <div className="material-ratings">
+                  <div 
+                    className={`rating-item ${m.userVote === 1 ? 'active-up' : ''}`}
+                    onClick={() => handleRate(m._id, 1)}
+                    title="Pulgar arriba"
+                  >
+                    👍 {m.likes || 0}
+                  </div>
+                  <div className="rating-divider"></div>
+                  <div 
+                    className={`rating-item ${m.userVote === -1 ? 'active-down' : ''}`}
+                    onClick={() => handleRate(m._id, -1)}
+                    title="Pulgar abajo"
+                  >
+                    👎 {m.dislikes || 0}
+                  </div>
+                  {m.totalValoraciones > 0 && (
+                    <>
+                      <div className="rating-divider"></div>
+                      <div className="rating-ratio">
+                        Ratio: <span className="ratio-badge">{(m.ratio * 100).toFixed(0)}%</span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="material-footer">

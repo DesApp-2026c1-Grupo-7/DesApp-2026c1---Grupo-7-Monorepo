@@ -6,6 +6,7 @@ const upload = require('../middlewares/upload');
 
 router.get('/', auth, materialController.getMaterials);
 router.post('/', auth, upload.single('archivo'), materialController.createMaterial);
+router.post('/:id/valorar', auth, materialController.rateMaterial);
 router.delete('/:id', auth, materialController.deleteMaterial);
 
 module.exports = router;

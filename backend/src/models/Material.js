@@ -46,6 +46,18 @@ const materialSchema = new mongoose.Schema({
   tags: [{
     type: String,
     trim: true
+  }],
+  valoraciones: [{
+    usuario: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    voto: {
+      type: Number,
+      enum: [1, -1], // 1: pulgar arriba, -1: pulgar abajo
+      required: true
+    }
   }]
 }, {
   timestamps: true
