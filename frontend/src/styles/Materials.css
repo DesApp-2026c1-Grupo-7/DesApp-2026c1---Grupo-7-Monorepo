@@ -98,6 +98,39 @@
   font-size: 14px;
 }
 
+.admin-filters {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.filter-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-tag:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.filter-tag.active {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
 .materials-filters .select-filter {
   padding: 10px 14px;
   border: 1px solid #d1d5db;
@@ -284,6 +317,16 @@
   transform: translateX(4px);
 }
 
+/* NO RESULTS */
+.no-results {
+  grid-column: 1 / -1;
+  width: 100%;
+  padding: 40px 0;
+  color: #6b7280;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
 /* MODAL */
 .modal-overlay {
   position: fixed;
@@ -463,5 +506,139 @@
   font-size: 13px;
   background-color: white;
   cursor: pointer;
+}
+
+/* ACTION BUTTONS */
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-report {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.btn-report:hover {
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
+.btn-danger {
+  background-color: #dc2626;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #b91c1c;
+}
+
+.btn-danger:disabled {
+  background-color: #fca5a5;
+  cursor: not-allowed;
+}
+
+.modal-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 20px;
+  padding: 10px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border-left: 4px solid #d1d5db;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* REPORT STATUS & SUSPENSION */
+.material-card.is-suspended {
+  border-color: #fca5a5;
+  background-color: #fffafb;
+}
+
+.title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.suspended-badge {
+  background: #dc2626;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.report-status-box {
+  margin: 8px 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-suspended {
+  background: #fee2e2;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-verified {
+  background: #fef3c7;
+  color: #d97706;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-pending {
+  background: #eff6ff;
+  color: #3b82f6;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-clean {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  background-color: #9ca3af !important;
+}
+
+.search-box {
+  flex: 1;
+  display: flex;
 }
 
