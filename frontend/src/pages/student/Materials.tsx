@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "../../services/api";
 import "../../styles/Materials.css";
-import { Flag, AlertTriangle, CheckCircle, Info, Filter } from "lucide-react";
+import { Flag, AlertTriangle, CheckCircle, Info } from "lucide-react";
 
 interface Subject {
   _id: string;
@@ -59,12 +59,10 @@ export default function Materials() {
   const [filterSuspended, setFilterSuspended] = useState(false);
 
   // User role check
-  const [userRole, setUserRole] = useState("");
-
-  useEffect(() => {
+  const [userRole] = useState(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    setUserRole(user.role || "");
-  }, []);
+    return user.role || "";
+  });
 
   const isAdmin = userRole === 'admin';
 

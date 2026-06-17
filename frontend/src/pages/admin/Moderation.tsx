@@ -79,8 +79,11 @@ export default function Moderation() {
   }, []);
 
   useEffect(() => {
-    fetchReports();
-    fetchConfig();
+    const loadInitialData = async () => {
+      await fetchReports();
+      await fetchConfig();
+    };
+    loadInitialData();
   }, [fetchReports, fetchConfig]);
 
   const handleUpdateStatus = async (reportId: string, nuevoEstado: string) => {
