@@ -12,6 +12,10 @@ const StudySession = require('../models/StudySession');
 const Invitation = require('../models/Invitation');
 const Notification = require('../models/Notification');
 const Event = require('../models/Event');
+const ReportReason = require('../models/ReportReason');
+const Material = require('../models/Material');
+const MaterialReport = require('../models/MaterialReport');
+const SystemConfig = require('../models/SystemConfig');
 const logger = require('./logger');
 
 async function resetDatabase() {
@@ -28,8 +32,47 @@ async function resetDatabase() {
     StudySession.deleteMany({}),
     Invitation.deleteMany({}),
     Notification.deleteMany({}),
-    Event.deleteMany({})
+    Event.deleteMany({}),
+    ReportReason.deleteMany({}),
+    Material.deleteMany({}),
+    MaterialReport.deleteMany({}),
+    SystemConfig.deleteMany({})
   ]);
+}
+
+async function seedSystemConfig() {
+  const defaultConfig = {
+    key: 'materialReportThresholds',
+    value: { nPending: 3, mVerified: 1 },
+    description: 'Umbrales para suspensión automática de material'
+  };
+
+  await SystemConfig.findOneAndUpdate(
+    { key: defaultConfig.key },
+    defaultConfig,
+    { upsert: true, new: true }
+  );
+  logger.info('Configuración de sistema sembrada (umbrales de materiales).');
+}
+
+async function seedReportReasons() {
+  const reasons = [
+    { titulo: 'Contenido pornográfico o sexual explícito', orden: 1 },
+    { titulo: 'Lenguaje ofensivo o insultos', orden: 2 },
+    { titulo: 'Material protegido por derechos de autor', orden: 3 },
+    { titulo: 'Spam o publicidad engañosa', orden: 4 },
+    { titulo: 'Información incorrecta o engañosa', orden: 5 },
+    { titulo: 'Otro', orden: 6 }
+  ];
+
+  for (const r of reasons) {
+    await ReportReason.findOneAndUpdate(
+      { titulo: r.titulo },
+      r,
+      { upsert: true, new: true }
+    );
+  }
+  logger.info('Motivos de denuncia sembrados con orden específico.');
 }
 
 async function seedCareers() {
@@ -408,6 +451,8 @@ async function seedUsers() {
     }
 
     await seedAcademicOffer(subjectsMap);
+    await seedReportReasons();
+    await seedSystemConfig();
     logger.info('Sembrado de datos completado exitosamente.');
 
   } catch (error) {

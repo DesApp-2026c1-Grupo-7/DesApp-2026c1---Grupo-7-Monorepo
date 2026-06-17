@@ -1,5 +1,7 @@
+const mongoose = require('mongoose');
 const Material = require('../models/Material');
 const Subject = require('../models/Subject');
+const SystemConfig = require('../models/SystemConfig');
 
 const createMaterial = async (req, res) => {
   try {
@@ -46,7 +48,11 @@ const getMaterials = async (req, res) => {
     const { materia, search, categoria, tags, sort } = req.query;
     const match = {};
 
-    if (materia) match.materia = new (require('mongoose').Types.ObjectId)(materia);
+    // Obtener configuración de umbrales
+    let config = await SystemConfig.findOne({ key: 'materialReportThresholds' });
+    const thresholds = config ? config.value : { nPending: 3, mVerified: 1 };
+
+    if (materia) match.materia = new mongoose.Types.ObjectId(materia);
     if (categoria) match.categoria = categoria;
     if (tags) {
       const tagsArray = Array.isArray(tags) ? tags : [tags];
@@ -61,8 +67,51 @@ const getMaterials = async (req, res) => {
       ];
     }
 
+    const isAdmin = req.user && req.user.role === 'admin';
+
     const pipeline = [
       { $match: match },
+      // Lookup for reports to count pending and verified
+      {
+        $lookup: {
+          from: 'materialreports',
+          localField: '_id',
+          foreignField: 'material',
+          as: 'reports'
+        }
+      },
+      {
+        $addFields: {
+          pendingReports: {
+            $size: {
+              $filter: {
+                input: '$reports',
+                as: 'r',
+                cond: { $eq: ['$$r.estado', 'pendiente'] }
+              }
+            }
+          },
+          verifiedReports: {
+            $size: {
+              $filter: {
+                input: '$reports',
+                as: 'r',
+                cond: { $eq: ['$$r.estado', 'revisado'] }
+              }
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          suspendido: {
+            $or: [
+              { $gte: ['$pendingReports', thresholds.nPending] },
+              { $gte: ['$verifiedReports', thresholds.mVerified] }
+            ]
+          }
+        }
+      },
       {
         $addFields: {
           userVote: {
@@ -72,7 +121,7 @@ const getMaterials = async (req, res) => {
                   $filter: {
                     input: { $ifNull: ["$valoraciones", []] },
                     as: "v",
-                    cond: { $eq: ["$$v.usuario", new (require('mongoose').Types.ObjectId)(req.user.id)] }
+                    cond: { $eq: ["$$v.usuario", new mongoose.Types.ObjectId(req.user.id)] }
                   }
                 }
               },
@@ -144,7 +193,27 @@ const getMaterials = async (req, res) => {
         $project: {
           'autor.password': 0,
           'autor.configuracionPrivacidad': 0,
-          'valoraciones': 0 // Opcional: no enviar todas las valoraciones individuales si no se necesitan
+          'valoraciones': 0,
+          'reports': 0 // No enviar detalles de denuncias
+        }
+      },
+      {
+        $addFields: {
+          // Ocultar URL si está suspendido
+          url: {
+            $cond: [
+              { $and: [{ $eq: ["$suspendido", true] }, { $eq: [isAdmin, false] }] },
+              null,
+              "$url"
+            ]
+          },
+          nombreOriginal: {
+            $cond: [
+              { $and: [{ $eq: ["$suspendido", true] }, { $eq: [isAdmin, false] }] },
+              null,
+              "$nombreOriginal"
+            ]
+          }
         }
       }
     );

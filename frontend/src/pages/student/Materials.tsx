@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "../../services/api";
 import "../../styles/Materials.css";
+import { Flag, AlertTriangle, CheckCircle, Info, Filter } from "lucide-react";
 
 interface Subject {
   _id: string;
@@ -13,6 +14,12 @@ interface User {
   nombre: string;
   apellido: string;
   email: string;
+}
+
+interface ReportReason {
+  _id: string;
+  titulo: string;
+  descripcion?: string;
 }
 
 interface Material {
@@ -32,6 +39,9 @@ interface Material {
   totalValoraciones: number;
   ratio: number;
   userVote?: number;
+  pendingReports: number;
+  verifiedReports: number;
+  suspendido: boolean;
 }
 
 export default function Materials() {
@@ -43,6 +53,31 @@ export default function Materials() {
   const [subjectSearch, setSubjectSearch] = useState("");
   const [sortBy, setSortBy] = useState("recientes");
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Admin filters
+  const [filterReported, setFilterReported] = useState(false);
+  const [filterSuspended, setFilterSuspended] = useState(false);
+
+  // User role check
+  const [userRole, setUserRole] = useState("");
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    setUserRole(user.role || "");
+  }, []);
+
+  const isAdmin = userRole === 'admin';
+
+  // Reporting state
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reasons, setReasons] = useState<ReportReason[]>([]);
+  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
+  const [reportData, setReportData] = useState({
+    reasonId: "",
+    motivoEspecifico: "",
+    detalle: ""
+  });
+  const [reportLoading, setReportLoading] = useState(false);
 
   const fetchSubjects = useCallback(async () => {
     try {
@@ -61,19 +96,38 @@ export default function Materials() {
       setLoading(true);
       const sortParam = sortBy === 'valoracion' ? 'valoracion' : 'recientes';
       const res = await api.get(`/materiales?materia=${subjectId}&search=${search}&sort=${sortParam}`);
-      setMaterials(res.data);
+      
+      let data = res.data;
+      if (filterReported) {
+        data = data.filter((m: Material) => m.pendingReports > 0 || m.verifiedReports > 0);
+      }
+      if (filterSuspended) {
+        data = data.filter((m: Material) => m.suspendido);
+      }
+      
+      setMaterials(data);
     } catch (err) {
       console.error("Error al cargar materiales", err);
     } finally {
       setLoading(false);
     }
-  }, [search, sortBy]);
+  }, [search, sortBy, filterReported, filterSuspended]);
+
+  const fetchReasons = useCallback(async () => {
+    try {
+      const res = await api.get("/denuncias/reasons");
+      setReasons(res.data);
+    } catch (err) {
+      console.error("Error al cargar motivos de denuncia", err);
+    }
+  }, []);
 
   useEffect(() => {
     (async () => {
       await fetchSubjects();
+      await fetchReasons();
     })();
-  }, [fetchSubjects]);
+  }, [fetchSubjects, fetchReasons]);
 
   useEffect(() => {
     if (selectedSubject) {
@@ -89,6 +143,54 @@ export default function Materials() {
       if (selectedSubject) fetchMaterials(selectedSubject._id);
     } catch (err) {
       console.error("Error al valorar material", err);
+    }
+  };
+
+  // Report Modal Handlers
+  const handleOpenReportModal = (material: Material) => {
+    setSelectedMaterial(material);
+    setIsReportModalOpen(true);
+    setReportData({ reasonId: "", motivoEspecifico: "", detalle: "" });
+    setError("");
+    setSuccess("");
+  };
+
+  const handleCloseReportModal = () => {
+    setIsReportModalOpen(false);
+    setSelectedMaterial(null);
+  };
+
+  const handleReportInputChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement | HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setReportData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleReportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedMaterial) return;
+    
+    setReportLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      await api.post("/denuncias", {
+        materialId: selectedMaterial._id,
+        reasonId: reportData.reasonId,
+        motivoEspecifico: reportData.motivoEspecifico,
+        detalle: reportData.detalle
+      });
+
+      setSuccess("Denuncia enviada correctamente. Gracias por ayudar a moderar el contenido.");
+      setTimeout(() => {
+        handleCloseReportModal();
+        if (selectedSubject) fetchMaterials(selectedSubject._id);
+      }, 2000);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { mensaje?: string } } };
+      setError(axiosErr.response?.data?.mensaje || "Error al enviar la denuncia");
+    } finally {
+      setReportLoading(false);
     }
   };
 
@@ -232,6 +334,11 @@ export default function Materials() {
   };
 
   const handleAction = (material: Material) => {
+    if (material.suspendido && !isAdmin) {
+      alert("Este material se encuentra suspendido temporalmente por denuncias de la comunidad.");
+      return;
+    }
+
     const url = material.tipo === 'archivo' 
       ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${material.url}`
       : material.url;
@@ -271,13 +378,32 @@ export default function Materials() {
       </div>
 
       <div className="materials-filters">
-        <input
-          type="text"
-          className="search-input"
-          placeholder={selectedSubject ? "Buscar en este repositorio..." : "Buscar materia..."}
-          value={selectedSubject ? search : subjectSearch}
-          onChange={(e) => selectedSubject ? setSearch(e.target.value) : setSubjectSearch(e.target.value)}
-        />
+        <div className="search-box">
+          <input
+            type="text"
+            className="search-input"
+            placeholder={selectedSubject ? "Buscar en este repositorio..." : "Buscar materia..."}
+            value={selectedSubject ? search : subjectSearch}
+            onChange={(e) => selectedSubject ? setSearch(e.target.value) : setSubjectSearch(e.target.value)}
+          />
+        </div>
+
+        {selectedSubject && isAdmin && (
+          <div className="admin-filters">
+            <button 
+              className={`filter-tag ${filterReported ? 'active' : ''}`}
+              onClick={() => setFilterReported(!filterReported)}
+            >
+              <Flag size={14} /> Con Denuncias
+            </button>
+            <button 
+              className={`filter-tag ${filterSuspended ? 'active' : ''}`}
+              onClick={() => setFilterSuspended(!filterSuspended)}
+            >
+              <AlertTriangle size={14} /> Suspendidos
+            </button>
+          </div>
+        )}
       </div>
 
       {selectedSubject && (
@@ -327,16 +453,38 @@ export default function Materials() {
             </div>
           ) : (
             materials.map((m) => (
-              <div key={m._id} className="material-card">
+              <div key={m._id} className={`material-card ${m.suspendido ? 'is-suspended' : ''}`}>
                 <div className="material-top">
                   <div className={`category-icon category-${m.categoria}`}>
                     {getCategoryIcon(m.categoria)}
                   </div>
 
                   <div className="material-info">
-                    <h4>{m.titulo}</h4>
+                    <div className="title-row">
+                      <h4>{m.titulo}</h4>
+                      {m.suspendido && <span className="suspended-badge">Suspendido</span>}
+                    </div>
                     <p className="material-desc">{m.descripcion || "Sin descripción"}</p>
                   </div>
+                </div>
+
+                {/* STATUS DE DENUNCIAS */}
+                <div className="report-status-box">
+                  {m.suspendido ? (
+                    <span className="status-suspended">
+                      <AlertTriangle size={14} /> Suspendido
+                    </span>
+                  ) : m.verifiedReports > 0 ? (
+                    <span className="status-verified">
+                      <CheckCircle size={14} /> {m.verifiedReports} denuncias verificadas
+                    </span>
+                  ) : m.pendingReports > 0 ? (
+                    <span className="status-pending">
+                      <Info size={14} /> {m.pendingReports} denuncias pendientes
+                    </span>
+                  ) : (
+                    <span className="status-clean">Sin denuncias</span>
+                  )}
                 </div>
 
                 <div className="material-tags">
@@ -373,20 +521,110 @@ export default function Materials() {
 
                 <div className="material-footer">
                   <div className="author-meta">
-                    Por {m.autor?.nombre || 'Usuario'} {m.autor?.apellido || ''} <br />
+                    Por {m.autor?.nombre || 'Usuario'} <br />
                     {m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'Sin fecha'}
                   </div>
 
-                  <button 
-                    className={`btn-primary ${m.categoria === 'discord' ? 'discord-btn' : ''}`}
-                    onClick={() => handleAction(m)}
-                  >
-                    {m.categoria === 'discord' ? 'Unirse' : (m.tipo === 'archivo' ? 'Descargar' : 'Ver Recurso')}
-                  </button>
+                  <div className="action-buttons">
+                    <button 
+                      className="btn-report"
+                      onClick={() => handleOpenReportModal(m)}
+                      title="Denunciar contenido inapropiado"
+                      disabled={m.suspendido && !isAdmin}
+                    >
+                      🚩
+                    </button>
+                    <button 
+                      className={`btn-primary ${m.categoria === 'discord' ? 'discord-btn' : ''} ${m.suspendido && !isAdmin ? 'btn-disabled' : ''}`}
+                      onClick={() => handleAction(m)}
+                    >
+                      {m.categoria === 'discord' ? 'Unirse' : (m.tipo === 'archivo' ? 'Descargar' : 'Ver Recurso')}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* MODAL DENUNCIA */}
+      {isReportModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Denunciar Material</h3>
+              <button className="close-button" onClick={handleCloseReportModal}>&times;</button>
+            </div>
+
+            <form onSubmit={handleReportSubmit}>
+              {error && <div className="alert alert-error">{error}</div>}
+              {success && <div className="alert alert-success">{success}</div>}
+
+              <p className="modal-subtitle">
+                Material: <strong>{selectedMaterial?.titulo}</strong>
+              </p>
+
+              <div className="form-group">
+                <label>Motivo de la denuncia *</label>
+                <select 
+                  name="reasonId" 
+                  value={reportData.reasonId} 
+                  onChange={handleReportInputChange} 
+                  required
+                >
+                  <option value="">Seleccionar motivo</option>
+                  {reasons.map(r => (
+                    <option key={r._id} value={r._id}>{r.titulo}</option>
+                  ))}
+                </select>
+              </div>
+
+              {reasons.find(r => r._id === reportData.reasonId)?.titulo.toLowerCase() === 'otro' && (
+                <div className="form-group">
+                  <label>Especificar motivo *</label>
+                  <input 
+                    type="text" 
+                    name="motivoEspecifico" 
+                    value={reportData.motivoEspecifico} 
+                    onChange={handleReportInputChange} 
+                    required 
+                    placeholder="Especifique el motivo de la denuncia"
+                  />
+                </div>
+              )}
+
+              <div className="form-group">
+                <label>Detalles adicionales *</label>
+                <textarea 
+                  name="detalle" 
+                  value={reportData.detalle} 
+                  onChange={handleReportInputChange} 
+                  required 
+                  placeholder="Proporcione más información sobre por qué denuncia este contenido..."
+                  rows={4}
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button 
+                  type="button" 
+                  className="btn-secondary" 
+                  onClick={handleCloseReportModal}
+                  disabled={reportLoading}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-danger" 
+                  disabled={reportLoading}
+                >
+                  {reportLoading ? "Enviando..." : "Enviar Denuncia"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
