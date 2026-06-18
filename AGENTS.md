@@ -10,6 +10,15 @@ Cada vez que un agente termine una tarea debe mover Trello, abrir/actualizar PR 
 
 Sprint 2 técnicamente completo. Todos los ítems del alcance están implementados. Quedan abiertos PR #20 (requiere fix de seguridad antes del merge) y PR #21 (listo para review + merge). CI debe verificarse tras los merges.
 
+### Log de Actividades del Agente (12/06/2026)
+
+- [x] **Sistema de Valoración de Materiales:** Implementado 👍 Pulgar arriba / 👎 Pulgar abajo en el repositorio de materiales.
+- [x] **Cálculo de Totales y Ratio:** Los materiales ahora incluyen conteo de likes, dislikes, total de valoraciones y ratio de aprobación.
+- [x] **Ordenamiento por Valoración:** Implementado filtro de ordenamiento por "Mejor valorados" en el repositorio.
+- [x] **Highlight de Voto:** La UI resalta visualmente el voto emitido por el estudiante actual.
+- [x] **Tests de Valoración (`test/material-rating.test.js`):** Suite de tests verdes que verifica el flujo de votación, toggle, cálculo de ratio y ordenamiento.
+- [x] **CI Verificado:** Frontend `npm run lint && npm run build` y backend tests en verde.
+
 ### Log de Actividades del Agente (17/05/2026)
 
 - [x] **Feed de eventos académicos (punto 8):** Modelo `Event`, endpoints `GET /api/eventos/feed` y `POST /api/eventos`, página `Feed.tsx` con compositor, entrada en sidebar. *(PR #21)*

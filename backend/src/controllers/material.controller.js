@@ -1,5 +1,7 @@
+const mongoose = require('mongoose');
 const Material = require('../models/Material');
 const Subject = require('../models/Subject');
+const SystemConfig = require('../models/SystemConfig');
 
 const createMaterial = async (req, res) => {
   try {
@@ -43,29 +45,222 @@ const createMaterial = async (req, res) => {
 
 const getMaterials = async (req, res) => {
   try {
-    const { materia, search, categoria, tags } = req.query;
-    const filter = {};
+    const { materia, search, categoria, tags, sort } = req.query;
+    const match = {};
 
-    if (materia) filter.materia = materia;
-    if (categoria) filter.categoria = categoria;
-    if (tags) filter.tags = { $in: Array.isArray(tags) ? tags : [tags] };
+    // Obtener configuración de umbrales
+    let config = await SystemConfig.findOne({ key: 'materialReportThresholds' });
+    const thresholds = config ? config.value : { nPending: 3, mVerified: 1 };
+
+    if (materia) match.materia = new mongoose.Types.ObjectId(materia);
+    if (categoria) match.categoria = categoria;
+    if (tags) {
+      const tagsArray = Array.isArray(tags) ? tags : [tags];
+      match.tags = { $in: tagsArray };
+    }
     
     if (search) {
-      filter.$or = [
+      match.$or = [
         { titulo: { $regex: search, $options: 'i' } },
         { descripcion: { $regex: search, $options: 'i' } },
         { tags: { $in: [new RegExp(search, 'i')] } }
       ];
     }
 
-    const materials = await Material.find(filter)
-      .populate('materia', 'nombre codigo')
-      .populate('autor', 'nombre apellido email')
-      .sort({ createdAt: -1 });
+    const isAdmin = req.user && req.user.role === 'admin';
+
+    const pipeline = [
+      { $match: match },
+      // Lookup for reports to count pending and verified
+      {
+        $lookup: {
+          from: 'materialreports',
+          localField: '_id',
+          foreignField: 'material',
+          as: 'reports'
+        }
+      },
+      {
+        $addFields: {
+          pendingReports: {
+            $size: {
+              $filter: {
+                input: '$reports',
+                as: 'r',
+                cond: { $eq: ['$$r.estado', 'pendiente'] }
+              }
+            }
+          },
+          verifiedReports: {
+            $size: {
+              $filter: {
+                input: '$reports',
+                as: 'r',
+                cond: { $eq: ['$$r.estado', 'revisado'] }
+              }
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          suspendido: {
+            $or: [
+              { $gte: ['$pendingReports', thresholds.nPending] },
+              { $gte: ['$verifiedReports', thresholds.mVerified] }
+            ]
+          }
+        }
+      },
+      {
+        $addFields: {
+          userVote: {
+            $let: {
+              vars: {
+                userValoracion: {
+                  $filter: {
+                    input: { $ifNull: ["$valoraciones", []] },
+                    as: "v",
+                    cond: { $eq: ["$$v.usuario", new mongoose.Types.ObjectId(req.user.id)] }
+                  }
+                }
+              },
+              in: { $arrayElemAt: ["$$userValoracion.voto", 0] }
+            }
+          },
+          likes: {
+            $size: {
+              $filter: {
+                input: { $ifNull: ["$valoraciones", []] },
+                as: "v",
+                cond: { $eq: ["$$v.voto", 1] }
+              }
+            }
+          },
+          dislikes: {
+            $size: {
+              $filter: {
+                input: { $ifNull: ["$valoraciones", []] },
+                as: "v",
+                cond: { $eq: ["$$v.voto", -1] }
+              }
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          totalValoraciones: { $add: ["$likes", "$dislikes"] },
+          ratio: {
+            $cond: [
+              { $eq: [{ $add: ["$likes", "$dislikes"] }, 0] },
+              0,
+              { $divide: ["$likes", { $add: ["$likes", "$dislikes"] }] }
+            ]
+          }
+        }
+      }
+    ];
+
+    // Sorting logic
+    let sortObj = { createdAt: -1 };
+    if (sort === 'valoracion') {
+      sortObj = { ratio: -1, totalValoraciones: -1 };
+    }
+    pipeline.push({ $sort: sortObj });
+
+    // Lookup for materia and autor
+    pipeline.push(
+      {
+        $lookup: {
+          from: 'subjects',
+          localField: 'materia',
+          foreignField: '_id',
+          as: 'materia'
+        }
+      },
+      { $unwind: '$materia' },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'autor',
+          foreignField: '_id',
+          as: 'autor'
+        }
+      },
+      { $unwind: '$autor' },
+      {
+        $project: {
+          'autor.password': 0,
+          'autor.configuracionPrivacidad': 0,
+          'valoraciones': 0,
+          'reports': 0 // No enviar detalles de denuncias
+        }
+      },
+      {
+        $addFields: {
+          // Ocultar URL si está suspendido
+          url: {
+            $cond: [
+              { $and: [{ $eq: ["$suspendido", true] }, { $eq: [isAdmin, false] }] },
+              null,
+              "$url"
+            ]
+          },
+          nombreOriginal: {
+            $cond: [
+              { $and: [{ $eq: ["$suspendido", true] }, { $eq: [isAdmin, false] }] },
+              null,
+              "$nombreOriginal"
+            ]
+          }
+        }
+      }
+    );
+
+    const materials = await Material.aggregate(pipeline);
 
     res.json(materials);
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al obtener materiales', error: error.message });
+  }
+};
+
+const rateMaterial = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { voto } = req.body; // 1 o -1
+    const usuarioId = req.user.id;
+
+    if (![1, -1].includes(voto)) {
+      return res.status(400).json({ mensaje: 'Voto inválido' });
+    }
+
+    const material = await Material.findById(id);
+    if (!material) {
+      return res.status(404).json({ mensaje: 'Material no encontrado' });
+    }
+
+    // Buscar si el usuario ya valoró
+    const index = material.valoraciones.findIndex(v => v.usuario.toString() === usuarioId);
+
+    if (index !== -1) {
+      if (material.valoraciones[index].voto === voto) {
+        // Si es el mismo voto, lo quitamos (toggle)
+        material.valoraciones.splice(index, 1);
+      } else {
+        // Si es distinto, lo actualizamos
+        material.valoraciones[index].voto = voto;
+      }
+    } else {
+      // Si no valoró, agregamos
+      material.valoraciones.push({ usuario: usuarioId, voto });
+    }
+
+    await material.save();
+    res.json({ mensaje: 'Valoración actualizada con éxito', valoraciones: material.valoraciones });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al valorar material', error: error.message });
   }
 };
 
@@ -92,5 +287,6 @@ const deleteMaterial = async (req, res) => {
 module.exports = {
   createMaterial,
   getMaterials,
-  deleteMaterial
+  deleteMaterial,
+  rateMaterial
 };
