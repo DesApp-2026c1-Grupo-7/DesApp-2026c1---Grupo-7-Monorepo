@@ -17,9 +17,14 @@ const Login = () => {
   const from = location.state?.from || null;
 
   // Guarda la sesión y redirige según el rol (compartido por login local y Google).
-  const finalizarSesion = (token: string, user: { role: string }) => {
+  const finalizarSesion = (token: string, user: { role: string; carrera?: unknown }) => {
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(user));
+    // Estudiante sin carrera (típico de cuentas nuevas de Google): completar onboarding.
+    if (user.role === "student" && !user.carrera) {
+      navigate("/onboarding", { replace: true });
+      return;
+    }
     if (from) {
       navigate(from, { replace: true });
     } else {
