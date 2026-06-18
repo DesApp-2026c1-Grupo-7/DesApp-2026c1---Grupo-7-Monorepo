@@ -453,3 +453,12 @@
   animation: pulso-reacomodo 1.2s ease-out;
   border-radius: 6px;
 }
+
+.periodo-drop-activo {
+  outline: 2px dashed #3b82f6;
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+.materia-drag-handle {
+  user-select: none;
+}

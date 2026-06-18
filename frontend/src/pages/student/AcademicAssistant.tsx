@@ -1,7 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import api from "../../services/api";
 import { moverMateriaConCascada } from "../../utils/planificadorCascada";
 import "../../styles/AcademicAssistant.css";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  useDroppable,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 
 interface Subject {
   _id: string;
@@ -87,6 +98,31 @@ interface ComparacionPlan {
     cumplidas: number;
     materiasAtrasadas: { nombre: string; codigo: string }[];
   }[];
+}
+
+function MateriaArrastrable({ id, children }: { id: string; children: ReactNode }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `materia-${id}` });
+  return (
+    <span
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className="materia-drag-handle"
+      style={{ cursor: "grab", opacity: isDragging ? 0.4 : 1, touchAction: "none" }}
+      aria-label="Arrastrar materia a otro cuatrimestre"
+    >
+      ⠿ {children}
+    </span>
+  );
+}
+
+function PeriodoSoltable({ idx, children }: { idx: number; children: ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `periodo-${idx}` });
+  return (
+    <div ref={setNodeRef} className={isOver ? "periodo-drop-activo" : undefined}>
+      {children}
+    </div>
+  );
 }
 
 const AcademicAssistant = () => {
@@ -322,6 +358,20 @@ const AcademicAssistant = () => {
   const moverMateria = (periodoIdx: number, materiaId: string, dir: -1 | 1) => {
     const destino = periodoIdx + dir;
     if (destino < 0) return;
+    aplicarMovimiento(materiaId, destino);
+  };
+
+  const sensores = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor)
+  );
+
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over) return;
+    const destino = Number(String(over.id).replace("periodo-", ""));
+    const materiaId = String(active.id).replace("materia-", "");
+    if (Number.isNaN(destino)) return;
     aplicarMovimiento(materiaId, destino);
   };
 
@@ -650,48 +700,52 @@ const AcademicAssistant = () => {
           </p>
         )}
 
-        {planificador.map((periodo, idx) => {
-          const excedido = periodo.horasUsadas > horasPorSemana;
-          return (
-            <div key={`${periodo.anio}-${periodo.cuatrimestre}-${idx}`} className="projection" data-testid="periodo">
-              <h4 style={excedido ? { color: "#b91c1c" } : {}}>
-                {periodo.anio} - {periodo.cuatrimestre === 0 ? "Anual" : `${periodo.cuatrimestre}C`}
-                {" "}({periodo.horasUsadas} / {horasPorSemana} h/sem){excedido && " ⚠ sobrecarga"}
-              </h4>
-              <ul>
-                {periodo.materias.map((m) => (
-                  <li
-                    key={m._id}
-                    data-testid="periodo-materia"
-                    className={resaltadas.includes(m._id) ? "materia-resaltada" : undefined}
-                    style={{ justifyContent: "space-between", width: "100%" }}
-                  >
-                    <span>{m.nombre} ({m.creditos} cr., {m.horasSemanalesEstimadas ?? m.creditos} h/sem)</span>
-                    <span style={{ display: "inline-flex", gap: 4, marginLeft: "auto" }}>
-                      <button
-                        className="btn-secondary"
-                        aria-label={`Mover ${m.nombre} a un cuatrimestre anterior`}
-                        disabled={idx === 0}
-                        style={{ padding: "2px 8px" }}
-                        onClick={() => moverMateria(idx, m._id, -1)}
+        <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          {planificador.map((periodo, idx) => {
+            const excedido = periodo.horasUsadas > horasPorSemana;
+            return (
+              <PeriodoSoltable key={`${periodo.anio}-${periodo.cuatrimestre}-${idx}`} idx={idx}>
+                <div className="projection" data-testid="periodo">
+                  <h4 style={excedido ? { color: "#b91c1c" } : {}}>
+                    {periodo.anio} - {periodo.cuatrimestre === 0 ? "Anual" : `${periodo.cuatrimestre}C`}
+                    {" "}({periodo.horasUsadas} / {horasPorSemana} h/sem){excedido && " ⚠ sobrecarga"}
+                  </h4>
+                  <ul>
+                    {periodo.materias.map((m) => (
+                      <li
+                        key={m._id}
+                        data-testid="periodo-materia"
+                        className={resaltadas.includes(m._id) ? "materia-resaltada" : undefined}
+                        style={{ justifyContent: "space-between", width: "100%" }}
                       >
-                        ◀
-                      </button>
-                      <button
-                        className="btn-secondary"
-                        aria-label={`Mover ${m.nombre} a un cuatrimestre posterior`}
-                        style={{ padding: "2px 8px" }}
-                        onClick={() => moverMateria(idx, m._id, 1)}
-                      >
-                        ▶
-                      </button>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        })}
+                        <MateriaArrastrable id={m._id}>{m.nombre} ({m.creditos} cr., {m.horasSemanalesEstimadas ?? m.creditos} h/sem)</MateriaArrastrable>
+                        <span style={{ display: "inline-flex", gap: 4, marginLeft: "auto" }}>
+                          <button
+                            className="btn-secondary"
+                            aria-label={`Mover ${m.nombre} a un cuatrimestre anterior`}
+                            disabled={idx === 0}
+                            style={{ padding: "2px 8px" }}
+                            onClick={() => moverMateria(idx, m._id, -1)}
+                          >
+                            ◀
+                          </button>
+                          <button
+                            className="btn-secondary"
+                            aria-label={`Mover ${m.nombre} a un cuatrimestre posterior`}
+                            style={{ padding: "2px 8px" }}
+                            onClick={() => moverMateria(idx, m._id, 1)}
+                          >
+                            ▶
+                          </button>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </PeriodoSoltable>
+            );
+          })}
+        </DndContext>
 
         {pendientesPlan.length > 0 && (
           <div style={{ marginTop: 12, padding: 12, background: "#fef3c7", borderRadius: 8, border: "1px solid #fcd34d" }} data-testid="pendientes-plan">
