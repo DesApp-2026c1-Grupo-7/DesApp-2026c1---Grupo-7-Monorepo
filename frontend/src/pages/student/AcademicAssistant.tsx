@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import api from "../../services/api";
 import { moverMateriaConCascada } from "../../utils/planificadorCascada";
 import "../../styles/AcademicAssistant.css";
@@ -123,6 +123,8 @@ const AcademicAssistant = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [resaltadas, setResaltadas] = useState<string[]>([]);
+  const resaltadoTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(resaltadoTimer.current), []);
 
   // Estado para el modal de resultados de finales
   const [showGradeModal, setShowGradeModal] = useState(false);
@@ -288,8 +290,9 @@ const AcademicAssistant = () => {
   };
 
   const resaltarMovidas = (ids: string[]) => {
+    window.clearTimeout(resaltadoTimer.current);
     setResaltadas(ids);
-    window.setTimeout(() => setResaltadas([]), 1200);
+    resaltadoTimer.current = window.setTimeout(() => setResaltadas([]), 1200);
   };
 
   const aplicarMovimiento = (materiaId: string, destinoIdx: number) => {
