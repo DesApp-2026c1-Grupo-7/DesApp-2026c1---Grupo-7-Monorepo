@@ -562,7 +562,6 @@ const AcademicAssistant = () => {
             <div style={{ display: "flex", gap: 8 }}>
               {f.yaInscripto ? (
                 <>
-                  <button className="btn-disabled" style={{ background: '#e2e8f0', color: '#94a3b8' }} disabled>INSCRIPTO</button>
                   <button 
                     className="btn-primary" 
                     onClick={() => openGradeModal(f.finalId!, f.materia.nombre, f.materia._id)}
