@@ -161,3 +161,26 @@
     align-items: flex-start;
   }
 }
+
+/* Separador "o" y botón de Google en el login */
+.login-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--text-secondary, #6b7280);
+  font-size: 0.8rem;
+  margin: 0.5rem 0;
+}
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid #e5e7eb;
+}
+.login-divider span {
+  padding: 0 0.75rem;
+}
+.google-login-wrapper {
+  display: flex;
+  justify-content: center;
+}
