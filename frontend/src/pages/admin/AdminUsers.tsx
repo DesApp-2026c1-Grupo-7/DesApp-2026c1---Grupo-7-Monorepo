@@ -17,6 +17,7 @@ export default function AdminUsers() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState<string | null>(null);
+  const roleLabel = (role: UserAccount["role"]) => role === "admin" ? "Administrador" : "Estudiante";
 
   const fetchUsers = useCallback(async () => {
     const res = await api.get("/usuarios");
@@ -107,34 +108,42 @@ export default function AdminUsers() {
 
       <div className="card" style={{ marginBottom: '2rem' }}>
         <h3>Crear Nuevo Administrador</h3>
-        <form onSubmit={createAdmin} className="filters" style={{ marginTop: '1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          <input 
-            className="full-width-input" 
-            style={{ flex: 1, minWidth: '200px' }}
-            placeholder="Nombre completo" 
-            value={newAdmin.nombre} 
-            onChange={(e) => setNewAdmin((s) => ({ ...s, nombre: e.target.value }))} 
-            required 
-          />
-          <input 
-            className="full-width-input"
-            style={{ flex: 1, minWidth: '200px' }}
-            placeholder="Email institucional" 
-            type="email" 
-            value={newAdmin.email} 
-            onChange={(e) => setNewAdmin((s) => ({ ...s, email: e.target.value }))} 
-            required 
-          />
-          <input 
-            className="full-width-input"
-            style={{ flex: 1, minWidth: '150px' }}
-            placeholder="Contraseña" 
-            type="password" 
-            value={newAdmin.password} 
-            onChange={(e) => setNewAdmin((s) => ({ ...s, password: e.target.value }))} 
-            required 
-          />
-          <button className="btn primary" type="submit" style={{ height: '45px' }}>Crear</button>
+        <p className="admin-form-intro">Creá una cuenta con permisos de gestión institucional.</p>
+        <form onSubmit={createAdmin} className="admin-create-form">
+          <label>
+            Nombre completo
+            <input
+              className="full-width-input"
+              placeholder="Ej: Ana Pérez"
+              value={newAdmin.nombre}
+              onChange={(e) => setNewAdmin((s) => ({ ...s, nombre: e.target.value }))}
+              required
+            />
+          </label>
+          <label>
+            Email institucional
+            <input
+              className="full-width-input"
+              placeholder="ana@universidad.edu"
+              type="email"
+              value={newAdmin.email}
+              onChange={(e) => setNewAdmin((s) => ({ ...s, email: e.target.value }))}
+              required
+            />
+          </label>
+          <label>
+            Contraseña temporal
+            <input
+              className="full-width-input"
+              placeholder="Mínimo 6 caracteres"
+              type="password"
+              minLength={6}
+              value={newAdmin.password}
+              onChange={(e) => setNewAdmin((s) => ({ ...s, password: e.target.value }))}
+              required
+            />
+          </label>
+          <button className="btn primary admin-create-submit" type="submit">Crear administrador</button>
         </form>
       </div>
 
@@ -157,7 +166,7 @@ export default function AdminUsers() {
                 <td>{user.email}</td>
                 <td>
                   <span className="role-badge" style={{ margin: 0, fontSize: '0.75rem' }}>
-                    {user.role}
+                    {roleLabel(user.role)}
                   </span>
                 </td>
                 <td>
@@ -199,7 +208,7 @@ export default function AdminUsers() {
           <div key={user._id} className="user-card">
             <div className="user-card-header">
               <div className="user-card-name">{user.nombre}</div>
-              <span className="user-card-role">{user.role}</span>
+              <span className="user-card-role">{roleLabel(user.role)}</span>
             </div>
             <div className="user-card-body">
               <div className="user-card-info">

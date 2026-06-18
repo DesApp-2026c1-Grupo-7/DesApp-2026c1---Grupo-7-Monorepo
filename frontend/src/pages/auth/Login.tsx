@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { GoogleOAuthProvider, GoogleLogin, type CredentialResponse } from "@react-oauth/google";
+import { GraduationCap, ShieldCheck } from "lucide-react";
 import api from "../../services/api";
 import "../../styles/Auth.css";
 
@@ -63,7 +64,7 @@ const Login = () => {
       <div className="login-card">
 
         <div className="login-header">
-          <div className="icon">🎓</div>
+          <div className="auth-mark"><GraduationCap size={30} /></div>
           <h1>Bienvenido</h1>
           <p>Sistema de Acompañamiento Académico</p>
         </div>
@@ -94,12 +95,7 @@ const Login = () => {
           />
 
           <div className="login-options">
-            <label>
-              <input type="checkbox" />
-              Recordarme
-            </label>
-
-            <a href="#">¿Olvidaste tu contraseña?</a>
+            <span><ShieldCheck size={15} /> Acceso seguro institucional</span>
           </div>
 
           <button
@@ -126,7 +122,7 @@ const Login = () => {
           )}
 
           <p className="register">
-            ¿No tienes cuenta? <a onClick={() => navigate("/register")} style={{cursor: 'pointer'}}>Regístrate aquí</a>
+            ¿No tienes cuenta? <button type="button" className="auth-link" onClick={() => navigate("/register")}>Regístrate aquí</button>
           </p>
         </form>
 

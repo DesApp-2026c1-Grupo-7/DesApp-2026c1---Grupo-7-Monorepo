@@ -39,7 +39,7 @@ const Navbar = () => {
           </button>
         )}
 
-        <button className="logout" onClick={handleLogout}>
+        <button className="logout" onClick={handleLogout} aria-label="Cerrar sesión" title="Cerrar sesión">
           <LogOut size={16} />
           <span>Salir</span>
         </button>

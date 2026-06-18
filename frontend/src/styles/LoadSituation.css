@@ -6,11 +6,17 @@
 
 /* ← Volver */
 .back {
-  color: #2563eb;
+  color: var(--primary);
   cursor: pointer;
   font-size: 14px;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   margin-bottom: 12px;
+  padding: 0.45rem 0.65rem;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
 }
 
 /* Título */
@@ -43,6 +49,9 @@
   padding: 28px 24px;
   text-align: center;
   transition: all 0.2s ease;
+  color: var(--text-main);
+  font: inherit;
+  cursor: pointer;
 }
 
 /* Hover suave como Figma */
@@ -277,4 +286,10 @@
   .subject-select, .btn-remove {
     grid-column: span 1;
   }
+}
+
+.option-card.active {
+  border-color: rgba(49, 87, 213, 0.5) !important;
+  box-shadow: 0 16px 34px rgba(49, 87, 213, 0.14);
+  background: linear-gradient(180deg, #ffffff, #f7f9ff) !important;
 }
