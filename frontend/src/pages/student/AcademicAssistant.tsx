@@ -100,7 +100,7 @@ interface ComparacionPlan {
   }[];
 }
 
-function MateriaArrastrable({ id, children }: { id: string; children: ReactNode }) {
+function MateriaArrastrable({ id, nombre, children }: { id: string; nombre: string; children: ReactNode }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `materia-${id}` });
   return (
     <span
@@ -108,8 +108,8 @@ function MateriaArrastrable({ id, children }: { id: string; children: ReactNode 
       {...listeners}
       {...attributes}
       className="materia-drag-handle"
-      style={{ cursor: "grab", opacity: isDragging ? 0.4 : 1, touchAction: "none" }}
-      aria-label="Arrastrar materia a otro cuatrimestre"
+      style={{ cursor: isDragging ? "grabbing" : "grab", opacity: isDragging ? 0.4 : 1, touchAction: "none" }}
+      aria-label={`Arrastrar ${nombre} a otro cuatrimestre`}
     >
       ⠿ {children}
     </span>
@@ -718,7 +718,7 @@ const AcademicAssistant = () => {
                         className={resaltadas.includes(m._id) ? "materia-resaltada" : undefined}
                         style={{ justifyContent: "space-between", width: "100%" }}
                       >
-                        <MateriaArrastrable id={m._id}>{m.nombre} ({m.creditos} cr., {m.horasSemanalesEstimadas ?? m.creditos} h/sem)</MateriaArrastrable>
+                        <MateriaArrastrable id={m._id} nombre={m.nombre}>{m.nombre} ({m.creditos} cr., {m.horasSemanalesEstimadas ?? m.creditos} h/sem)</MateriaArrastrable>
                         <span style={{ display: "inline-flex", gap: 4, marginLeft: "auto" }}>
                           <button
                             className="btn-secondary"
