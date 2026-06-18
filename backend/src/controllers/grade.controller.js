@@ -484,19 +484,38 @@ const getAvanceCarrera = async (req, res) => {
       avancePorAnio[ps.anio].total++;
     }
 
+    // IDs de materias que ya están aprobadas, regulares o en curso (no cuentan como faltantes)
+    const materiasCubiertas = new Set();
     for (const g of gradesDelPlan) {
       const ps = planMap.get(g.materia._id.toString());
       if (!ps || ps.anio === 0) continue;
-      
+
       if (!avancePorAnio[ps.anio]) {
         avancePorAnio[ps.anio] = { aprobadas: 0, regulares: 0, cursando: 0, total: 0 };
       }
 
       if (['Aprobada', 'Promocion'].includes(g.estado)) {
         avancePorAnio[ps.anio].aprobadas++;
+        materiasCubiertas.add(g.materia._id.toString());
       }
-      else if (g.estado === 'Regular') avancePorAnio[ps.anio].regulares++;
-      else if (['Inscripto', 'Cursando'].includes(g.estado)) avancePorAnio[ps.anio].cursando++;
+      else if (g.estado === 'Regular') {
+        avancePorAnio[ps.anio].regulares++;
+        materiasCubiertas.add(g.materia._id.toString());
+      }
+      else if (['Inscripto', 'Cursando'].includes(g.estado)) {
+        avancePorAnio[ps.anio].cursando++;
+        materiasCubiertas.add(g.materia._id.toString());
+      }
+    }
+
+    // Nombres de las materias faltantes por año (plan menos las cubiertas)
+    for (const ps of planSubjects) {
+      if (ps.anio === 0 || !avancePorAnio[ps.anio]) continue;
+      if (materiasCubiertas.has(ps._id.toString())) continue;
+      if (!avancePorAnio[ps.anio].materiasFaltantes) {
+        avancePorAnio[ps.anio].materiasFaltantes = [];
+      }
+      avancePorAnio[ps.anio].materiasFaltantes.push(ps.nombre);
     }
 
     res.json({

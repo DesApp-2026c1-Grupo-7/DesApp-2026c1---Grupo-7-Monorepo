@@ -364,3 +364,83 @@
     padding: 1rem;
   }
 }
+
+/* Tooltip de materias faltantes por año */
+.faltantes-chip {
+  display: inline-flex;
+  align-items: center;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.faltantes-chip[tabindex]:hover {
+  background: #fecaca !important;
+  transform: translateY(-1px);
+}
+
+.faltantes-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 200px;
+  max-width: 280px;
+  background: #1f2937;
+  color: #f9fafb;
+  padding: 10px 12px;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  z-index: 50;
+  text-align: left;
+  /* El tooltip se monta/desmonta condicionalmente desde React (solo en hover/foco),
+     asi sus nombres de materias no quedan en el DOM en reposo. La animacion de
+     entrada se dispara al montar. */
+  animation: faltantesTooltipIn 0.18s ease;
+}
+
+/* Flechita inferior del tooltip */
+.faltantes-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1f2937;
+}
+
+@keyframes faltantesTooltipIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+.faltantes-tooltip-title {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #fca5a5;
+}
+
+.faltantes-tooltip-list {
+  margin: 0;
+  padding-left: 16px;
+  list-style: disc;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.faltantes-tooltip-list li {
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: #e5e7eb;
+}
