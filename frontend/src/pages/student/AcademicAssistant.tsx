@@ -87,6 +87,7 @@ interface ComparacionPlan {
   plan: string;
   materiasEsperadas: number;
   materiasCumplidas: number;
+  totalPlan?: number;
   diferencia: number;
   estado: "al-dia" | "leve-desvio" | "atrasado";
   porcentajeCumplimiento: number;
@@ -777,8 +778,11 @@ const AcademicAssistant = () => {
                   {comp && (
                     <div style={{ marginTop: 8 }} data-testid="comparacion">
                       <p>
-                        Cumpliste {comp.materiasCumplidas} de {comp.materiasEsperadas} materias previstas
+                        Cumpliste {comp.materiasCumplidas} de {comp.materiasEsperadas} materias previstas hasta hoy
                         {" "}({comp.porcentajeCumplimiento}%) · Estado: <strong>{comp.estado.replace("-", " ")}</strong>
+                        {typeof comp.totalPlan === "number" && (
+                          <span style={{ color: "#6b7280" }}> · Plan completo: {comp.totalPlan} materias</span>
+                        )}
                       </p>
                       {comp.periodos && comp.periodos.filter((p) => p.transcurrido).length > 0 && (
                         <div style={{ marginTop: 8, display: "grid", gap: 6 }}>

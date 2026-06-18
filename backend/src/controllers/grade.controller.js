@@ -881,20 +881,6 @@ const getComparacionPlanGuardado = async (req, res) => {
     const periodoTranscurrido = (p) =>
       p.anio < anioActual || (p.anio === anioActual && p.cuatrimestre <= cuatrimestreActual);
 
-    let materiasEsperadas = 0;
-    let materiasCumplidas = 0;
-    
-    // Identificamos todas las materias del plan
-    const todasLasMateriasDelPlanIds = new Set();
-    plan.periodos.forEach(p => p.materias.forEach(m => {
-      if (m.materia) {
-        todasLasMateriasDelPlanIds.add(m.materia.toString());
-        materiasEsperadas++; // Contamos el total absoluto del plan
-      }
-    }));
-
-    materiasCumplidas = Array.from(todasLasMateriasDelPlanIds).filter(id => aprobadasIds.has(id)).length;
-
     const periodos = plan.periodos.map((p) => {
       const transcurrido = periodoTranscurrido(p);
       const total = p.materias.length;
@@ -910,12 +896,26 @@ const getComparacionPlanGuardado = async (req, res) => {
       };
     });
 
-    // Para la diferencia y el estado, comparamos contra lo que DEBERÍA estar aprobado hasta hoy
-    const totalHastaHoy = plan.periodos
-      .filter(periodoTranscurrido)
-      .reduce((sum, p) => sum + p.materias.length, 0);
+    // Total absoluto del plan (sólo como referencia para mostrar).
+    const totalPlan = plan.periodos.reduce(
+      (sum, p) => sum + p.materias.filter((m) => m.materia).length,
+      0
+    );
 
-    const diferencia = materiasCumplidas - totalHastaHoy;
+    // El rendimiento se compara SÓLO contra los cuatrimestres ya transcurridos: cuántas
+    // materias deberían estar aprobadas a esta altura del plan y cuántas realmente lo están.
+    // Así el porcentaje y el estado son coherentes (no se exige el plan completo desde el día uno).
+    const periodosTranscurridos = plan.periodos.filter(periodoTranscurrido);
+    const materiasEsperadas = periodosTranscurridos.reduce(
+      (sum, p) => sum + p.materias.filter((m) => m.materia).length,
+      0
+    );
+    const materiasCumplidas = periodosTranscurridos.reduce(
+      (sum, p) => sum + p.materias.filter((m) => m.materia && aprobadasIds.has(m.materia.toString())).length,
+      0
+    );
+
+    const diferencia = materiasCumplidas - materiasEsperadas;
     const estado = diferencia >= 0 ? 'al-dia' : diferencia >= -2 ? 'leve-desvio' : 'atrasado';
 
     res.json({
@@ -925,6 +925,7 @@ const getComparacionPlanGuardado = async (req, res) => {
       cuatrimestreActual,
       materiasEsperadas,
       materiasCumplidas,
+      totalPlan,
       diferencia,
       estado,
       porcentajeCumplimiento: materiasEsperadas > 0 ? Math.round((materiasCumplidas / materiasEsperadas) * 100) : 100,
