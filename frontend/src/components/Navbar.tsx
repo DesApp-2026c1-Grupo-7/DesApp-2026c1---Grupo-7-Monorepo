@@ -1,4 +1,4 @@
-import { Bell, LogOut, Menu } from "lucide-react";
+import { Bell, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "../styles/Navbar.css";
 
@@ -6,6 +6,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const userStr = localStorage.getItem("user");
   const user = userStr ? JSON.parse(userStr) : { nombre: "Usuario", role: "estudiante" };
+  const roleLabel = user.role === "admin" ? "Administrador" : "Estudiante";
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -16,19 +17,27 @@ const Navbar = () => {
   return (
     <header className="navbar">
       <div className="left">
-        <Menu size={20} className="close" />
-        <span style={{ marginLeft: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-          {user.role === 'admin' ? 'Panel de Administración' : 'Panel del Estudiante'}
+        <span className="navbar-context">
+          {user.role === 'admin' ? 'Gestión institucional' : 'Mi espacio académico'}
         </span>
       </div>
 
       <div className="right">
         <div className="user-info" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '1rem' }}>
           <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{user.nombre}</span>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{user.role}</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{roleLabel}</span>
         </div>
-        
-        <Bell size={20} className="bell" />
+
+        {user.role !== "admin" && (
+          <button
+            className="notification-button"
+            onClick={() => navigate("/student/notifications")}
+            aria-label="Ver notificaciones"
+            title="Notificaciones"
+          >
+            <Bell size={19} />
+          </button>
+        )}
 
         <button className="logout" onClick={handleLogout}>
           <LogOut size={16} />
