@@ -24,9 +24,16 @@
   margin-bottom: 2rem;
 }
 
-.login-header .icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
+.auth-mark {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 1rem;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  color: white;
+  background: linear-gradient(135deg, #6d8cff, var(--primary));
+  box-shadow: var(--shadow-glow);
 }
 
 .login-header h1 {
@@ -79,21 +86,14 @@
   color: var(--text-muted);
 }
 
-.login-options label {
+.login-options span {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-}
-
-.login-options a {
-  color: var(--primary);
-  font-weight: 500;
-}
-
-.login-options a:hover {
-  color: var(--primary-hover);
-  text-decoration: underline;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  color: var(--text-muted);
+  font-size: 0.8rem;
 }
 
 .btn {
@@ -139,11 +139,30 @@
   font-size: 0.875rem;
   color: var(--text-muted);
   margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
 }
 
 .register a {
   color: var(--primary);
   font-weight: 600;
+}
+
+.auth-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.auth-link:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
 }
 
 @media (max-width: 480px) {

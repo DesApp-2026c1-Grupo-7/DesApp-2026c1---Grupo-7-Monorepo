@@ -218,8 +218,10 @@ const StudySessions = () => {
 
   const formatHora = (isoString: string) => {
     const date = new Date(isoString);
-    return date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) + 'hs';
+    return `${date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })} h`;
   };
+
+  const participantesLabel = (cantidad: number) => cantidad === 1 ? "participante" : "participantes";
 
   if (loading) return <div className="sessions-container"><p>Cargando sesiones...</p></div>;
 
@@ -352,7 +354,7 @@ const StudySessions = () => {
                   <span>⏰ {formatHora(s.fechaHora)}</span>
                   <span>📍 {s.tipo === "presencial" ? s.ubicacion : "Link virtual"}</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>👥 {s.participantes.length}{s.cupos ? `/${s.cupos}` : ""} participantes</span>
+                    <span>👥 {s.participantes.length}{s.cupos ? `/${s.cupos}` : ""} {participantesLabel(s.participantes.length)}</span>
                     {(isOwner || isParticipant) && (
                       <button 
                         className="view-members-btn"
