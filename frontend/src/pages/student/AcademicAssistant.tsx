@@ -4,7 +4,7 @@ import { moverMateriaConCascada } from "../../utils/planificadorCascada";
 import "../../styles/AcademicAssistant.css";
 import {
   DndContext,
-  closestCenter,
+  closestCorners,
   PointerSensor,
   KeyboardSensor,
   useSensor,
@@ -343,7 +343,7 @@ const AcademicAssistant = () => {
       primerPeriodoIdx: primerPeriodoIdx < 0 ? 0 : primerPeriodoIdx,
     });
     if (movidas.length === 0) {
-      setSuccess("Sin cambios: la materia ya está en su cuatrimestre más temprano posible");
+      setSuccess("Sin cambios en el plan");
       return;
     }
     setPlanificador(periodos);
@@ -700,7 +700,7 @@ const AcademicAssistant = () => {
           </p>
         )}
 
-        <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <DndContext sensors={sensores} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
           {planificador.map((periodo, idx) => {
             const excedido = periodo.horasUsadas > horasPorSemana;
             return (

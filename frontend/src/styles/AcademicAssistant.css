@@ -462,3 +462,9 @@
 .materia-drag-handle {
   user-select: none;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .materia-resaltada {
+    animation: none;
+  }
+}

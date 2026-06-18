@@ -152,7 +152,9 @@ export function moverMateriaConCascada<M extends MateriaPlanificable>(
 }
 
 /** Valida que toda correlativa esté en un cuatrimestre estrictamente anterior y que
- * las materias con correlativas en curso no caigan en el primer cuatrimestre. */
+ * las materias con correlativas en curso no caigan en el primer cuatrimestre.
+ * Usada por los tests para verificar el resultado; `moverMateriaConCascada` ya
+ * garantiza un plan válido por construcción. */
 export function planEsValido<M extends MateriaPlanificable>(
   periodos: PeriodoPlan<M>[],
   primerPeriodoIdx = 0
