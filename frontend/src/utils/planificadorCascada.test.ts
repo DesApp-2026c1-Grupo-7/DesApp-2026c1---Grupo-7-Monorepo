@@ -101,4 +101,25 @@ describe('moverMateriaConCascada', () => {
     expect(out[1].horasUsadas).toBe(6);
     expect(out[2].horasUsadas).toBe(5);
   });
+
+  it('no hace nada si la materia no está en el plan', () => {
+    const A = materia('A');
+    const periodos = plan([[A]]);
+
+    const { periodos: out, movidas } = moverMateriaConCascada(periodos, 'INEXISTENTE', 0);
+
+    expect(movidas).toEqual([]);
+    expect(indiceDe(out, 'A')).toBe(0);
+  });
+
+  it('respeta un primerPeriodoIdx distinto de cero', () => {
+    // Con primerPeriodoIdx=1, una materia con correlativa en curso no puede caer en el índice 1.
+    const X = materia('X', [], { correlativasEnCurso: ['ALGO'] });
+    const periodos = plan([[], [], [X]]);
+
+    const { periodos: out } = moverMateriaConCascada(periodos, 'X', 1, { primerPeriodoIdx: 1 });
+
+    expect(indiceDe(out, 'X')).toBe(2); // no baja al primer cuatrimestre proyectado (índice 1)
+    expect(planEsValido(out, 1)).toBe(true);
+  });
 });

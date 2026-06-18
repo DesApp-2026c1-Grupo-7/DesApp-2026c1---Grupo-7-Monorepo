@@ -106,7 +106,7 @@ export function moverMateriaConCascada<M extends MateriaPlanificable>(
       for (const c of porId.get(x)?.correlativas ?? []) {
         if (!porId.has(c)) continue;
         if ((idxOf.get(c) as number) >= (idxOf.get(x) as number)) {
-          idxOf.set(c, (idxOf.get(x) as number) - 1); // garantizado >= nivelMin(c)
+          idxOf.set(c, Math.max((idxOf.get(x) as number) - 1, nivelMin(c)));
           tirar(c);
         }
       }
