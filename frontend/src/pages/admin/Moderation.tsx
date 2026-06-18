@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "../../services/api";
 import "../../styles/Moderation.css";
+import { resolveMaterialUrl } from "../../utils/materialUrl";
 import { Flag, CheckCircle, XCircle, Eye, AlertCircle, Settings, Save, ExternalLink } from "lucide-react";
 
 interface Report {
@@ -132,11 +133,13 @@ export default function Moderation() {
   const ignoredCount = reports.filter(r => r.estado === 'ignorado').length;
 
   const handleViewContent = (material: Report['material']) => {
-    const url = material.tipo === 'archivo' 
-      ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${material.url}`
-      : material.url;
-    
-    window.open(url, '_blank');
+    const url = resolveMaterialUrl(material.url, material.tipo);
+    if (!url) {
+      alert("Este material no tiene un archivo o enlace disponible.");
+      return;
+    }
+
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const getSimplifiedFileType = (material: Report['material']) => {
