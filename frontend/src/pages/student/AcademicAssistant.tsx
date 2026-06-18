@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import api from "../../services/api";
+import { moverMateriaConCascada } from "../../utils/planificadorCascada";
 import "../../styles/AcademicAssistant.css";
 
 interface Subject {
@@ -121,6 +122,7 @@ const AcademicAssistant = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [resaltadas, setResaltadas] = useState<string[]>([]);
 
   // Estado para el modal de resultados de finales
   const [showGradeModal, setShowGradeModal] = useState(false);
@@ -285,68 +287,39 @@ const AcademicAssistant = () => {
     });
   };
 
-  const horasDePeriodo = (materias: Subject[]) =>
-    materias.reduce((sum, m) => sum + (m.horasSemanalesEstimadas ?? m.creditos ?? 0), 0);
+  const resaltarMovidas = (ids: string[]) => {
+    setResaltadas(ids);
+    window.setTimeout(() => setResaltadas([]), 1200);
+  };
 
-  const esPrimerPeriodo = (p: Periodo) =>
-    !!primerPeriodo && p.anio === primerPeriodo.anio && p.cuatrimestre === primerPeriodo.cuatrimestre;
-
-  // Una planificación es válida si toda materia tiene sus correlativas (que estén dentro del
-  // plan) en un cuatrimestre estrictamente anterior. Las correlativas aprobadas no figuran en el
-  // plan (no restringen). Las correlativas que están solo "en curso" todavía no están aprobadas:
-  // por eso la materia que depende de ellas no puede ubicarse en el primer cuatrimestre proyectado.
-  const validarPlan = (periodos: PlanPeriodo[]): { ok: boolean; motivo?: string } => {
-    const periodoDe = new Map<string, number>();
-    periodos.forEach((p, idx) => p.materias.forEach((m) => periodoDe.set(m._id, idx)));
-    for (let idx = 0; idx < periodos.length; idx++) {
-      for (const m of periodos[idx].materias) {
-        for (const corrId of m.correlativas ?? []) {
-          if (periodoDe.has(corrId) && periodoDe.get(corrId)! >= idx) {
-            return { ok: false, motivo: `${m.nombre} quedaría en el mismo cuatrimestre o antes que sus correlativas.` };
-          }
-        }
-        if ((m.correlativasEnCurso?.length ?? 0) > 0 && esPrimerPeriodo(periodos[idx])) {
-          return {
-            ok: false,
-            motivo: `${m.nombre} no puede ir en el primer cuatrimestre: su correlativa (${m.correlativasEnCurso!.join(", ")}) todavía no está aprobada.`
-          };
-        }
-      }
+  const aplicarMovimiento = (materiaId: string, destinoIdx: number) => {
+    setError("");
+    setSuccess("");
+    const primerPeriodoIdx = primerPeriodo
+      ? planificador.findIndex(
+          (p) => p.anio === primerPeriodo.anio && p.cuatrimestre === primerPeriodo.cuatrimestre
+        )
+      : 0;
+    const { periodos, movidas } = moverMateriaConCascada(planificador, materiaId, destinoIdx, {
+      primerPeriodoIdx: primerPeriodoIdx < 0 ? 0 : primerPeriodoIdx,
+    });
+    if (movidas.length === 0) {
+      setSuccess("Sin cambios: la materia ya está en su cuatrimestre más temprano posible");
+      return;
     }
-    return { ok: true };
+    setPlanificador(periodos);
+    resaltarMovidas(movidas);
+    setSuccess(
+      movidas.length > 1
+        ? `Se reacomodaron ${movidas.length} materias para mantener las correlatividades`
+        : "Materia movida"
+    );
   };
 
   const moverMateria = (periodoIdx: number, materiaId: string, dir: -1 | 1) => {
-    setError("");
-    setSuccess("");
     const destino = periodoIdx + dir;
     if (destino < 0) return;
-
-    const next: PlanPeriodo[] = planificador.map((p) => ({ ...p, materias: [...p.materias] }));
-    const materia = next[periodoIdx].materias.find((m) => m._id === materiaId);
-    if (!materia) return;
-
-    // Si movemos a la derecha más allá del último período, creamos el cuatrimestre siguiente.
-    if (destino >= next.length) {
-      const last = next[next.length - 1];
-      const sig = last.cuatrimestre === 1
-        ? { anio: last.anio, cuatrimestre: 2 }
-        : { anio: last.anio + 1, cuatrimestre: 1 };
-      next.push({ ...sig, horasUsadas: 0, materias: [] });
-    }
-
-    next[periodoIdx].materias = next[periodoIdx].materias.filter((m) => m._id !== materiaId);
-    next[destino].materias.push(materia);
-    next.forEach((p) => { p.horasUsadas = horasDePeriodo(p.materias); });
-
-    while (next.length > 1 && next[next.length - 1].materias.length === 0) next.pop();
-
-    const validez = validarPlan(next);
-    if (!validez.ok) {
-      setError(`No se puede mover: ${validez.motivo}`);
-      return;
-    }
-    setPlanificador(next);
+    aplicarMovimiento(materiaId, destino);
   };
 
   const compararConPlan = async (planId: string) => {
@@ -684,7 +657,12 @@ const AcademicAssistant = () => {
               </h4>
               <ul>
                 {periodo.materias.map((m) => (
-                  <li key={m._id} data-testid="periodo-materia" style={{ justifyContent: "space-between", width: "100%" }}>
+                  <li
+                    key={m._id}
+                    data-testid="periodo-materia"
+                    className={resaltadas.includes(m._id) ? "materia-resaltada" : undefined}
+                    style={{ justifyContent: "space-between", width: "100%" }}
+                  >
                     <span>{m.nombre} ({m.creditos} cr., {m.horasSemanalesEstimadas ?? m.creditos} h/sem)</span>
                     <span style={{ display: "inline-flex", gap: 4, marginLeft: "auto" }}>
                       <button
