@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { GoogleOAuthProvider, GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import api from "../../services/api";
 import "../../styles/Auth.css";
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
 const Login = () => {
   const navigate = useNavigate();
@@ -13,28 +16,45 @@ const Login = () => {
 
   const from = location.state?.from || null;
 
+  // Guarda la sesión y redirige según el rol (compartido por login local y Google).
+  const finalizarSesion = (token: string, user: { role: string; carrera?: unknown }) => {
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+    // Estudiante sin carrera (típico de cuentas nuevas de Google): completar onboarding.
+    if (user.role === "student" && !user.carrera) {
+      navigate("/onboarding", { replace: true });
+      return;
+    }
+    if (from) {
+      navigate(from, { replace: true });
+    } else {
+      navigate(user.role === "admin" ? "/admin" : "/student");
+    }
+  };
+
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setLoading(true);
     setError("");
     try {
       const response = await api.post("/auth/login", { email, password });
-      const { token, user } = response.data;
-      
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-
-      // Redirección: si venía de una página protegida, vuelve ahí; si no, al dashboard del rol
-      if (from) {
-        navigate(from, { replace: true });
-      } else {
-        navigate(user.role === "admin" ? "/admin" : "/student");
-      }
+      finalizarSesion(response.data.token, response.data.user);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { mensaje?: string } } };
       setError(axiosErr.response?.data?.mensaje || "Error al iniciar sesión");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogle = async (credentialResponse: CredentialResponse) => {
+    setError("");
+    try {
+      const response = await api.post("/auth/google", { credential: credentialResponse.credential });
+      finalizarSesion(response.data.token, response.data.user);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { mensaje?: string } } };
+      setError(axiosErr.response?.data?.mensaje || "No se pudo iniciar sesión con Google");
     }
   };
 
@@ -89,6 +109,21 @@ const Login = () => {
           >
             {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
           </button>
+
+          {GOOGLE_CLIENT_ID && (
+            <>
+              <div className="login-divider"><span>o</span></div>
+              <div className="google-login-wrapper">
+                <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+                  <GoogleLogin
+                    onSuccess={handleGoogle}
+                    onError={() => setError("No se pudo iniciar sesión con Google")}
+                    text="signin_with"
+                  />
+                </GoogleOAuthProvider>
+              </div>
+            </>
+          )}
 
           <p className="register">
             ¿No tienes cuenta? <a onClick={() => navigate("/register")} style={{cursor: 'pointer'}}>Regístrate aquí</a>
