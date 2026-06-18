@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Material = require('../models/Material');
 const Subject = require('../models/Subject');
 const SystemConfig = require('../models/SystemConfig');
+const { gcsHabilitado, subirArchivo } = require('../utils/gcs');
 
 const createMaterial = async (req, res) => {
   try {
@@ -22,7 +23,14 @@ const createMaterial = async (req, res) => {
       if (!req.file) {
         return res.status(400).json({ mensaje: 'Debe subir un archivo para el tipo archivo' });
       }
-      materialData.url = `/uploads/materials/${req.file.filename}`;
+      if (gcsHabilitado()) {
+        // Archivo real en el bucket de Google Cloud Storage.
+        const { url } = await subirArchivo(req.file);
+        materialData.url = url;
+      } else {
+        // Fallback a disco local (dev sin credenciales de GCS).
+        materialData.url = `/uploads/materials/${req.file.filename}`;
+      }
       materialData.nombreOriginal = req.file.originalname;
       materialData.mimetype = req.file.mimetype;
       materialData.size = req.file.size;

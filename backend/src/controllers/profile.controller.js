@@ -203,9 +203,40 @@ const searchUsers = async (req, res) => {
   }
 };
 
+// Onboarding: el usuario elige su carrera y el backend deriva el plan activo
+// (mismo criterio que el registro). Usado por las cuentas creadas vía Google.
+const elegirCarrera = async (req, res) => {
+  try {
+    const { carrera } = req.body;
+    if (!carrera) {
+      return res.status(400).json({ mensaje: 'Debe seleccionar una carrera' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+    }
+
+    user.carrera = carrera;
+    const activePlan = await StudyPlan.findOne({ carrera, activo: true }).sort({ anio: -1 });
+    if (activePlan) user.planEstudio = activePlan._id;
+    await user.save();
+
+    const updatedUser = await User.findById(user._id)
+      .select('-password')
+      .populate('carrera', 'nombre codigo')
+      .populate('planEstudio', 'nombre estado');
+
+    res.json({ mensaje: 'Carrera seleccionada', user: updatedUser });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al seleccionar la carrera', error: error.message });
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
   getPublicProfile,
-  searchUsers
+  searchUsers,
+  elegirCarrera
 };
