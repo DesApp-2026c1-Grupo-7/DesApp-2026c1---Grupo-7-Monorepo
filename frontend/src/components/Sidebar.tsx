@@ -8,7 +8,8 @@ import {
   Bell,
   User,
   ShieldAlert,
-  Rss
+  Rss,
+  LibraryBig
 } from "lucide-react";
 
 import "../styles/Sidebar.css";
@@ -24,11 +25,11 @@ interface SidebarProps {
 }
 
 const STUDENT_ITEMS: SidebarItem[] = [
-  { to: "/student", icon: <LayoutDashboard size={18} />, label: "Dashboard" },
-  { to: "/student/situation", icon: <BookOpen size={18} />, label: "Situacion Academica" },
-  { to: "/student/assistant", icon: <GraduationCap size={18} />, label: "Asistente Academico" },
+  { to: "/student", icon: <LayoutDashboard size={18} />, label: "Inicio" },
+  { to: "/student/situation", icon: <BookOpen size={18} />, label: "Situación Académica" },
+  { to: "/student/assistant", icon: <GraduationCap size={18} />, label: "Asistente Académico" },
   { to: "/student/social", icon: <Users size={18} />, label: "Red Social" },
-  { to: "/student/feed", icon: <Rss size={18} />, label: "Feed Academico" },
+  { to: "/student/feed", icon: <Rss size={18} />, label: "Feed Académico" },
   { to: "/student/sessions", icon: <Calendar size={18} />, label: "Sesiones de Estudio" },
   { to: "/student/materials", icon: <BookOpen size={18} />, label: "Materiales" },
   { to: "/student/notifications", icon: <Bell size={18} />, label: "Notificaciones" },
@@ -41,8 +42,8 @@ const ADMIN_ITEMS: SidebarItem[] = [
   { to: "/admin/carreras", icon: <BookOpen size={18} />, label: "Carreras" },
   { to: "/admin/studyplans", icon: <GraduationCap size={18} />, label: "Planes de Estudio" },
   { to: "/admin/subjects", icon: <Users size={18} />, label: "Materias" },
-  { to: "/admin/ofertas", icon: <Calendar size={18} />, label: "Oferta Academica" },
-  { to: "/admin/moderation", icon: <ShieldAlert size={18} />, label: "Moderacion" }
+  { to: "/admin/ofertas", icon: <Calendar size={18} />, label: "Oferta Académica" },
+  { to: "/admin/moderation", icon: <ShieldAlert size={18} />, label: "Moderación" }
 ];
 
 const Sidebar = ({ role }: SidebarProps) => {
@@ -52,8 +53,13 @@ const Sidebar = ({ role }: SidebarProps) => {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <h2>Sistema Academico</h2>
-        <p>{panelName}</p>
+        <div className="sidebar-brand">
+          <span className="sidebar-mark"><LibraryBig size={20} /></span>
+          <div>
+            <h2>Trayectoria</h2>
+            <p>{panelName}</p>
+          </div>
+        </div>
       </div>
 
       <nav className="menu">

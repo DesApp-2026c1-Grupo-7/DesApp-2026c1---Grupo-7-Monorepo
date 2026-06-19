@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
+import Onboarding from "./pages/auth/Onboarding";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // student
@@ -70,6 +71,7 @@ const App = () => {
         {/* Auth — redirige si ya está logueado */}
         <Route path="/" element={<AuthRedirect />} />
         <Route path="/register" element={<RegisterRedirect />} />
+        <Route path="/onboarding" element={<Onboarding />} />
 
         {/* Student Flow */}
         <Route

@@ -37,6 +37,11 @@ dist-ssr
 backend/.env
 frontend/.env
 
+# Claves de service account de Google Cloud (NUNCA versionar)
+gcs-service-account.json
+*-service-account.json
+backend/gcs-service-account.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
