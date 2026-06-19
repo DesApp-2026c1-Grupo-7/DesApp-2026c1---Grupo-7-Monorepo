@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "../../services/api";
 import "../../styles/Materials.css";
+import { resolveMaterialUrl } from "../../utils/materialUrl";
 import { Flag, AlertTriangle, CheckCircle, Info } from "lucide-react";
 
 interface Subject {
@@ -337,11 +338,13 @@ export default function Materials() {
       return;
     }
 
-    const url = material.tipo === 'archivo' 
-      ? `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}${material.url}`
-      : material.url;
-    
-    window.open(url, '_blank');
+    const url = resolveMaterialUrl(material.url, material.tipo);
+    if (!url) {
+      alert("Este material no tiene un archivo o enlace disponible.");
+      return;
+    }
+
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const filteredSubjects = subjects.filter(s => 
