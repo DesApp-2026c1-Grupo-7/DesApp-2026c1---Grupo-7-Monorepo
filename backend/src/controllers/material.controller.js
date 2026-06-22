@@ -6,7 +6,7 @@ const { gcsHabilitado, subirArchivo } = require('../utils/gcs');
 
 const createMaterial = async (req, res) => {
   try {
-    const { titulo, descripcion, materia, tipo, categoria, url, tags } = req.body;
+    const { titulo, descripcion, materia, tipo, categoria, url, tags, discordMetadata } = req.body;
     const autor = req.user.id;
 
     let materialData = {
@@ -18,6 +18,16 @@ const createMaterial = async (req, res) => {
       categoria,
       tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map(t => t.trim())) : []
     };
+
+    if (categoria === 'discord' && discordMetadata) {
+      try {
+        materialData.discordMetadata = typeof discordMetadata === 'string'
+          ? JSON.parse(discordMetadata)
+          : discordMetadata;
+      } catch {
+        materialData.discordMetadata = discordMetadata;
+      }
+    }
 
     if (tipo === 'archivo') {
       if (!req.file) {
@@ -292,9 +302,73 @@ const deleteMaterial = async (req, res) => {
   }
 };
 
+const extractInviteCode = (url) => {
+  try {
+    const patterns = [
+      /discord\.gg\/(\w+)/,
+      /discord\.com\/invite\/(\w+)/
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const getDiscordInfo = async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url) {
+      return res.status(400).json({ mensaje: 'URL requerida' });
+    }
+
+    const inviteCode = extractInviteCode(url);
+    if (!inviteCode) {
+      return res.status(400).json({ mensaje: 'No se pudo extraer un código de invitación de la URL' });
+    }
+
+    const apiUrl = `https://discord.com/api/v10/invites/${inviteCode}?with_counts=true`;
+    const response = await fetch(apiUrl);
+    
+    if (!response.ok) {
+      return res.json({
+        inviteCode,
+        serverName: null,
+        channelName: null,
+        channelDescription: null,
+        memberCount: null,
+        error: 'No se pudo obtener información del servidor'
+      });
+    }
+
+    const data = await response.json();
+    
+    res.json({
+      inviteCode,
+      serverName: data.guild?.name || null,
+      channelName: data.channel?.name || null,
+      channelDescription: data.guild?.description || null,
+      memberCount: data.approximate_member_count || null
+    });
+  } catch (error) {
+    res.json({
+      inviteCode: null,
+      serverName: null,
+      channelName: null,
+      channelDescription: null,
+      memberCount: null,
+      error: 'Error al conectar con Discord'
+    });
+  }
+};
+
 module.exports = {
   createMaterial,
   getMaterials,
   deleteMaterial,
-  rateMaterial
+  rateMaterial,
+  getDiscordInfo
 };
