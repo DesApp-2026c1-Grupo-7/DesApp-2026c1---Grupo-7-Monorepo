@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, FileSpreadsheet, ListPlus } from "lucide-react";
 import api from "../../services/api";
 import "../../styles/LoadSituation.css";
+import "../../styles/Profile.css";
 
 interface Subject {
   _id: string;
@@ -43,8 +44,13 @@ const LoadSituation = () => {
   }]);
   const [preview, setPreview] = useState<PreviewRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => setMessage(null), message.type === "success" ? 4000 : 5000);
+    return () => clearTimeout(timer);
+  }, [message]);
 
   useEffect(() => {
     api.get("/academico/pendientes").then((r) => setSubjects(r.data)).catch(() => {});
@@ -69,8 +75,7 @@ const LoadSituation = () => {
 
   const submitManual = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
+    setMessage(null);
     setLoading(true);
     try {
       const records = rows
@@ -83,23 +88,22 @@ const LoadSituation = () => {
           anioCursada: Number(row.anioCursada)
         }));
       if (records.length === 0) {
-        setError("Agregá al menos una materia.");
+        setMessage({ text: "Agregá al menos una materia.", type: "error" });
         return;
       }
       const res = await api.post("/academico/situacion/bulk", { records });
-      setSuccess(res.data.mensaje);
+      setMessage({ text: res.data.mensaje, type: "success" });
       window.setTimeout(() => navigate("/student/situation"), 1000);
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "Error al cargar la situación");
+      setMessage({ text: ax.response?.data?.mensaje || "Error al cargar la situación", type: "error" });
     } finally {
       setLoading(false);
     }
   };
 
   const previewExcel = async (file: File) => {
-    setError("");
-    setSuccess("");
+    setMessage(null);
     setPreview([]);
     setLoading(true);
     try {
@@ -107,26 +111,25 @@ const LoadSituation = () => {
       fd.append("file", file);
       const res = await api.post("/academico/situacion/preview-excel", fd);
       setPreview(res.data.preview);
-      setSuccess(res.data.mensaje);
+      setMessage({ text: res.data.mensaje, type: "success" });
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "Error al generar preview");
+      setMessage({ text: ax.response?.data?.mensaje || "Error al generar preview", type: "error" });
     } finally {
       setLoading(false);
     }
   };
 
   const confirmPreview = async () => {
-    setError("");
-    setSuccess("");
+    setMessage(null);
     setLoading(true);
     try {
       const res = await api.post("/academico/situacion/confirm-excel", { records: preview });
-      setSuccess(res.data.mensaje);
+      setMessage({ text: res.data.mensaje, type: "success" });
       window.setTimeout(() => navigate("/student/situation"), 1000);
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "Error al confirmar la importación");
+      setMessage({ text: ax.response?.data?.mensaje || "Error al confirmar la importación", type: "error" });
     } finally {
       setLoading(false);
     }
@@ -158,8 +161,15 @@ const LoadSituation = () => {
       <h1>Cargar Situación Académica</h1>
       <p className="subtitle">Carga manual o importación con vista previa y corrección antes de confirmar.</p>
 
-      {error && <div style={{ padding: 12, background: "#fee", color: "#c33", borderRadius: 8 }}>{error}</div>}
-      {success && <div style={{ padding: 12, background: "#dfd", color: "#363", borderRadius: 8 }}>{success}</div>}
+      {message && (
+        <div className={`profile-alert ${message.type}`} role={message.type === "success" ? "status" : "alert"}>
+          <span className="profile-alert__icon" aria-hidden="true">
+            {message.type === "success" ? "✓" : "!"}
+          </span>
+          <span className="profile-alert__message">{message.text}</span>
+          <button className="profile-alert__close" onClick={() => setMessage(null)} aria-label="Cerrar">×</button>
+        </div>
+      )}
 
       <div className="options">
         <button type="button" className={`option-card ${mode === "manual" ? "active" : ""}`} onClick={() => setMode("manual")}>

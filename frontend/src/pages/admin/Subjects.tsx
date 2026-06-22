@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 import "../../styles/Subjects.css";
 
 interface Career {
@@ -23,7 +25,7 @@ export default function Subjects() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [careerFilter, setCareerFilter] = useState("todas");
-  const [error, setError] = useState("");
+  const { toast, showToast, hideToast } = useToast();
 
   const fetchAll = useCallback(async () => {
     try {
@@ -49,10 +51,10 @@ export default function Subjects() {
     try {
       await api.delete(`/materias/${id}`);
       await fetchAll();
-      setError("");
+      showToast("Materia eliminada correctamente", "success");
     } catch (e: unknown) {
       const ax = e as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "Error al eliminar materia");
+      showToast(ax.response?.data?.mensaje || "No se pudo eliminar la materia", "error");
     }
   };
 
@@ -65,6 +67,7 @@ export default function Subjects() {
 
   return (
     <div className="subjects-container">
+      <Toast toast={toast} onClose={hideToast} />
       <div className="subjects-header">
         <div>
           <h2>Gestión de Materias</h2>
@@ -74,12 +77,6 @@ export default function Subjects() {
           + Nueva Materia
         </button>
       </div>
-
-      {error && (
-        <div style={{ padding: '12px 16px', background: '#fee', color: '#c33', borderRadius: 8, margin: '16px 0' }}>
-          {error}
-        </div>
-      )}
 
       <div className="subjects-filters">
         <input type="text" placeholder="Buscar materia por nombre o código..." value={search} onChange={(e) => setSearch(e.target.value)} />

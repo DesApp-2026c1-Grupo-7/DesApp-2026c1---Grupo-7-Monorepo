@@ -130,14 +130,8 @@
   margin-bottom: 16px;
 }
 
-.error-alert {
-  background-color: #fee2e2;
-  color: #b91c1c;
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 14px;
-  border: 1px solid #fecaca;
-}
+/* El toast de esta pantalla ahora usa el componente compartido <Toast> (styles/Toast.css). */
+
 
 .date-filter-input {
   min-width: 150px;

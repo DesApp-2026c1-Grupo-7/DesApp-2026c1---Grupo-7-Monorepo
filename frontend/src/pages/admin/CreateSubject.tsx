@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 import "../../styles/CreateCareer.css";
 
 interface Career { _id: string; nombre: string; }
@@ -15,7 +17,7 @@ export default function CreateSubject() {
     carrera: ""
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const { toast, showToast, hideToast } = useToast();
 
   useEffect(() => {
     api.get("/carreras")
@@ -28,16 +30,17 @@ export default function CreateSubject() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
     try {
       await api.post("/materias", {
         ...form,
         carrera: form.carrera || null
       });
-      navigate("/admin/subjects");
+      navigate("/admin/subjects", {
+        state: { toast: { text: "Materia creada con éxito", type: "success" } }
+      });
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "Error al crear la materia");
+      showToast(ax.response?.data?.mensaje || "No se pudo crear la materia", "error");
     } finally {
       setLoading(false);
     }
@@ -45,13 +48,13 @@ export default function CreateSubject() {
 
   return (
     <div className="create-career-page">
+      <Toast toast={toast} onClose={hideToast} />
       <div className="create-career-container" style={{ maxWidth: 600 }}>
         <h1>Nueva Materia</h1>
         <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
           Define los datos básicos de la materia. Los requisitos, año, cuatrimestre y correlatividades se configuran desde los Planes de Estudio.
         </p>
         <form className="create-career-form" onSubmit={handleSubmit}>
-          {error && <p style={{ color: 'var(--error)', marginBottom: '1rem' }}>{error}</p>}
 
           <div className="form-group">
             <label>Nombre de la Materia</label>

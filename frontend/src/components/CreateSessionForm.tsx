@@ -1,4 +1,5 @@
 import "../styles/CreateSession.css";
+import "../styles/Profile.css";
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import { useNavigate } from "react-router-dom";
@@ -18,8 +19,7 @@ export default function CreateSessionForm({ sessionId }: CreateSessionFormProps)
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(!!sessionId);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
   const [formData, setFormData] = useState({
     materia: "",
@@ -40,7 +40,7 @@ export default function CreateSessionForm({ sessionId }: CreateSessionFormProps)
     // Cargar materias
     api.get("/materias")
       .then((res) => setSubjects(res.data))
-      .catch(() => setError("No se pudieron cargar las materias"));
+      .catch(() => setMessage({ text: "No se pudieron cargar las materias", type: "error" }));
 
     // Si es edición, cargar datos de la sesión
     if (sessionId) {
@@ -66,10 +66,16 @@ export default function CreateSessionForm({ sessionId }: CreateSessionFormProps)
             requiereAprobacion: s.requiereAprobacion
           });
         })
-        .catch(() => setError("No se pudieron cargar los datos de la sesión"))
+        .catch(() => setMessage({ text: "No se pudieron cargar los datos de la sesión", type: "error" }))
         .finally(() => setInitialLoading(false));
     }
   }, [sessionId]);
+
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => setMessage(null), message.type === "success" ? 4000 : 5000);
+    return () => clearTimeout(timer);
+  }, [message]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -83,8 +89,7 @@ export default function CreateSessionForm({ sessionId }: CreateSessionFormProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
+    setMessage(null);
     setLoading(true);
 
     try {
@@ -119,10 +124,10 @@ export default function CreateSessionForm({ sessionId }: CreateSessionFormProps)
 
       if (sessionId) {
         await api.put(`/sesiones/${sessionId}`, payload);
-        setSuccess("¡Sesión actualizada con éxito!");
+        setMessage({ text: "¡Sesión actualizada con éxito!", type: "success" });
       } else {
         await api.post("/sesiones", payload);
-        setSuccess("¡Sesión creada con éxito!");
+        setMessage({ text: "¡Sesión creada con éxito!", type: "success" });
       }
       
       setTimeout(() => {
@@ -131,7 +136,7 @@ export default function CreateSessionForm({ sessionId }: CreateSessionFormProps)
 
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } }; message?: string };
-      setError(ax.response?.data?.mensaje || ax.message || "Error al procesar la sesión");
+      setMessage({ text: ax.response?.data?.mensaje || ax.message || "Error al procesar la sesión", type: "error" });
     } finally {
       setLoading(false);
     }
@@ -140,11 +145,19 @@ export default function CreateSessionForm({ sessionId }: CreateSessionFormProps)
   if (initialLoading) return <div className="create-session-container"><p>Cargando datos...</p></div>;
 
   return (
-    <div className="create-session-container">
+    <>
+      {message && (
+        <div className={`profile-alert ${message.type}`} role={message.type === "success" ? "status" : "alert"}>
+          <span className="profile-alert__icon" aria-hidden="true">
+            {message.type === "success" ? "✓" : "!"}
+          </span>
+          <span className="profile-alert__message">{message.text}</span>
+          <button className="profile-alert__close" onClick={() => setMessage(null)} aria-label="Cerrar">×</button>
+        </div>
+      )}
+
+      <div className="create-session-container">
       <form className="create-session-card" onSubmit={handleSubmit}>
-        
-        {error && <div className="error-alert">{error}</div>}
-        {success && <div className="success-alert">{success}</div>}
 
         <div className="form-group">
           <label htmlFor="materia">Materia *</label>
@@ -342,6 +355,7 @@ export default function CreateSessionForm({ sessionId }: CreateSessionFormProps)
         </div>
 
       </form>
-    </div>
+      </div>
+    </>
   );
 }

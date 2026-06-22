@@ -3,6 +3,8 @@ import api from "../../services/api";
 import "../../styles/Materials.css";
 import { resolveMaterialUrl } from "../../utils/materialUrl";
 import { Flag, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 
 interface Subject {
   _id: string;
@@ -150,8 +152,6 @@ export default function Materials() {
     setSelectedMaterial(material);
     setIsReportModalOpen(true);
     setReportData({ reasonId: "", motivoEspecifico: "", detalle: "" });
-    setError("");
-    setSuccess("");
   };
 
   const handleCloseReportModal = () => {
@@ -169,8 +169,6 @@ export default function Materials() {
     if (!selectedMaterial) return;
     
     setReportLoading(true);
-    setError("");
-    setSuccess("");
 
     try {
       await api.post("/denuncias", {
@@ -180,14 +178,12 @@ export default function Materials() {
         detalle: reportData.detalle
       });
 
-      setSuccess("Denuncia enviada correctamente. Gracias por ayudar a moderar el contenido.");
-      setTimeout(() => {
-        handleCloseReportModal();
-        if (selectedSubject) fetchMaterials(selectedSubject._id);
-      }, 2000);
+      handleCloseReportModal();
+      showToast("Denuncia enviada correctamente. Gracias por ayudar a moderar el contenido.", "success");
+      if (selectedSubject) fetchMaterials(selectedSubject._id);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { mensaje?: string } } };
-      setError(axiosErr.response?.data?.mensaje || "Error al enviar la denuncia");
+      showToast(axiosErr.response?.data?.mensaje || "No se pudo enviar la denuncia", "error");
     } finally {
       setReportLoading(false);
     }
@@ -205,8 +201,7 @@ export default function Materials() {
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const { toast, showToast, hideToast } = useToast();
 
   const handleOpenModal = () => {
     setIsModalOpen(true);
@@ -214,8 +209,6 @@ export default function Materials() {
       ...prev,
       materia: selectedSubject?._id || ""
     }));
-    setError("");
-    setSuccess("");
   };
 
   const handleCloseModal = () => {
@@ -252,24 +245,23 @@ export default function Materials() {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setError("");
     setSelectedFile(null);
 
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      
+
       // Validar extensión
       const allowedExtensions = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.jpg', '.jpeg', '.png', '.zip'];
       const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-      
+
       if (!allowedExtensions.includes(fileExtension)) {
-        setError("Formato de archivo no permitido");
+        showToast("Formato de archivo no permitido", "error");
         return;
       }
 
       // Validar tamaño
       if (file.size > 25 * 1024 * 1024) {
-        setError("El archivo no debe superar los 25 MB");
+        showToast("El archivo no debe superar los 25 MB", "error");
         return;
       }
 
@@ -280,8 +272,6 @@ export default function Materials() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploadLoading(true);
-    setError("");
-    setSuccess("");
 
     try {
       const data = new FormData();
@@ -305,16 +295,14 @@ export default function Materials() {
 
       await api.post("/materiales", data);
 
-      setSuccess("Material compartido con éxito");
-      setTimeout(() => {
-        handleCloseModal();
-        if (selectedSubject) fetchMaterials(selectedSubject._id);
-      }, 1500);
+      handleCloseModal();
+      showToast("Material compartido con éxito", "success");
+      if (selectedSubject) fetchMaterials(selectedSubject._id);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { mensaje?: string, error?: { message?: string } } } };
       const apiError = axiosErr.response?.data?.mensaje || axiosErr.response?.data?.error?.message;
-      const errorMsg = err instanceof Error ? err.message : "Error al compartir material";
-      setError(apiError || errorMsg);
+      const errorMsg = err instanceof Error ? err.message : "No se pudo compartir el material";
+      showToast(apiError || errorMsg, "error");
     } finally {
       setUploadLoading(false);
     }
@@ -354,6 +342,8 @@ export default function Materials() {
 
   return (
     <div className="materials-container">
+      <Toast toast={toast} onClose={hideToast} />
+
       {selectedSubject && (
         <button 
           className="btn-secondary" 
@@ -559,9 +549,6 @@ export default function Materials() {
             </div>
 
             <form onSubmit={handleReportSubmit}>
-              {error && <div className="alert alert-error">{error}</div>}
-              {success && <div className="alert alert-success">{success}</div>}
-
               <p className="modal-subtitle">
                 Material: <strong>{selectedMaterial?.titulo}</strong>
               </p>
@@ -639,9 +626,6 @@ export default function Materials() {
             </div>
 
             <form onSubmit={handleSubmit}>
-              {error && <div className="alert alert-error">{error}</div>}
-              {success && <div className="alert alert-success">{success}</div>}
-
               <div className="form-group">
                 <label>Título *</label>
                 <input 

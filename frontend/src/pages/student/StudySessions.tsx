@@ -3,6 +3,8 @@ import "../../styles/StudySessions.css";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import { Users } from "lucide-react";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 
 interface Subject {
   _id: string;
@@ -40,8 +42,8 @@ const StudySessions = () => {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const { toast, showToast, hideToast } = useToast();
   
   // Estado para modal de miembros
   const [viewingMembers, setViewingMembers] = useState<Session | null>(null);
@@ -65,14 +67,14 @@ const StudySessions = () => {
       }
     } catch {
       if (isMounted) {
-        setError("No se pudieron cargar las sesiones de estudio");
+        showToast("No se pudieron cargar las sesiones de estudio", "error");
       }
     } finally {
       if (isMounted) {
         setLoading(false);
       }
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     let isMounted = true;
@@ -86,11 +88,11 @@ const StudySessions = () => {
     setActionLoading(sessionId);
     try {
       const res = await api.post(`/sesiones/${sessionId}/join`);
-      alert(res.data.mensaje);
+      showToast(res.data.mensaje, "success");
       fetchSessions(true);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { mensaje?: string } } };
-      alert(axiosErr.response?.data?.mensaje || "Error al unirse a la sesión");
+      showToast(axiosErr.response?.data?.mensaje || "Error al unirse a la sesión", "error");
     } finally {
       setActionLoading(null);
     }
@@ -100,11 +102,11 @@ const StudySessions = () => {
     setActionLoading(`${sessionId}-${userId}`);
     try {
       const res = await api.post(`/sesiones/manage-request`, { sessionId, userId, action });
-      alert(res.data.mensaje);
+      showToast(res.data.mensaje, "success");
       fetchSessions(true);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { mensaje?: string } } };
-      alert(axiosErr.response?.data?.mensaje || "Error al gestionar la solicitud");
+      showToast(axiosErr.response?.data?.mensaje || "Error al gestionar la solicitud", "error");
     } finally {
       setActionLoading(null);
     }
@@ -115,11 +117,11 @@ const StudySessions = () => {
     setActionLoading(sessionId);
     try {
       const res = await api.post(`/sesiones/${sessionId}/leave`);
-      alert(res.data.mensaje);
+      showToast(res.data.mensaje, "success");
       fetchSessions(true);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { mensaje?: string } } };
-      alert(axiosErr.response?.data?.mensaje || "Error al darse de baja");
+      showToast(axiosErr.response?.data?.mensaje || "Error al darse de baja", "error");
     } finally {
       setActionLoading(null);
     }
@@ -130,11 +132,11 @@ const StudySessions = () => {
     setActionLoading(sessionId);
     try {
       const res = await api.delete(`/sesiones/${sessionId}`);
-      alert(res.data.mensaje);
+      showToast(res.data.mensaje, "success");
       fetchSessions(true);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { mensaje?: string } } };
-      alert(axiosErr.response?.data?.mensaje || "Error al cancelar la sesión");
+      showToast(axiosErr.response?.data?.mensaje || "Error al cancelar la sesión", "error");
     } finally {
       setActionLoading(null);
     }
@@ -145,7 +147,7 @@ const StudySessions = () => {
     setActionLoading(`kick-${userId}`);
     try {
       const res = await api.post(`/sesiones/${sessionId}/kick/${userId}`);
-      alert(res.data.mensaje);
+      showToast(res.data.mensaje, "success");
       
       // Actualizar la lista de miembros en el modal localmente para feedback inmediato
       if (viewingMembers) {
@@ -158,7 +160,7 @@ const StudySessions = () => {
       fetchSessions(true);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { mensaje?: string } } };
-      alert(axiosErr.response?.data?.mensaje || "Error al expulsar al miembro");
+      showToast(axiosErr.response?.data?.mensaje || "Error al expulsar al miembro", "error");
     } finally {
       setActionLoading(null);
     }
@@ -227,6 +229,8 @@ const StudySessions = () => {
 
   return (
     <div className="sessions-container">
+      <Toast toast={toast} onClose={hideToast} />
+
       <div className="sessions-header">
         <div>
           <h2>Sesiones de Estudio</h2>
@@ -240,8 +244,6 @@ const StudySessions = () => {
           + Crear Sesión
         </button>
       </div>
-
-      {error && <div className="error-alert" style={{ marginBottom: 20 }}>{error}</div>}
 
       {/* FILTROS */}
       <div className="sessions-filters">
