@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { Search, X } from "lucide-react";
 import api from "../../services/api";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 import "../../styles/AdminCareers.css";
 
 interface Subject {
@@ -25,8 +27,7 @@ export default function AcademicOffers() {
     materias: [] as string[]
   });
   const [searchTerm, setSearchTerm] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const { toast, showToast, hideToast } = useToast();
 
   const fetchAll = useCallback(async () => {
     const [subjectsRes, offersRes] = await Promise.all([
@@ -39,10 +40,10 @@ export default function AcademicOffers() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      fetchAll().catch(() => setError("No se pudo cargar la oferta academica"));
+      fetchAll().catch(() => showToast("No se pudo cargar la oferta académica", "error"));
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [fetchAll]);
+  }, [fetchAll, showToast]);
 
   const filteredSubjects = useMemo(() => {
     if (!searchTerm) return [];
@@ -68,17 +69,15 @@ export default function AcademicOffers() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage("");
-    setError("");
     try {
       await api.post("/ofertas", form);
-      setMessage("Oferta guardada con éxito");
+      showToast("Oferta académica guardada con éxito", "success");
       setForm(prev => ({ ...prev, materias: [] }));
       setSearchTerm("");
       await fetchAll();
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "Error al guardar oferta");
+      showToast(ax.response?.data?.mensaje || "No se pudo guardar la oferta", "error");
     }
   };
 
@@ -91,17 +90,7 @@ export default function AcademicOffers() {
         </div>
       </div>
 
-      {message && (
-        <div className="profile-alert success" style={{ marginBottom: '1.5rem', position: 'static', transform: 'none' }}>
-          {message}
-        </div>
-      )}
-      
-      {error && (
-        <div className="profile-alert error" style={{ marginBottom: '1.5rem', position: 'static', transform: 'none' }}>
-          {error}
-        </div>
-      )}
+      <Toast toast={toast} onClose={hideToast} />
 
       <div className="card" style={{ marginBottom: '2rem' }}>
         <h3>Nueva Oferta</h3>

@@ -3,6 +3,8 @@ import api from "../../services/api";
 import "../../styles/Moderation.css";
 import { resolveMaterialUrl } from "../../utils/materialUrl";
 import { Flag, CheckCircle, XCircle, Eye, AlertCircle, Settings, Save, ExternalLink } from "lucide-react";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 
 interface Report {
   _id: string;
@@ -45,7 +47,7 @@ interface ReportConfig {
 export default function Moderation() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { toast, showToast, hideToast } = useToast();
   const [filterStatus, setFilterStatus] = useState("todos");
   
   // Detalle de material
@@ -64,11 +66,11 @@ export default function Moderation() {
       setReports(res.data);
     } catch (err) {
       console.error("Error al cargar denuncias", err);
-      setError("Error al cargar las denuncias");
+      showToast("No se pudieron cargar las denuncias", "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
   const fetchConfig = useCallback(async () => {
     try {
@@ -93,15 +95,19 @@ export default function Moderation() {
         ? "Denuncia confirmada." 
         : "Denuncia rechazada.";
         
-      await api.patch(`/denuncias/${reportId}/status`, { 
+      await api.patch(`/denuncias/${reportId}/status`, {
         estado: nuevoEstado,
         resolucion
       });
-      
+
       fetchReports();
+      showToast(
+        nuevoEstado === 'revisado' ? "Denuncia confirmada con éxito" : "Denuncia rechazada",
+        "success"
+      );
     } catch (err) {
       console.error("Error al actualizar denuncia", err);
-      alert("Error al actualizar el estado de la denuncia");
+      showToast("No se pudo actualizar el estado de la denuncia", "error");
     }
   };
 
@@ -110,10 +116,10 @@ export default function Moderation() {
       setSavingConfig(true);
       await api.patch("/denuncias/config", config);
       setShowConfig(false);
-      alert("Configuración actualizada correctamente");
+      showToast("Configuración actualizada correctamente", "success");
     } catch (err) {
       console.error("Error al guardar configuración", err);
-      alert("Error al guardar la configuración");
+      showToast("No se pudo guardar la configuración", "error");
     } finally {
       setSavingConfig(false);
     }
@@ -164,6 +170,8 @@ export default function Moderation() {
 
   return (
     <div className="moderation-container">
+      <Toast toast={toast} onClose={hideToast} />
+
       <div className="moderation-header">
         <div>
           <h1>Panel de Moderación</h1>
@@ -252,8 +260,6 @@ export default function Moderation() {
           <option value="ignorado">Ignoradas</option>
         </select>
       </div>
-
-      {error && <div className="alert alert-error">{error}</div>}
 
       {/* LISTA */}
       {loading ? (
