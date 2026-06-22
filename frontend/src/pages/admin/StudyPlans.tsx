@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 import "../../styles/StudyPlans.css";
 
 interface StudyPlan {
@@ -21,7 +23,7 @@ const StudyPlans = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [careerFilter, setCareerFilter] = useState("todas");
-  const [error, setError] = useState("");
+  const { toast, showToast, hideToast } = useToast();
 
   const fetchPlans = useCallback(async () => {
     try {
@@ -43,10 +45,10 @@ const StudyPlans = () => {
     try {
       await api.delete(`/planes/${id}`);
       await fetchPlans();
-      setError("");
+      showToast("Plan eliminado correctamente", "success");
     } catch (e: unknown) {
       const ax = e as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "Error al eliminar el plan");
+      showToast(ax.response?.data?.mensaje || "No se pudo eliminar el plan", "error");
     }
   };
 
@@ -62,6 +64,7 @@ const StudyPlans = () => {
 
   return (
     <div className="plans-container">
+      <Toast toast={toast} onClose={hideToast} />
       <div className="plans-header">
         <div>
           <h1>Planes de Estudio</h1>
@@ -71,12 +74,6 @@ const StudyPlans = () => {
           + Nuevo Plan
         </button>
       </div>
-
-      {error && (
-        <div style={{ padding: '12px 16px', background: '#fee', color: '#c33', borderRadius: 8, margin: '16px 0' }}>
-          {error}
-        </div>
-      )}
 
       <div className="plans-filters">
         <input

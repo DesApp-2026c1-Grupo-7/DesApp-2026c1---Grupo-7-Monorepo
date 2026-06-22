@@ -150,26 +150,6 @@
   background: white;
 }
 
-.error-alert {
-  background-color: #fee2e2;
-  color: #b91c1c;
-  padding: 12px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  font-size: 14px;
-  border: 1px solid #fecaca;
-}
-
-.success-alert {
-  background-color: #dcfce7;
-  color: #15803d;
-  padding: 12px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  font-size: 14px;
-  border: 1px solid #bbf7d0;
-}
-
 .flex-center {
   display: flex;
   align-items: center;

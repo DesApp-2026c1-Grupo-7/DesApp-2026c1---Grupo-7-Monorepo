@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 import "../../styles/AdminCareers.css";
 
 interface Career {
@@ -18,7 +20,7 @@ export default function AdminCareers() {
   const [careers, setCareers] = useState<Career[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [error, setError] = useState("");
+  const { toast, showToast, hideToast } = useToast();
 
   const fetchCareers = useCallback(async () => {
     try {
@@ -40,10 +42,10 @@ export default function AdminCareers() {
     try {
       await api.delete(`/carreras/${id}`);
       await fetchCareers();
-      setError("");
+      showToast("Carrera eliminada correctamente", "success");
     } catch (e: unknown) {
       const ax = e as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "Error al eliminar la carrera");
+      showToast(ax.response?.data?.mensaje || "No se pudo eliminar la carrera", "error");
     }
   };
 
@@ -54,6 +56,7 @@ export default function AdminCareers() {
 
   return (
     <div className="admin-careers-container">
+      <Toast toast={toast} onClose={hideToast} />
       <div className="admin-careers-header">
         <div>
           <h1>Gestión de Carreras</h1>
@@ -63,12 +66,6 @@ export default function AdminCareers() {
           + Nueva Carrera
         </button>
       </div>
-
-      {error && (
-        <div style={{ padding: '12px 16px', background: '#fee', color: '#c33', borderRadius: 8, marginBottom: 16 }}>
-          {error}
-        </div>
-      )}
 
       <div className="admin-search-box">
         <input

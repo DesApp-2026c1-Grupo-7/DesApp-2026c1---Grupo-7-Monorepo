@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import api from "../../services/api";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 import "../../styles/AdminUsers.css";
 
 interface UserAccount {
@@ -14,8 +16,7 @@ interface UserAccount {
 export default function AdminUsers() {
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [newAdmin, setNewAdmin] = useState({ nombre: "", email: "", password: "" });
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const { toast, showToast, hideToast } = useToast();
   const [processing, setProcessing] = useState<string | null>(null);
   const roleLabel = (role: UserAccount["role"]) => role === "admin" ? "Administrador" : "Estudiante";
 
@@ -26,42 +27,38 @@ export default function AdminUsers() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      fetchUsers().catch(() => setError("No se pudieron cargar las cuentas"));
+      fetchUsers().catch(() => showToast("No se pudieron cargar las cuentas", "error"));
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [fetchUsers]);
+  }, [fetchUsers, showToast]);
 
   const createAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage("");
-    setError("");
     try {
       await api.post("/usuarios/admins", newAdmin);
       setNewAdmin({ nombre: "", email: "", password: "" });
-      setMessage("✅ Administrador creado con éxito");
+      showToast("Administrador creado con éxito", "success");
       await fetchUsers();
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "Error al crear administrador");
+      showToast(ax.response?.data?.mensaje || "No se pudo crear el administrador", "error");
     }
   };
 
   const toggleSuspension = async (user: UserAccount) => {
-    setMessage("");
-    setError("");
     setProcessing(user._id);
     try {
       if (user.suspendido) {
         await api.put(`/usuarios/${user._id}/reactivar`);
-        setMessage("✅ Cuenta reactivada");
+        showToast("Cuenta reactivada", "success");
       } else {
         await api.put(`/usuarios/${user._id}/suspender`, { motivo: "Suspendido desde panel admin" });
-        setMessage("⚠️ Cuenta suspendida");
+        showToast("Cuenta suspendida", "success");
       }
       await fetchUsers();
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "No se pudo actualizar la cuenta");
+      showToast(ax.response?.data?.mensaje || "No se pudo actualizar la cuenta", "error");
     } finally {
       setProcessing(null);
     }
@@ -69,17 +66,15 @@ export default function AdminUsers() {
 
   const promoteToAdmin = async (user: UserAccount) => {
     if (!window.confirm(`¿Estás seguro de promover a ${user.nombre} a Administrador?`)) return;
-    
-    setMessage("");
-    setError("");
+
     setProcessing(user._id);
     try {
       await api.put(`/usuarios/${user._id}/hacer-admin`);
-      setMessage("🚀 Usuario promovido a administrador");
+      showToast("Usuario promovido a administrador", "success");
       await fetchUsers();
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "No se pudo promover la cuenta");
+      showToast(ax.response?.data?.mensaje || "No se pudo promover la cuenta", "error");
     } finally {
       setProcessing(null);
     }
@@ -94,17 +89,7 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      {message && (
-        <div className="profile-alert success" style={{ marginBottom: '1.5rem', position: 'static', transform: 'none' }}>
-          {message}
-        </div>
-      )}
-      
-      {error && (
-        <div className="profile-alert error" style={{ marginBottom: '1.5rem', position: 'static', transform: 'none' }}>
-          {error}
-        </div>
-      )}
+      <Toast toast={toast} onClose={hideToast} />
 
       <div className="card" style={{ marginBottom: '2rem' }}>
         <h3>Crear Nuevo Administrador</h3>

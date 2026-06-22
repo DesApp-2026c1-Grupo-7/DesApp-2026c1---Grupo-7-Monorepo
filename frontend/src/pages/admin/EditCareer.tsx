@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../services/api";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 import "../../styles/CreateCareer.css";
 
 export default function EditCareer() {
@@ -16,13 +18,13 @@ export default function EditCareer() {
   });
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [error, setError] = useState("");
+  const { toast, showToast, hideToast } = useToast();
 
   useEffect(() => {
     (async () => {
       try {
         const res = await api.get(`/carreras/${id}`);
-        
+
         const c = res.data;
         setForm({
           nombre: c.nombre || "",
@@ -35,12 +37,12 @@ export default function EditCareer() {
 
       } catch (e: unknown) {
         const ax = e as { response?: { data?: { mensaje?: string } } };
-        setError(ax.response?.data?.mensaje || "Error al cargar datos");
+        showToast(ax.response?.data?.mensaje || "No se pudieron cargar los datos", "error");
       } finally {
         setFetching(false);
       }
     })();
-  }, [id]);
+  }, [id, showToast]);
 
   const onChange = (key: string, value: string | number) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -49,17 +51,18 @@ export default function EditCareer() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
     try {
       await api.put(`/carreras/${id}`, {
         ...form,
         duracionAnios: Number(form.duracionAnios)
       });
 
-      navigate("/admin/carreras");
+      navigate("/admin/carreras", {
+        state: { toast: { text: "Carrera actualizada con éxito", type: "success" } }
+      });
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "Error al actualizar la carrera");
+      showToast(ax.response?.data?.mensaje || "No se pudo actualizar la carrera", "error");
     } finally {
       setLoading(false);
     }
@@ -69,13 +72,13 @@ export default function EditCareer() {
 
   return (
     <div className="create-career-page">
+      <Toast toast={toast} onClose={hideToast} />
       <div className="create-career-container" style={{ maxWidth: 700 }}>
         <h1>Editar Carrera</h1>
         <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
           Los requisitos académicos específicos como créditos e inglés se editan desde los Planes de Estudio.
         </p>
         <form className="create-career-form" onSubmit={handleSubmit}>
-          {error && <p style={{ color: "var(--error)", marginBottom: "1rem" }}>{error}</p>}
 
           <div className="form-group">
             <label>Nombre de la carrera</label>
