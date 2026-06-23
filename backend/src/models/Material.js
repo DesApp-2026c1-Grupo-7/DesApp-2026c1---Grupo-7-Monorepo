@@ -43,6 +43,13 @@ const materialSchema = new mongoose.Schema({
   size: {
     type: Number
   },
+  discordMetadata: {
+    serverName: { type: String },
+    channelName: { type: String },
+    channelDescription: { type: String },
+    memberCount: { type: Number },
+    inviteCode: { type: String }
+  },
   tags: [{
     type: String,
     trim: true

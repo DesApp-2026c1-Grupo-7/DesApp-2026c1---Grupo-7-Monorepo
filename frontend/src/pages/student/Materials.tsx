@@ -25,6 +25,14 @@ interface ReportReason {
   descripcion?: string;
 }
 
+interface DiscordMetadata {
+  serverName?: string;
+  channelName?: string;
+  channelDescription?: string;
+  memberCount?: number;
+  inviteCode?: string;
+}
+
 interface Material {
   _id: string;
   titulo: string;
@@ -45,6 +53,7 @@ interface Material {
   pendingReports: number;
   verifiedReports: number;
   suspendido: boolean;
+  discordMetadata?: DiscordMetadata;
 }
 
 export default function Materials() {
@@ -203,12 +212,35 @@ export default function Materials() {
   const [uploadLoading, setUploadLoading] = useState(false);
   const { toast, showToast, hideToast } = useToast();
 
+  const [discordInfo, setDiscordInfo] = useState<DiscordMetadata | null>(null);
+  const [discordInfoLoading, setDiscordInfoLoading] = useState(false);
+  const [discordServerName, setDiscordServerName] = useState("");
+  const [discordChannelName, setDiscordChannelName] = useState("");
+  const [discordChannelDescription, setDiscordChannelDescription] = useState("");
+
   const handleOpenModal = () => {
     setIsModalOpen(true);
     setFormData(prev => ({
       ...prev,
       materia: selectedSubject?._id || ""
     }));
+  };
+
+  const fetchDiscordInfo = async () => {
+    if (!formData.url) return;
+    setDiscordInfoLoading(true);
+    try {
+      const res = await api.get(`/materiales/discord-info?url=${encodeURIComponent(formData.url)}`);
+      const data = res.data;
+      setDiscordInfo(data);
+      if (data.serverName) setDiscordServerName(data.serverName);
+      if (data.channelName) setDiscordChannelName(data.channelName);
+      if (data.channelDescription) setDiscordChannelDescription(data.channelDescription || "");
+    } catch {
+      setDiscordInfo(null);
+    } finally {
+      setDiscordInfoLoading(false);
+    }
   };
 
   const handleCloseModal = () => {
@@ -223,6 +255,10 @@ export default function Materials() {
       tags: ""
     });
     setSelectedFile(null);
+    setDiscordInfo(null);
+    setDiscordServerName("");
+    setDiscordChannelName("");
+    setDiscordChannelDescription("");
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -281,6 +317,17 @@ export default function Materials() {
       data.append("tipo", formData.tipo);
       data.append("categoria", formData.categoria);
       data.append("tags", formData.tags);
+
+      if (formData.categoria === "discord") {
+        if (!discordServerName.trim()) throw new Error("El nombre del servidor es obligatorio");
+        if (!discordChannelName.trim()) throw new Error("El canal es obligatorio");
+        data.append("discordMetadata", JSON.stringify({
+          serverName: discordServerName,
+          channelName: discordChannelName,
+          channelDescription: discordChannelDescription,
+          inviteCode: discordInfo?.inviteCode || null
+        }));
+      }
 
       if (formData.tipo === "archivo") {
         if (!selectedFile) throw new Error("Debe seleccionar un archivo");
@@ -444,7 +491,7 @@ export default function Materials() {
             </div>
           ) : (
             materials.map((m) => (
-              <div key={m._id} className={`material-card ${m.suspendido ? 'is-suspended' : ''}`}>
+              <div key={m._id} className={`material-card ${m.suspendido ? 'is-suspended' : ''} ${m.categoria === 'discord' ? 'is-discord' : ''}`}>
                 <div className="material-top">
                   <div className={`category-icon category-${m.categoria}`}>
                     {getCategoryIcon(m.categoria)}
@@ -456,6 +503,28 @@ export default function Materials() {
                       {m.suspendido && <span className="suspended-badge">Suspendido</span>}
                     </div>
                     <p className="material-desc">{m.descripcion || "Sin descripción"}</p>
+                    {m.categoria === 'discord' && m.discordMetadata && (
+                      <div className="discord-metadata-display">
+                        {m.discordMetadata.serverName && (
+                          <div className="discord-server-row">
+                            <span className="discord-server-icon">💬</span>
+                            <span className="discord-server-name">{m.discordMetadata.serverName}</span>
+                          </div>
+                        )}
+                        {m.discordMetadata.channelName && (
+                          <div className="discord-channel-row">
+                            <span className="discord-hash">#</span>
+                            <span className="discord-channel-name">{m.discordMetadata.channelName}</span>
+                          </div>
+                        )}
+                        {m.discordMetadata.channelDescription && (
+                          <p className="discord-channel-desc">{m.discordMetadata.channelDescription}</p>
+                        )}
+                        {m.discordMetadata.memberCount != null && (
+                          <span className="discord-member-count">👥 {m.discordMetadata.memberCount} miembros</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -688,20 +757,104 @@ export default function Materials() {
               {formData.tipo === "archivo" ? (
                 <div className="form-group">
                   <label>Archivo (PDF, DOCX, PPTX, JPG, PNG, ZIP - Max 25MB) *</label>
-                  <input type="file" onChange={handleFileChange} required={formData.tipo === "archivo"} />
+                  <div className="file-upload-wrapper">
+                    <input 
+                      type="file" 
+                      id="file-upload-input" 
+                      onChange={handleFileChange} 
+                      required={formData.tipo === "archivo"} 
+                    />
+                    <label htmlFor="file-upload-input" className="file-upload-label">
+                      <span className="file-upload-icon">📁</span>
+                      <span>{selectedFile ? selectedFile.name : "Seleccionar archivo"}</span>
+                    </label>
+                    {selectedFile && (
+                      <div className="file-upload-details">
+                        <span className="file-upload-size">
+                          {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB
+                        </span>
+                        <button 
+                          type="button" 
+                          className="file-upload-clear"
+                          onClick={() => {
+                            setSelectedFile(null);
+                            const input = document.getElementById('file-upload-input') as HTMLInputElement;
+                            if (input) input.value = '';
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
-                <div className="form-group">
-                  <label>URL del material *</label>
-                  <input 
-                    type="url" 
-                    name="url" 
-                    value={formData.url || ""} 
-                    onChange={handleInputChange} 
-                    placeholder="https://..." 
-                    required={formData.tipo === "link"}
-                  />
-                </div>
+                <>
+                  <div className="form-group">
+                    <label>URL del material *</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input 
+                        type="url" 
+                        name="url" 
+                        value={formData.url || ""} 
+                        onChange={handleInputChange} 
+                        placeholder="https://..." 
+                        required={formData.tipo === "link"}
+                        style={{ flex: 1 }}
+                      />
+                      {formData.categoria === "discord" && (
+                        <button 
+                          type="button" 
+                          className="btn-discord-info" 
+                          onClick={fetchDiscordInfo}
+                          disabled={discordInfoLoading || !formData.url}
+                        >
+                          {discordInfoLoading ? "..." : "🔍"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {formData.categoria === "discord" && (
+                    <div className="discord-extra-fields">
+                      <div className="discord-header-info">
+                        <span className="discord-badge">DISCORD</span>
+                        {discordInfo?.memberCount != null && (
+                          <span className="discord-members">{discordInfo.memberCount} miembros</span>
+                        )}
+                      </div>
+                      <div className="form-group">
+                        <label>Nombre del servidor *</label>
+                        <input 
+                          type="text" 
+                          value={discordServerName} 
+                          onChange={(e) => setDiscordServerName(e.target.value)}
+                          placeholder="Ej: Servidor de Programación"
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Canal *</label>
+                        <input 
+                          type="text" 
+                          value={discordChannelName} 
+                          onChange={(e) => setDiscordChannelName(e.target.value)}
+                          placeholder="Ej: general"
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Descripción del canal / servidor</label>
+                        <textarea 
+                          value={discordChannelDescription} 
+                          onChange={(e) => setDiscordChannelDescription(e.target.value)}
+                          placeholder="¿De qué trata este servidor/canal?"
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="form-group">

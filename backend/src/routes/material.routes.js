@@ -5,6 +5,7 @@ const { auth } = require('../middlewares/auth');
 const upload = require('../middlewares/upload');
 
 router.get('/', auth, materialController.getMaterials);
+router.get('/discord-info', auth, materialController.getDiscordInfo);
 router.post('/', auth, upload.single('archivo'), materialController.createMaterial);
 router.post('/:id/valorar', auth, materialController.rateMaterial);
 router.delete('/:id', auth, materialController.deleteMaterial);
