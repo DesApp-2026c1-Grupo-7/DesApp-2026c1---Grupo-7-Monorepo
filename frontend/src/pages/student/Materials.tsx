@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import api from "../../services/api";
 import "../../styles/Materials.css";
 import { resolveMaterialUrl } from "../../utils/materialUrl";
@@ -226,21 +226,34 @@ export default function Materials() {
     }));
   };
 
-  const fetchDiscordInfo = async () => {
+  // URL para la que ya trajimos la info, para no repetir la llamada al perder foco.
+  const lastDiscordUrlRef = useRef<string>("");
+
+  const fetchDiscordInfo = async (opts?: { soloSiVacio?: boolean }) => {
     if (!formData.url) return;
     setDiscordInfoLoading(true);
     try {
       const res = await api.get(`/materiales/discord-info?url=${encodeURIComponent(formData.url)}`);
       const data = res.data;
+      lastDiscordUrlRef.current = formData.url;
       setDiscordInfo(data);
-      if (data.serverName) setDiscordServerName(data.serverName);
-      if (data.channelName) setDiscordChannelName(data.channelName);
-      if (data.channelDescription) setDiscordChannelDescription(data.channelDescription || "");
+      // En el autocompletado (onBlur) no pisamos lo que el usuario ya escribio.
+      if (data.serverName) setDiscordServerName(prev => (opts?.soloSiVacio && prev) ? prev : data.serverName);
+      if (data.channelName) setDiscordChannelName(prev => (opts?.soloSiVacio && prev) ? prev : data.channelName);
+      if (data.channelDescription) setDiscordChannelDescription(prev => (opts?.soloSiVacio && prev) ? prev : data.channelDescription);
     } catch {
       setDiscordInfo(null);
     } finally {
       setDiscordInfoLoading(false);
     }
+  };
+
+  // Autocompleta la info de Discord (incluido memberCount) al salir del campo URL,
+  // asi el conteo de miembros se guarda sin depender del boton de la lupa.
+  const handleDiscordUrlBlur = () => {
+    if (formData.categoria !== "discord" || !formData.url) return;
+    if (lastDiscordUrlRef.current === formData.url) return;
+    fetchDiscordInfo({ soloSiVacio: true });
   };
 
   const handleCloseModal = () => {
@@ -259,6 +272,7 @@ export default function Materials() {
     setDiscordServerName("");
     setDiscordChannelName("");
     setDiscordChannelDescription("");
+    lastDiscordUrlRef.current = "";
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -325,6 +339,7 @@ export default function Materials() {
           serverName: discordServerName,
           channelName: discordChannelName,
           channelDescription: discordChannelDescription,
+          memberCount: discordInfo?.memberCount ?? null,
           inviteCode: discordInfo?.inviteCode || null
         }));
       }
@@ -758,11 +773,10 @@ export default function Materials() {
                 <div className="form-group">
                   <label>Archivo (PDF, DOCX, PPTX, JPG, PNG, ZIP - Max 25MB) *</label>
                   <div className="file-upload-wrapper">
-                    <input 
-                      type="file" 
-                      id="file-upload-input" 
-                      onChange={handleFileChange} 
-                      required={formData.tipo === "archivo"} 
+                    <input
+                      type="file"
+                      id="file-upload-input"
+                      onChange={handleFileChange}
                     />
                     <label htmlFor="file-upload-input" className="file-upload-label">
                       <span className="file-upload-icon">📁</span>
@@ -793,20 +807,21 @@ export default function Materials() {
                   <div className="form-group">
                     <label>URL del material *</label>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <input 
-                        type="url" 
-                        name="url" 
-                        value={formData.url || ""} 
-                        onChange={handleInputChange} 
-                        placeholder="https://..." 
+                      <input
+                        type="url"
+                        name="url"
+                        value={formData.url || ""}
+                        onChange={handleInputChange}
+                        onBlur={handleDiscordUrlBlur}
+                        placeholder="https://..."
                         required={formData.tipo === "link"}
                         style={{ flex: 1 }}
                       />
                       {formData.categoria === "discord" && (
-                        <button 
-                          type="button" 
-                          className="btn-discord-info" 
-                          onClick={fetchDiscordInfo}
+                        <button
+                          type="button"
+                          className="btn-discord-info"
+                          onClick={() => fetchDiscordInfo()}
                           disabled={discordInfoLoading || !formData.url}
                         >
                           {discordInfoLoading ? "..." : "🔍"}
@@ -817,11 +832,32 @@ export default function Materials() {
 
                   {formData.categoria === "discord" && (
                     <div className="discord-extra-fields">
-                      <div className="discord-header-info">
-                        <span className="discord-badge">DISCORD</span>
-                        {discordInfo?.memberCount != null && (
-                          <span className="discord-members">{discordInfo.memberCount} miembros</span>
-                        )}
+                      <div className="discord-invite-preview">
+                        <div className="discord-invite-top">
+                          <span className="discord-badge">DISCORD</span>
+                          {discordInfo?.memberCount != null && (
+                            <span className="discord-invite-members">
+                              <span className="discord-invite-dot" aria-hidden="true" />
+                              {discordInfo.memberCount} miembros
+                            </span>
+                          )}
+                        </div>
+                        <div className="discord-invite-body">
+                          <div className="discord-invite-avatar">
+                            {discordServerName ? discordServerName.charAt(0).toUpperCase() : "#"}
+                          </div>
+                          <div className="discord-invite-info">
+                            <span className="discord-invite-header">Invitación a un servidor</span>
+                            <span className="discord-invite-server">
+                              {discordServerName || "Servidor de Discord"}
+                            </span>
+                            {discordChannelName && (
+                              <span className="discord-invite-channel">
+                                <span className="discord-invite-hash">#</span>{discordChannelName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                       <div className="form-group">
                         <label>Nombre del servidor *</label>
