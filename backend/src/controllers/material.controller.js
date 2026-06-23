@@ -19,14 +19,38 @@ const createMaterial = async (req, res) => {
       tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map(t => t.trim())) : []
     };
 
-    if (categoria === 'discord' && discordMetadata) {
-      try {
-        materialData.discordMetadata = typeof discordMetadata === 'string'
-          ? JSON.parse(discordMetadata)
-          : discordMetadata;
-      } catch {
-        materialData.discordMetadata = discordMetadata;
+    if (categoria === 'discord') {
+      let metadata = null;
+      if (discordMetadata) {
+        if (typeof discordMetadata === 'string') {
+          try {
+            metadata = JSON.parse(discordMetadata);
+          } catch {
+            return res.status(400).json({ mensaje: 'discordMetadata no es un JSON válido' });
+          }
+        } else {
+          metadata = discordMetadata;
+        }
       }
+
+      if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+        return res.status(400).json({ mensaje: 'Falta la metadata de Discord' });
+      }
+      if (!metadata.serverName || !String(metadata.serverName).trim()) {
+        return res.status(400).json({ mensaje: 'El nombre del servidor de Discord es obligatorio' });
+      }
+      if (!metadata.channelName || !String(metadata.channelName).trim()) {
+        return res.status(400).json({ mensaje: 'El canal de Discord es obligatorio' });
+      }
+
+      // Solo persistimos los campos conocidos del schema, descartando cualquier extra del cliente.
+      materialData.discordMetadata = {
+        serverName: String(metadata.serverName).trim(),
+        channelName: String(metadata.channelName).trim(),
+        channelDescription: metadata.channelDescription ? String(metadata.channelDescription).trim() : undefined,
+        memberCount: typeof metadata.memberCount === 'number' ? metadata.memberCount : undefined,
+        inviteCode: metadata.inviteCode ? String(metadata.inviteCode).trim() : undefined
+      };
     }
 
     if (tipo === 'archivo') {
