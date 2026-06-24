@@ -7,6 +7,7 @@ const app = require('../src/app');
 
 let mongo;
 let studentToken;
+let denuncianteToken;
 let adminToken;
 let materialId;
 let reasonId;
@@ -71,6 +72,16 @@ test.before(async () => {
     .send({ email: 'est@test.com', password: 'pass1234' });
   studentToken = login.body.token;
 
+  // Registrar un segundo estudiante que será quien denuncie (el autor no puede denunciar su propio material)
+  await request(app)
+    .post('/api/auth/register')
+    .send({ nombre: 'Denunciante', email: 'denunciante@test.com', password: 'pass1234', carrera: careerId });
+
+  const loginDenunciante = await request(app)
+    .post('/api/auth/login')
+    .send({ email: 'denunciante@test.com', password: 'pass1234' });
+  denuncianteToken = loginDenunciante.body.token;
+
   // Crear material
   const mat = await request(app)
     .post('/api/materiales')
@@ -116,20 +127,20 @@ test('sistema de denuncias: crear denuncia y validar motivos', async () => {
   // 2. Crear denuncia válida
   const resReport = await request(app)
     .post('/api/denuncias')
-    .set('Authorization', `Bearer ${studentToken}`)
+    .set('Authorization', `Bearer ${denuncianteToken}`)
     .send({
       materialId: materialId,
       reasonId: reasonId,
       detalle: 'Esto es spam'
     })
     .expect(201);
-  
+
   assert.equal(resReport.body.report.estado, 'pendiente');
 
   // 3. Crear denuncia con "Otro" sin especificar (debe fallar)
   await request(app)
     .post('/api/denuncias')
-    .set('Authorization', `Bearer ${studentToken}`)
+    .set('Authorization', `Bearer ${denuncianteToken}`)
     .send({
       materialId: materialId,
       reasonId: reasonOtroId,
@@ -140,7 +151,7 @@ test('sistema de denuncias: crear denuncia y validar motivos', async () => {
   // 4. Crear denuncia con "Otro" especificado
   await request(app)
     .post('/api/denuncias')
-    .set('Authorization', `Bearer ${studentToken}`)
+    .set('Authorization', `Bearer ${denuncianteToken}`)
     .send({
       materialId: materialId,
       reasonId: reasonOtroId,

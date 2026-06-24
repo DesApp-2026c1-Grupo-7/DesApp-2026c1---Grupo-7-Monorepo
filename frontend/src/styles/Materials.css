@@ -555,6 +555,24 @@
   box-shadow: 0 2px 8px rgba(88, 101, 242, 0.3);
 }
 
+.material-card.is-powerpoint {
+  border-color: #ea580c;
+  background: linear-gradient(135deg, #fff7f3 0%, #ffffff 100%);
+}
+
+.material-card.is-powerpoint::before {
+  background: linear-gradient(90deg, #ea580c, #C43E1C);
+}
+
+.material-card.is-word {
+  border-color: #2563eb;
+  background: linear-gradient(135deg, #f4f7fc 0%, #ffffff 100%);
+}
+
+.material-card.is-word::before {
+  background: linear-gradient(90deg, #2563eb, #2B579A);
+}
+
 .discord-metadata-display {
   background: #f0f1ff;
   border: 1px solid #e0e3ff;

@@ -83,8 +83,9 @@ export default function Materials() {
   }, []);
 
   const isAdmin = userRole === 'admin';
+  const esAutor = (material: Material) => material.autor?._id === currentUserId;
   const canDeleteMaterial = (material: Material) =>
-    isAdmin || material.autor?._id === currentUserId;
+    isAdmin || esAutor(material);
 
   // Reporting state
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -541,7 +542,7 @@ export default function Materials() {
           ) : (
             materials.map((m) => {
               const iconDisplay = getMaterialIconDisplay(m);
-              const platformClass = getPlatformCardClass(m.categoria);
+              const platformClass = getPlatformCardClass(iconDisplay);
               return (
               <div key={m._id} className={`material-card ${m.suspendido ? 'is-suspended' : ''} ${platformClass}`}>
                 {canDeleteMaterial(m) && (!m.suspendido || isAdmin) && (
@@ -662,13 +663,15 @@ export default function Materials() {
 
                   {!m.suspendido && (
                   <div className="action-buttons">
-                    <button 
+                    {!esAutor(m) && (
+                    <button
                       className="btn-report"
                       onClick={() => handleOpenReportModal(m)}
                       title="Denunciar contenido inapropiado"
                     >
                       🚩
                     </button>
+                    )}
                     <button 
                       className={`btn-primary ${m.categoria === 'discord' ? 'discord-btn' : ''}`}
                       onClick={() => handleAction(m)}

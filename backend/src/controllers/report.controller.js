@@ -70,6 +70,11 @@ exports.createReport = async (req, res) => {
       return res.status(404).json({ mensaje: 'Material no encontrado' });
     }
 
+    // El autor no puede denunciar su propio material (para eso puede eliminarlo)
+    if (material.autor.toString() === denuncianteId) {
+      return res.status(400).json({ mensaje: 'No podés denunciar tu propio material' });
+    }
+
     // Verificar si el motivo existe
     const reason = await ReportReason.findById(reasonId);
     if (!reason) {

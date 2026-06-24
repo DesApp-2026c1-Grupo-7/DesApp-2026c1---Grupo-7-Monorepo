@@ -7,6 +7,7 @@ const app = require('../src/app');
 
 let mongo;
 let studentToken;
+let denuncianteToken;
 let adminToken;
 let materialId;
 let reasonId;
@@ -72,6 +73,16 @@ test.before(async () => {
     .send({ email: 'est@test.com', password: 'pass1234' });
   studentToken = login.body.token;
 
+  // Registrar un segundo estudiante que será quien denuncie (el autor no puede denunciar su propio material)
+  await request(app)
+    .post('/api/auth/register')
+    .send({ nombre: 'Denunciante', email: 'denunciante@test.com', password: 'pass1234', carrera: careerId });
+
+  const loginDenunciante = await request(app)
+    .post('/api/auth/login')
+    .send({ email: 'denunciante@test.com', password: 'pass1234' });
+  denuncianteToken = loginDenunciante.body.token;
+
   // Crear material
   const mat = await request(app)
     .post('/api/materiales')
@@ -121,7 +132,7 @@ test('suspensión de material: umbrales y visibilidad', async () => {
   for (let i = 0; i < 2; i++) {
     await request(app)
       .post('/api/denuncias')
-      .set('Authorization', `Bearer ${studentToken}`)
+      .set('Authorization', `Bearer ${denuncianteToken}`)
       .send({ materialId, reasonId, detalle: `Denuncia ${i}` })
       .expect(201);
   }
@@ -184,4 +195,14 @@ test('suspensión de material: umbrales y visibilidad', async () => {
   const mat4 = res4.body.find(m => m._id === materialId);
   assert.equal(mat4.suspendido, true, 'Suspendido al alcanzar M=1 verificada');
   assert.equal(mat4.verifiedReports, 1);
+});
+
+test('el autor no puede denunciar su propio material', async () => {
+  const res = await request(app)
+    .post('/api/denuncias')
+    .set('Authorization', `Bearer ${studentToken}`)
+    .send({ materialId, reasonId, detalle: 'Intento de auto-denuncia' })
+    .expect(400);
+
+  assert.match(res.body.mensaje, /tu propio material/i);
 });
