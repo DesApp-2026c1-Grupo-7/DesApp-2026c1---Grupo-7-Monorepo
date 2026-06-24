@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import api from "../../services/api";
 import "../../styles/Materials.css";
 import { resolveMaterialUrl } from "../../utils/materialUrl";
@@ -59,6 +59,9 @@ interface Material {
   discordMetadata?: DiscordMetadata;
 }
 
+// Un material tiene denuncias si acumula reportes pendientes o verificados.
+const tieneDenuncias = (m: Material) => m.pendingReports + m.verifiedReports > 0;
+
 export default function Materials() {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -73,11 +76,11 @@ export default function Materials() {
   const [filterReported, setFilterReported] = useState(false);
   const [filterSuspended, setFilterSuspended] = useState(false);
 
-  // User role check
-  const [userRole, currentUserId] = (() => {
+  // User role check (se calcula una sola vez desde localStorage)
+  const [userRole, currentUserId] = useMemo(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     return [user.role || "", user.id || ""] as const;
-  })();
+  }, []);
 
   const isAdmin = userRole === 'admin';
   const canDeleteMaterial = (material: Material) =>
@@ -116,10 +119,10 @@ export default function Materials() {
       
       let data = res.data;
       if (sortBy === 'denunciados') {
-        data = data.filter((m: Material) => m.pendingReports + m.verifiedReports >= 1);
+        data = data.filter(tieneDenuncias);
       }
       if (filterReported) {
-        data = data.filter((m: Material) => m.pendingReports > 0 || m.verifiedReports > 0);
+        data = data.filter(tieneDenuncias);
       }
       if (filterSuspended) {
         data = data.filter((m: Material) => m.suspendido);
@@ -541,7 +544,7 @@ export default function Materials() {
               const platformClass = getPlatformCardClass(m.categoria);
               return (
               <div key={m._id} className={`material-card ${m.suspendido ? 'is-suspended' : ''} ${platformClass}`}>
-                {canDeleteMaterial(m) && !m.suspendido && (
+                {canDeleteMaterial(m) && (!m.suspendido || isAdmin) && (
                   <button
                     type="button"
                     className="btn-delete-material"

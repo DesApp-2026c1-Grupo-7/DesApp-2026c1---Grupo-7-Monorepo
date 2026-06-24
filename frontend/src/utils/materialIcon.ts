@@ -11,7 +11,8 @@ export type MaterialIconDisplay = {
   cssClass: string;
 };
 
-function extractExtension(source: string): string {  const clean = source.split('?')[0].split('#')[0];
+function extractExtension(source: string): string {
+  const clean = source.split('?')[0].split('#')[0];
   const dot = clean.lastIndexOf('.');
   if (dot === -1) return '';
   return clean.slice(dot).toLowerCase();
