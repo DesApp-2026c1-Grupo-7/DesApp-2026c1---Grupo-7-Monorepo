@@ -1,8 +1,11 @@
+const fs = require('fs');
+const path = require('path');
 const mongoose = require('mongoose');
 const Material = require('../models/Material');
+const MaterialReport = require('../models/MaterialReport');
 const Subject = require('../models/Subject');
 const SystemConfig = require('../models/SystemConfig');
-const { gcsHabilitado, subirArchivo } = require('../utils/gcs');
+const { gcsHabilitado, subirArchivo, eliminarArchivo } = require('../utils/gcs');
 
 const createMaterial = async (req, res) => {
   try {
@@ -204,6 +207,18 @@ const getMaterials = async (req, res) => {
       }
     ];
 
+    // Estudiantes que no son el autor no ven materiales suspendidos
+    if (!isAdmin) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { suspendido: { $ne: true } },
+            { autor: new mongoose.Types.ObjectId(req.user.id) }
+          ]
+        }
+      });
+    }
+
     // Sorting logic
     let sortObj = { createdAt: -1 };
     if (sort === 'valoracion') {
@@ -314,11 +329,25 @@ const deleteMaterial = async (req, res) => {
       return res.status(404).json({ mensaje: 'Material no encontrado' });
     }
 
-    // Solo el autor o un admin puede borrar (asumiendo que hay roles)
     if (material.autor.toString() !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ mensaje: 'No tienes permiso para eliminar este material' });
     }
 
+    // ponytail: borrado de archivo best-effort; fallo no bloquea delete en DB
+    if (material.tipo === 'archivo' && material.url) {
+      try {
+        if (material.url.startsWith('/uploads/materials/')) {
+          const filePath = path.join(__dirname, '../../uploads/materials', path.basename(material.url));
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        } else if (gcsHabilitado()) {
+          await eliminarArchivo(material.url);
+        }
+      } catch {
+        /* archivo ya inexistente o GCS no disponible */
+      }
+    }
+
+    await MaterialReport.deleteMany({ material: material._id });
     await Material.findByIdAndDelete(req.params.id);
     res.json({ mensaje: 'Material eliminado con éxito' });
   } catch (error) {

@@ -10,6 +10,7 @@ let studentToken;
 let adminToken;
 let materialId;
 let reasonId;
+let careerId;
 
 async function createBootstrapAdmin() {
   const User = require('../src/models/User');
@@ -49,7 +50,7 @@ test.before(async () => {
       nivelInglesRequerido: 'A1'
     });
   
-  const careerId = career.body.career._id;
+  careerId = career.body.career._id;
 
   const subject = await request(app)
     .post('/api/materias')
@@ -133,6 +134,21 @@ test('suspensión de material: umbrales y visibilidad', async () => {
   const mat2 = res2.body.find(m => m._id === materialId);
   assert.equal(mat2.suspendido, true, 'Debería estar suspendido al alcanzar N=2 denuncias');
   assert.equal(mat2.url, null, 'La URL debe ser null al alcanzar el umbral');
+
+  // Otro estudiante no debe ver el material suspendido
+  await request(app)
+    .post('/api/auth/register')
+    .send({ nombre: 'Otro', email: 'otro@test.com', password: 'pass1234', carrera: careerId });
+  const loginOtro = await request(app)
+    .post('/api/auth/login')
+    .send({ email: 'otro@test.com', password: 'pass1234' });
+  const otroToken = loginOtro.body.token;
+
+  const resOtro = await request(app)
+    .get('/api/materiales')
+    .set('Authorization', `Bearer ${otroToken}`)
+    .expect(200);
+  assert.equal(resOtro.body.find(m => m._id === materialId), undefined, 'Otro estudiante no ve material suspendido');
 
   // 4. Verificar que el Admin SÍ puede ver la URL
   const resAdmin = await request(app)

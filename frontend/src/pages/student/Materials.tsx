@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import api from "../../services/api";
 import "../../styles/Materials.css";
 import { resolveMaterialUrl } from "../../utils/materialUrl";
-import { Flag, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import { getMaterialIconDisplay, getPlatformCardClass } from "../../utils/materialIcon";
+import MaterialCategoryIcon from "../../components/MaterialCategoryIcon";
+import { Flag, AlertTriangle, CheckCircle, Info, Trash2 } from "lucide-react";
 import Toast from "../../components/Toast";
 import { useToast } from "../../hooks/useToast";
 
@@ -42,6 +44,7 @@ interface Material {
   tipo: 'archivo' | 'link';
   categoria: 'youtube' | 'drive' | 'web' | 'discord' | 'github' | 'archivo' | 'otro';
   url: string;
+  nombreOriginal?: string;
   tags: string[];
   createdAt: string;
   size?: number;
@@ -71,12 +74,14 @@ export default function Materials() {
   const [filterSuspended, setFilterSuspended] = useState(false);
 
   // User role check
-  const [userRole] = useState(() => {
+  const [userRole, currentUserId] = (() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    return user.role || "";
-  });
+    return [user.role || "", user.id || ""] as const;
+  })();
 
   const isAdmin = userRole === 'admin';
+  const canDeleteMaterial = (material: Material) =>
+    isAdmin || material.autor?._id === currentUserId;
 
   // Reporting state
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -88,6 +93,8 @@ export default function Materials() {
     detalle: ""
   });
   const [reportLoading, setReportLoading] = useState(false);
+  const [materialToDelete, setMaterialToDelete] = useState<Material | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchSubjects = useCallback(async () => {
     try {
@@ -108,6 +115,9 @@ export default function Materials() {
       const res = await api.get(`/materiales?materia=${subjectId}&search=${search}&sort=${sortParam}`);
       
       let data = res.data;
+      if (sortBy === 'denunciados') {
+        data = data.filter((m: Material) => m.pendingReports + m.verifiedReports >= 1);
+      }
       if (filterReported) {
         data = data.filter((m: Material) => m.pendingReports > 0 || m.verifiedReports > 0);
       }
@@ -153,6 +163,32 @@ export default function Materials() {
       if (selectedSubject) fetchMaterials(selectedSubject._id);
     } catch (err) {
       console.error("Error al valorar material", err);
+    }
+  };
+
+  const openDeleteModal = (material: Material) => {
+    setMaterialToDelete(material);
+  };
+
+  const closeDeleteModal = () => {
+    if (deleteLoading) return;
+    setMaterialToDelete(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!materialToDelete) return;
+
+    setDeleteLoading(true);
+    try {
+      await api.delete(`/materiales/${materialToDelete._id}`);
+      setMaterials((prev) => prev.filter((m) => m._id !== materialToDelete._id));
+      showToast("Material eliminado correctamente", "success");
+      setMaterialToDelete(null);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { mensaje?: string } } };
+      showToast(axiosErr.response?.data?.mensaje || "No se pudo eliminar el material", "error");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -370,18 +406,6 @@ export default function Materials() {
     }
   };
 
-  const getCategoryIcon = (categoria: string) => {
-    switch (categoria) {
-      case 'youtube': return "🎬";
-      case 'drive': return "📁";
-      case 'github': return "💻";
-      case 'discord': return "💬";
-      case 'web': return "🌐";
-      case 'archivo': return "📄";
-      default: return "🔗";
-    }
-  };
-
   const handleAction = (material: Material) => {
     if (material.suspendido && !isAdmin) {
       alert("Este material se encuentra suspendido temporalmente por denuncias de la comunidad.");
@@ -469,6 +493,7 @@ export default function Materials() {
           >
             <option value="recientes">Más recientes</option>
             <option value="valoracion">Mejor valorados</option>
+            <option value="denunciados">Denunciados</option>
           </select>
         </div>
       )}
@@ -501,16 +526,34 @@ export default function Materials() {
         <div className="materials-list">
           {materials.length === 0 ? (
             <div className="no-results py-10 text-center">
-              No hay materiales compartidos en esta materia todavía. <br />
-              ¡Sé el primero en compartir algo!
+              {sortBy === 'denunciados' ? (
+                <>No hay materiales denunciados en esta materia.</>
+              ) : (
+                <>
+                  No hay materiales compartidos en esta materia todavía. <br />
+                  ¡Sé el primero en compartir algo!
+                </>
+              )}
             </div>
           ) : (
-            materials.map((m) => (
-              <div key={m._id} className={`material-card ${m.suspendido ? 'is-suspended' : ''} ${m.categoria === 'discord' ? 'is-discord' : ''}`}>
+            materials.map((m) => {
+              const iconDisplay = getMaterialIconDisplay(m);
+              const platformClass = getPlatformCardClass(m.categoria);
+              return (
+              <div key={m._id} className={`material-card ${m.suspendido ? 'is-suspended' : ''} ${platformClass}`}>
+                {canDeleteMaterial(m) && !m.suspendido && (
+                  <button
+                    type="button"
+                    className="btn-delete-material"
+                    onClick={() => openDeleteModal(m)}
+                    title="Eliminar material"
+                    aria-label="Eliminar material"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
                 <div className="material-top">
-                  <div className={`category-icon category-${m.categoria}`}>
-                    {getCategoryIcon(m.categoria)}
-                  </div>
+                  <MaterialCategoryIcon display={iconDisplay} />
 
                   <div className="material-info">
                     <div className="title-row">
@@ -588,7 +631,21 @@ export default function Materials() {
                     <>
                       <div className="rating-divider"></div>
                       <div className="rating-ratio">
-                        Ratio: <span className="ratio-badge">{(m.ratio * 100).toFixed(0)}%</span>
+                        <span>Ratio:</span>
+                        <div
+                          className="ratio-bar"
+                          role="img"
+                          aria-label={`${m.likes || 0} positivos, ${m.dislikes || 0} negativos`}
+                        >
+                          <div
+                            className="ratio-bar-likes"
+                            style={{ width: `${((m.likes || 0) / m.totalValoraciones) * 100}%` }}
+                          />
+                          <div
+                            className="ratio-bar-dislikes"
+                            style={{ width: `${((m.dislikes || 0) / m.totalValoraciones) * 100}%` }}
+                          />
+                        </div>
                       </div>
                     </>
                   )}
@@ -600,26 +657,61 @@ export default function Materials() {
                     {m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'Sin fecha'}
                   </div>
 
+                  {!m.suspendido && (
                   <div className="action-buttons">
                     <button 
                       className="btn-report"
                       onClick={() => handleOpenReportModal(m)}
                       title="Denunciar contenido inapropiado"
-                      disabled={m.suspendido && !isAdmin}
                     >
                       🚩
                     </button>
                     <button 
-                      className={`btn-primary ${m.categoria === 'discord' ? 'discord-btn' : ''} ${m.suspendido && !isAdmin ? 'btn-disabled' : ''}`}
+                      className={`btn-primary ${m.categoria === 'discord' ? 'discord-btn' : ''}`}
                       onClick={() => handleAction(m)}
                     >
                       {m.categoria === 'discord' ? 'Unirse' : (m.tipo === 'archivo' ? 'Descargar' : 'Ver Recurso')}
                     </button>
                   </div>
+                  )}
                 </div>
               </div>
-            ))
+            );
+            })
           )}
+        </div>
+      )}
+
+      {/* MODAL ELIMINAR */}
+      {materialToDelete && (
+        <div className="modal-overlay" onClick={closeDeleteModal}>
+          <div className="modal-content delete-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-modal-icon">
+              <Trash2 size={28} />
+            </div>
+            <h3 className="delete-modal-title">¿Eliminar material?</h3>
+            <p className="delete-modal-text">
+              Vas a eliminar <strong>{materialToDelete.titulo}</strong>. Esta acción no se puede deshacer.
+            </p>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={closeDeleteModal}
+                disabled={deleteLoading}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn-danger"
+                onClick={confirmDelete}
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? "Eliminando..." : "Eliminar"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
