@@ -60,3 +60,6 @@ resumen-sprint-1.txt
 frontend/cypress/videos/
 frontend/cypress/screenshots/
 frontend/cypress/downloads/
+
+# Uploads de usuarios (binarios subidos en runtime, no se versionan)
+backend/uploads/

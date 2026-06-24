@@ -40,4 +40,11 @@ async function subirArchivo(file) {
   };
 }
 
-module.exports = { gcsHabilitado, subirArchivo };
+async function eliminarArchivo(publicUrl) {
+  if (!bucket) return;
+  const prefix = `https://storage.googleapis.com/${BUCKET}/`;
+  if (!publicUrl.startsWith(prefix)) return;
+  await bucket.file(publicUrl.slice(prefix.length)).delete({ ignoreNotFound: true });
+}
+
+module.exports = { gcsHabilitado, subirArchivo, eliminarArchivo };
