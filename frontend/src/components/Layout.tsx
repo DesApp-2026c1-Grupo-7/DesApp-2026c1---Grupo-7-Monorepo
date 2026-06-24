@@ -1,6 +1,7 @@
 import { Outlet, Navigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
+import NotificationToaster from "./NotificationToaster";
 import "../styles/Layout.css";
 
 interface LayoutProps {
@@ -27,6 +28,8 @@ const Layout = ({ role }: LayoutProps) => {
 
       <div className="main">
         <Navbar />
+
+        {role === "student" && <NotificationToaster />}
 
         <div className="content">
           <Outlet />

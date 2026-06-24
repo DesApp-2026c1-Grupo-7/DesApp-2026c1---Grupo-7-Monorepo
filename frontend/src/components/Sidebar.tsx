@@ -12,6 +12,7 @@ import {
   LibraryBig
 } from "lucide-react";
 
+import { useUnreadNotifications } from "../hooks/useUnreadNotifications";
 import "../styles/Sidebar.css";
 
 interface SidebarItem {
@@ -49,6 +50,7 @@ const ADMIN_ITEMS: SidebarItem[] = [
 const Sidebar = ({ role }: SidebarProps) => {
   const items = role === "student" ? STUDENT_ITEMS : ADMIN_ITEMS;
   const panelName = role === "student" ? "Panel Estudiante" : "Panel Administrador";
+  const unread = useUnreadNotifications(role === "student");
 
   return (
     <aside className="sidebar">
@@ -72,6 +74,9 @@ const Sidebar = ({ role }: SidebarProps) => {
           >
             {item.icon}
             <span>{item.label}</span>
+            {item.to === "/student/notifications" && unread > 0 && (
+              <span className="sidebar-badge">{unread > 9 ? "9+" : unread}</span>
+            )}
           </NavLink>
         ))}
       </nav>
