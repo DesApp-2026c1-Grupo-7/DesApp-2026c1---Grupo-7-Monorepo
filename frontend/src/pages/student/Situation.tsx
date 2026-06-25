@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 import "../../styles/Situation.css";
+import "../../styles/Profile.css";
 
 interface AcademicRecord {
   _id: string;
@@ -36,6 +39,7 @@ const Situation = () => {
   // Estado para el modal personalizado
   const [showModal, setShowModal] = useState(false);
   const [subjectToDelete, setSubjectToDelete] = useState<{ id: string, nombre: string } | null>(null);
+  const { toast, showToast, hideToast } = useToast();
 
   const options = ["Todos los estados", "Aprobada", "Regular", "Cursando", "Pendiente"];
   const yearOptions = ["Todos los años", "1°", "2°", "3°", "4°", "5°"];
@@ -76,11 +80,13 @@ const Situation = () => {
 
     try {
       await api.delete(`/academico/situacion/${subjectToDelete.id}`);
-      fetchSituation(true); // Aquí sí queremos ver el loading al recargar
+      fetchSituation(true);
       closeDeleteModal();
+      showToast("Materia dada de baja correctamente", "success");
     } catch (error) {
       console.error("Error al dar de baja la materia:", error);
-      alert("No se pudo dar de baja la materia");
+      closeDeleteModal();
+      showToast("No se pudo dar de baja la materia", "error");
     }
   };
 
@@ -103,6 +109,8 @@ const Situation = () => {
 
   return (
     <div className="situation">
+
+      <Toast toast={toast} onClose={hideToast} />
 
       <div className="header">
         <div>
@@ -218,11 +226,11 @@ const Situation = () => {
                     <td>{m.nota || "-"}</td>
                     <td>{new Date(m.fecha).toLocaleDateString()}</td>
                     <td>
-                      <button 
-                        className={m.estado === 'Aprobada' || m.estado === 'Promocion' ? 'btn-disabled' : 'btn-danger'}
+                      <button
+                        className={`btn-baja ${m.estado === 'Aprobada' || m.estado === 'Promocion' || m.estado === 'Regular' ? 'btn-disabled' : 'btn-danger'}`}
                         onClick={() => openDeleteModal(m.materia._id, m.materia.nombre)}
-                        disabled={m.estado === 'Aprobada' || m.estado === 'Promocion'}
-                        title={m.estado === 'Aprobada' || m.estado === 'Promocion' ? "No se puede dar de baja una materia aprobada" : ""}
+                        disabled={m.estado === 'Aprobada' || m.estado === 'Promocion' || m.estado === 'Regular'}
+                        title={m.estado === 'Regular' ? "No se puede dar de baja una materia regular" : m.estado === 'Aprobada' || m.estado === 'Promocion' ? "No se puede dar de baja una materia aprobada" : ""}
                       >
                         Darse de baja
                       </button>
@@ -265,11 +273,11 @@ const Situation = () => {
                 </div>
               </div>
               <div className="card-footer">
-                <button 
-                  className={m.estado === 'Aprobada' || m.estado === 'Promocion' ? 'btn-disabled' : 'btn-danger'}
+                <button
+                  className={`btn-baja ${m.estado === 'Aprobada' || m.estado === 'Promocion' || m.estado === 'Regular' ? 'btn-disabled' : 'btn-danger'}`}
                   style={{ width: '100%' }}
                   onClick={() => openDeleteModal(m.materia._id, m.materia.nombre)}
-                  disabled={m.estado === 'Aprobada' || m.estado === 'Promocion'}
+                  disabled={m.estado === 'Aprobada' || m.estado === 'Promocion' || m.estado === 'Regular'}
                 >
                   Darse de baja
                 </button>

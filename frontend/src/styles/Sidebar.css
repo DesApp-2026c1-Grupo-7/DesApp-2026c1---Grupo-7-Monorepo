@@ -21,6 +21,23 @@
   margin-bottom: 2rem;
 }
 
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.sidebar-mark {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: white;
+  background: linear-gradient(135deg, #6d8cff, #3157d5);
+  box-shadow: 0 12px 24px rgba(49, 87, 213, 0.34);
+}
+
 .sidebar-header h2 {
   font-size: 1.25rem;
   font-weight: 700;
@@ -31,7 +48,7 @@
 .sidebar-header p {
   font-size: 0.75rem;
   color: #b8c3d8;
-  margin-top: 0.25rem;
+  margin-top: 0.15rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -65,6 +82,25 @@
   box-shadow: 0 16px 34px rgba(49, 87, 213, 0.34);
 }
 
+/* Badge de no leidas: mismo tamaño que el de la campanita pero blanco con
+   texto azul oscuro (como el panel). */
+.sidebar-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  margin-left: -0.375rem;
+  background: #fff;
+  color: #233052;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 9px;
+  flex-shrink: 0;
+}
+
 .link svg {
   flex-shrink: 0;
   transition: transform 0.2s ease;
@@ -90,6 +126,11 @@
     justify-content: space-between;
     align-items: center;
     border-bottom: none;
+  }
+
+  .sidebar-mark {
+    width: 36px;
+    height: 36px;
   }
 
   .sidebar-header p {

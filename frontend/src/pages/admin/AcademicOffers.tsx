@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { Search, X } from "lucide-react";
 import api from "../../services/api";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 import "../../styles/AdminCareers.css";
 
 interface Subject {
@@ -25,8 +27,7 @@ export default function AcademicOffers() {
     materias: [] as string[]
   });
   const [searchTerm, setSearchTerm] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const { toast, showToast, hideToast } = useToast();
 
   const fetchAll = useCallback(async () => {
     const [subjectsRes, offersRes] = await Promise.all([
@@ -39,10 +40,10 @@ export default function AcademicOffers() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      fetchAll().catch(() => setError("No se pudo cargar la oferta academica"));
+      fetchAll().catch(() => showToast("No se pudo cargar la oferta académica", "error"));
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [fetchAll]);
+  }, [fetchAll, showToast]);
 
   const filteredSubjects = useMemo(() => {
     if (!searchTerm) return [];
@@ -68,17 +69,15 @@ export default function AcademicOffers() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage("");
-    setError("");
     try {
       await api.post("/ofertas", form);
-      setMessage("Oferta guardada con éxito");
+      showToast("Oferta académica guardada con éxito", "success");
       setForm(prev => ({ ...prev, materias: [] }));
       setSearchTerm("");
       await fetchAll();
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "Error al guardar oferta");
+      showToast(ax.response?.data?.mensaje || "No se pudo guardar la oferta", "error");
     }
   };
 
@@ -91,29 +90,24 @@ export default function AcademicOffers() {
         </div>
       </div>
 
-      {message && (
-        <div className="profile-alert success" style={{ marginBottom: '1.5rem', position: 'static', transform: 'none' }}>
-          {message}
-        </div>
-      )}
-      
-      {error && (
-        <div className="profile-alert error" style={{ marginBottom: '1.5rem', position: 'static', transform: 'none' }}>
-          {error}
-        </div>
-      )}
+      <Toast toast={toast} onClose={hideToast} />
 
       <div className="card" style={{ marginBottom: '2rem' }}>
         <h3>Nueva Oferta</h3>
-        <form onSubmit={submit} className="filters" style={{ marginTop: '1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          <div style={{ display: 'flex', gap: '0.5rem', flex: 1, minWidth: '250px' }}>
+        <form onSubmit={submit} className="offer-form">
+          <div className="offer-period-grid">
+            <label>
+              Año
             <input 
               type="number" 
               className="full-width-input"
-              style={{ width: '100px' }}
+              min={new Date().getFullYear() - 1}
               value={form.anio} 
               onChange={(e) => setForm((s) => ({ ...s, anio: Number(e.target.value) }))} 
             />
+            </label>
+            <label>
+              Período
             <select 
               className="full-width-input"
               value={form.cuatrimestre} 
@@ -123,19 +117,20 @@ export default function AcademicOffers() {
               <option value={2}>Segundo Cuatrimestre (2C)</option>
               <option value={0}>Anual</option>
             </select>
+            </label>
           </div>
-          <button className="btn primary" type="submit" style={{ height: '45px' }}>Guardar oferta</button>
           
-          <div style={{ flexBasis: "100%", marginTop: '1.5rem', position: 'relative' }}>
-            <p style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--text-muted)' }}>
+          <div style={{ marginTop: '1.25rem', position: 'relative' }}>
+            <label htmlFor="offer-subject-search" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--text-main)' }}>
               Seleccionar materias para la oferta:
-            </p>
+            </label>
             
             <div style={{ position: 'relative', marginBottom: '1rem' }}>
               <div style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'flex' }}>
                 <Search size={18} />
               </div>
               <input 
+                id="offer-subject-search"
                 type="text" 
                 placeholder="Buscar materia por nombre o código..." 
                 className="full-width-input"
@@ -162,7 +157,8 @@ export default function AcademicOffers() {
                 }}>
                   {filteredSubjects.length > 0 ? (
                     filteredSubjects.map(s => (
-                      <div 
+                      <button
+                        type="button"
                         key={s._id} 
                         onClick={() => {
                           toggleSubject(s._id);
@@ -171,6 +167,12 @@ export default function AcademicOffers() {
                         style={{ 
                           padding: '12px 14px', 
                           cursor: 'pointer', 
+                          width: '100%',
+                          border: 'none',
+                          background: 'transparent',
+                          color: 'inherit',
+                          font: 'inherit',
+                          textAlign: 'left',
                           borderRadius: 'var(--radius-md)',
                           display: 'flex',
                           justifyContent: 'space-between',
@@ -182,7 +184,7 @@ export default function AcademicOffers() {
                       >
                         <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{s.nombre}</span>
                         <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600, background: 'var(--primary-soft)', padding: '3px 8px', borderRadius: '6px' }}>{s.codigo}</span>
-                      </div>
+                      </button>
                     ))
                   ) : (
                     <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
@@ -244,6 +246,10 @@ export default function AcademicOffers() {
                 </div>
               )}
             </div>
+          </div>
+          <div className="offer-submit-row">
+            <span>{form.materias.length} {form.materias.length === 1 ? "materia seleccionada" : "materias seleccionadas"}</span>
+            <button className="btn primary" type="submit" disabled={form.materias.length === 0}>Guardar oferta</button>
           </div>
         </form>
       </div>

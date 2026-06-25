@@ -484,19 +484,38 @@ const getAvanceCarrera = async (req, res) => {
       avancePorAnio[ps.anio].total++;
     }
 
+    // IDs de materias que ya están aprobadas, regulares o en curso (no cuentan como faltantes)
+    const materiasCubiertas = new Set();
     for (const g of gradesDelPlan) {
       const ps = planMap.get(g.materia._id.toString());
       if (!ps || ps.anio === 0) continue;
-      
+
       if (!avancePorAnio[ps.anio]) {
         avancePorAnio[ps.anio] = { aprobadas: 0, regulares: 0, cursando: 0, total: 0 };
       }
 
       if (['Aprobada', 'Promocion'].includes(g.estado)) {
         avancePorAnio[ps.anio].aprobadas++;
+        materiasCubiertas.add(g.materia._id.toString());
       }
-      else if (g.estado === 'Regular') avancePorAnio[ps.anio].regulares++;
-      else if (['Inscripto', 'Cursando'].includes(g.estado)) avancePorAnio[ps.anio].cursando++;
+      else if (g.estado === 'Regular') {
+        avancePorAnio[ps.anio].regulares++;
+        materiasCubiertas.add(g.materia._id.toString());
+      }
+      else if (['Inscripto', 'Cursando'].includes(g.estado)) {
+        avancePorAnio[ps.anio].cursando++;
+        materiasCubiertas.add(g.materia._id.toString());
+      }
+    }
+
+    // Nombres de las materias faltantes por año (plan menos las cubiertas)
+    for (const ps of planSubjects) {
+      if (ps.anio === 0 || !avancePorAnio[ps.anio]) continue;
+      if (materiasCubiertas.has(ps._id.toString())) continue;
+      if (!avancePorAnio[ps.anio].materiasFaltantes) {
+        avancePorAnio[ps.anio].materiasFaltantes = [];
+      }
+      avancePorAnio[ps.anio].materiasFaltantes.push(ps.nombre);
     }
 
     res.json({
@@ -862,20 +881,6 @@ const getComparacionPlanGuardado = async (req, res) => {
     const periodoTranscurrido = (p) =>
       p.anio < anioActual || (p.anio === anioActual && p.cuatrimestre <= cuatrimestreActual);
 
-    let materiasEsperadas = 0;
-    let materiasCumplidas = 0;
-    
-    // Identificamos todas las materias del plan
-    const todasLasMateriasDelPlanIds = new Set();
-    plan.periodos.forEach(p => p.materias.forEach(m => {
-      if (m.materia) {
-        todasLasMateriasDelPlanIds.add(m.materia.toString());
-        materiasEsperadas++; // Contamos el total absoluto del plan
-      }
-    }));
-
-    materiasCumplidas = Array.from(todasLasMateriasDelPlanIds).filter(id => aprobadasIds.has(id)).length;
-
     const periodos = plan.periodos.map((p) => {
       const transcurrido = periodoTranscurrido(p);
       const total = p.materias.length;
@@ -891,12 +896,26 @@ const getComparacionPlanGuardado = async (req, res) => {
       };
     });
 
-    // Para la diferencia y el estado, comparamos contra lo que DEBERÍA estar aprobado hasta hoy
-    const totalHastaHoy = plan.periodos
-      .filter(periodoTranscurrido)
-      .reduce((sum, p) => sum + p.materias.length, 0);
+    // Total absoluto del plan (sólo como referencia para mostrar).
+    const totalPlan = plan.periodos.reduce(
+      (sum, p) => sum + p.materias.filter((m) => m.materia).length,
+      0
+    );
 
-    const diferencia = materiasCumplidas - totalHastaHoy;
+    // El rendimiento se compara SÓLO contra los cuatrimestres ya transcurridos: cuántas
+    // materias deberían estar aprobadas a esta altura del plan y cuántas realmente lo están.
+    // Así el porcentaje y el estado son coherentes (no se exige el plan completo desde el día uno).
+    const periodosTranscurridos = plan.periodos.filter(periodoTranscurrido);
+    const materiasEsperadas = periodosTranscurridos.reduce(
+      (sum, p) => sum + p.materias.filter((m) => m.materia).length,
+      0
+    );
+    const materiasCumplidas = periodosTranscurridos.reduce(
+      (sum, p) => sum + p.materias.filter((m) => m.materia && aprobadasIds.has(m.materia.toString())).length,
+      0
+    );
+
+    const diferencia = materiasCumplidas - materiasEsperadas;
     const estado = diferencia >= 0 ? 'al-dia' : diferencia >= -2 ? 'leve-desvio' : 'atrasado';
 
     res.json({
@@ -906,6 +925,7 @@ const getComparacionPlanGuardado = async (req, res) => {
       cuatrimestreActual,
       materiasEsperadas,
       materiasCumplidas,
+      totalPlan,
       diferencia,
       estado,
       porcentajeCumplimiento: materiasEsperadas > 0 ? Math.round((materiasCumplidas / materiasEsperadas) * 100) : 100,

@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Search, Trash2, Settings2 } from "lucide-react";
 import api from "../../services/api";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 import "../../styles/CreateCareer.css";
 
 interface Career { _id: string; nombre: string; }
@@ -38,7 +40,7 @@ export default function EditStudyPlan() {
   
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [error, setError] = useState("");
+  const { toast, showToast, hideToast } = useToast();
 
   useEffect(() => {
     (async () => {
@@ -76,12 +78,12 @@ export default function EditStudyPlan() {
         setPlanMaterias(mapped);
       } catch (e: unknown) {
         const ax = e as { response?: { data?: { mensaje?: string } } };
-        setError(ax.response?.data?.mensaje || "Error al cargar el plan");
+        showToast(ax.response?.data?.mensaje || "No se pudo cargar el plan", "error");
       } finally {
         setFetching(false);
       }
     })();
-  }, [id]);
+  }, [id, showToast]);
 
   const filteredSearch = useMemo(() => {
     if (!searchTerm) return [];
@@ -132,7 +134,6 @@ export default function EditStudyPlan() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
     try {
       await api.put(`/planes/${id}`, {
         ...form,
@@ -150,10 +151,12 @@ export default function EditStudyPlan() {
           esUnahur: m.esUnahur
         }))
       });
-      navigate("/admin/studyplans");
+      navigate("/admin/studyplans", {
+        state: { toast: { text: "Plan de estudio actualizado con éxito", type: "success" } }
+      });
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string; error?: string | Record<string, unknown> } } };
-      setError(ax.response?.data?.mensaje || "Error al actualizar el plan");
+      showToast(ax.response?.data?.mensaje || "No se pudo actualizar el plan", "error");
     } finally {
       setLoading(false);
     }
@@ -163,10 +166,10 @@ export default function EditStudyPlan() {
 
   return (
     <div className="create-career-page">
+      <Toast toast={toast} onClose={hideToast} />
       <div className="create-career-container" style={{ maxWidth: 900 }}>
         <h1>Editar Plan de Estudio</h1>
         <form className="create-career-form" onSubmit={handleSubmit}>
-          {error && <p style={{ color: 'var(--error)', marginBottom: '1rem' }}>{error}</p>}
 
           <div className="form-group">
             <label>Nombre del Plan</label>

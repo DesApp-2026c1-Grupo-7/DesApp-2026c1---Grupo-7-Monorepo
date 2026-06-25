@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import "../../styles/Dashboard.css";
 import StatCard from "../../components/StatCard";
 import api from "../../services/api";
@@ -6,8 +7,10 @@ import {
   BookOpen,
   GraduationCap,
   Calendar,
-  Users,
+  LibraryBig,
   TrendingUp,
+  ArrowRight,
+  Sparkles,
 } from "lucide-react";
 
 interface AcademicRecord {
@@ -62,13 +65,52 @@ export default function Dashboard() {
 
   const totalMaterias = avance?.totalMaterias ?? 0;
   const avancePercent = avance?.porcentajeAvance ?? 0;
+  const firstName = userName.split(" ")[0];
+
+  const quickActions = [
+    {
+      to: "/student/situation",
+      icon: <BookOpen size={24} />,
+      title: "Situación académica",
+      description: "Revisá materias, finales y progreso",
+      tone: "blue",
+    },
+    {
+      to: "/student/assistant",
+      icon: <GraduationCap size={24} />,
+      title: "Asistente académico",
+      description: "Planificá tu cursada hasta recibirte",
+      tone: "purple",
+    },
+    {
+      to: "/student/sessions",
+      icon: <Calendar size={24} />,
+      title: "Sesiones de estudio",
+      description: "Encontrá compañeros para estudiar",
+      tone: "green",
+    },
+    {
+      to: "/student/materials",
+      icon: <LibraryBig size={24} />,
+      title: "Materiales",
+      description: "Compartí y valorá recursos por materia",
+      tone: "pink",
+    },
+  ];
 
   return (
     <div className="dashboard">
       {/* HEADER */}
       <div className="dashboard-header">
-        <h1>Dashboard</h1>
-        <p>Bienvenido, {userName}</p>
+        <div>
+          <span className="dashboard-kicker">Tu recorrido académico</span>
+          <h1>Hola, {firstName}</h1>
+          <p>Todo lo importante de tu carrera, en un solo lugar.</p>
+        </div>
+        <Link className="dashboard-header-action" to="/student/assistant">
+          <Sparkles size={18} />
+          Planificar cursada
+        </Link>
       </div>
 
       {/* PROGRESO */}
@@ -95,7 +137,7 @@ export default function Dashboard() {
 
       {/* STATS */}
 
-      <div className="stats">
+      <div className="stats" aria-label="Resumen académico">
         {loading ? (
           <p>Cargando estadísticas...</p>
         ) : (
@@ -108,60 +150,28 @@ export default function Dashboard() {
       </div>
 
       {/* ACCESOS */}
-      <div className="section">
-        <h2>Accesos Rápidos</h2>
+      <section className="section dashboard-actions">
+        <div className="section-heading">
+          <div>
+            <h2>¿Qué querés hacer hoy?</h2>
+            <p>Entrá directo a las herramientas más usadas.</p>
+          </div>
+        </div>
 
         <div className="quick-access">
-          <div className="quick-card">
-            <BookOpen size={28} className="blue" />
-            <span>Situación Académica</span>
-          </div>
-
-          <div className="quick-card">
-            <GraduationCap size={28} className="purple" />
-            <span>Asistente Académico</span>
-          </div>
-
-          <div className="quick-card">
-            <Calendar size={28} className="green" />
-            <span>Sesiones de Estudio</span>
-          </div>
-
-          <div className="quick-card">
-            <Users size={28} className="pink" />
-            <span>Red Social</span>
-          </div>
+          {quickActions.map((action) => (
+            <Link className="quick-card" to={action.to} key={action.to}>
+              <span className={`quick-icon ${action.tone}`}>{action.icon}</span>
+              <span className="quick-copy">
+                <strong>{action.title}</strong>
+                <small>{action.description}</small>
+              </span>
+              <ArrowRight className="quick-arrow" size={18} />
+            </Link>
+          ))}
         </div>
-      </div>
+      </section>
 
-      {/* EVENTOS */}
-      <div className="section">
-        <h2>Próximos Eventos</h2>
-
-        <div className="events">
-          <div className="event blue">
-            <div className="date">
-              <span>15</span>
-              <small>MAY</small>
-            </div>
-            <div>
-              <h4>Final de Algoritmos y Estructuras</h4>
-              <p>10:00 AM - Aula 305</p>
-            </div>
-          </div>
-
-          <div className="event green">
-            <div className="date">
-              <span>18</span>
-              <small>MAY</small>
-            </div>
-            <div>
-              <h4>Sesión de Estudio: Base de Datos</h4>
-              <p>16:00 PM - Biblioteca</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

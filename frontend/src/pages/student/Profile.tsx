@@ -152,8 +152,9 @@ export default function Profile() {
   if (!profile) {
     return (
       <div className="profile-container">
-        <div className="profile-alert error">
-          <span>⚠️</span> No pudimos encontrar tu información de perfil.
+        <div className="profile-alert error" role="alert">
+          <span className="profile-alert__icon" aria-hidden="true">!</span>
+          <span className="profile-alert__message">No pudimos encontrar tu información de perfil.</span>
         </div>
       </div>
     );
@@ -165,9 +166,12 @@ export default function Profile() {
       <p className="subtitle">Gestiona tu presencia académica y configuraciones de privacidad</p>
 
       {message && (
-        <div className={`profile-alert ${message.type}`}>
-          <span>{message.type === 'success' ? '✅' : '❌'}</span>
-          {message.text}
+        <div className={`profile-alert ${message.type}`} role={message.type === 'success' ? 'status' : 'alert'}>
+          <span className="profile-alert__icon" aria-hidden="true">
+            {message.type === 'success' ? '✓' : '!'}
+          </span>
+          <span className="profile-alert__message">{message.text}</span>
+          <button className="profile-alert__close" onClick={() => setMessage(null)} aria-label="Cerrar">×</button>
         </div>
       )}
 

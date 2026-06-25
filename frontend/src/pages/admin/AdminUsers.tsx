@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import api from "../../services/api";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 import "../../styles/AdminUsers.css";
 
 interface UserAccount {
@@ -14,9 +16,9 @@ interface UserAccount {
 export default function AdminUsers() {
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [newAdmin, setNewAdmin] = useState({ nombre: "", email: "", password: "" });
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const { toast, showToast, hideToast } = useToast();
   const [processing, setProcessing] = useState<string | null>(null);
+  const roleLabel = (role: UserAccount["role"]) => role === "admin" ? "Administrador" : "Estudiante";
 
   const fetchUsers = useCallback(async () => {
     const res = await api.get("/usuarios");
@@ -25,42 +27,38 @@ export default function AdminUsers() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      fetchUsers().catch(() => setError("No se pudieron cargar las cuentas"));
+      fetchUsers().catch(() => showToast("No se pudieron cargar las cuentas", "error"));
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [fetchUsers]);
+  }, [fetchUsers, showToast]);
 
   const createAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage("");
-    setError("");
     try {
       await api.post("/usuarios/admins", newAdmin);
       setNewAdmin({ nombre: "", email: "", password: "" });
-      setMessage("✅ Administrador creado con éxito");
+      showToast("Administrador creado con éxito", "success");
       await fetchUsers();
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "Error al crear administrador");
+      showToast(ax.response?.data?.mensaje || "No se pudo crear el administrador", "error");
     }
   };
 
   const toggleSuspension = async (user: UserAccount) => {
-    setMessage("");
-    setError("");
     setProcessing(user._id);
     try {
       if (user.suspendido) {
         await api.put(`/usuarios/${user._id}/reactivar`);
-        setMessage("✅ Cuenta reactivada");
+        showToast("Cuenta reactivada", "success");
       } else {
         await api.put(`/usuarios/${user._id}/suspender`, { motivo: "Suspendido desde panel admin" });
-        setMessage("⚠️ Cuenta suspendida");
+        showToast("Cuenta suspendida", "success");
       }
       await fetchUsers();
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "No se pudo actualizar la cuenta");
+      showToast(ax.response?.data?.mensaje || "No se pudo actualizar la cuenta", "error");
     } finally {
       setProcessing(null);
     }
@@ -68,17 +66,15 @@ export default function AdminUsers() {
 
   const promoteToAdmin = async (user: UserAccount) => {
     if (!window.confirm(`¿Estás seguro de promover a ${user.nombre} a Administrador?`)) return;
-    
-    setMessage("");
-    setError("");
+
     setProcessing(user._id);
     try {
       await api.put(`/usuarios/${user._id}/hacer-admin`);
-      setMessage("🚀 Usuario promovido a administrador");
+      showToast("Usuario promovido a administrador", "success");
       await fetchUsers();
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "No se pudo promover la cuenta");
+      showToast(ax.response?.data?.mensaje || "No se pudo promover la cuenta", "error");
     } finally {
       setProcessing(null);
     }
@@ -93,48 +89,46 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      {message && (
-        <div className="profile-alert success" style={{ marginBottom: '1.5rem', position: 'static', transform: 'none' }}>
-          {message}
-        </div>
-      )}
-      
-      {error && (
-        <div className="profile-alert error" style={{ marginBottom: '1.5rem', position: 'static', transform: 'none' }}>
-          {error}
-        </div>
-      )}
+      <Toast toast={toast} onClose={hideToast} />
 
       <div className="card" style={{ marginBottom: '2rem' }}>
         <h3>Crear Nuevo Administrador</h3>
-        <form onSubmit={createAdmin} className="filters" style={{ marginTop: '1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          <input 
-            className="full-width-input" 
-            style={{ flex: 1, minWidth: '200px' }}
-            placeholder="Nombre completo" 
-            value={newAdmin.nombre} 
-            onChange={(e) => setNewAdmin((s) => ({ ...s, nombre: e.target.value }))} 
-            required 
-          />
-          <input 
-            className="full-width-input"
-            style={{ flex: 1, minWidth: '200px' }}
-            placeholder="Email institucional" 
-            type="email" 
-            value={newAdmin.email} 
-            onChange={(e) => setNewAdmin((s) => ({ ...s, email: e.target.value }))} 
-            required 
-          />
-          <input 
-            className="full-width-input"
-            style={{ flex: 1, minWidth: '150px' }}
-            placeholder="Contraseña" 
-            type="password" 
-            value={newAdmin.password} 
-            onChange={(e) => setNewAdmin((s) => ({ ...s, password: e.target.value }))} 
-            required 
-          />
-          <button className="btn primary" type="submit" style={{ height: '45px' }}>Crear</button>
+        <p className="admin-form-intro">Creá una cuenta con permisos de gestión institucional.</p>
+        <form onSubmit={createAdmin} className="admin-create-form">
+          <label>
+            Nombre completo
+            <input
+              className="full-width-input"
+              placeholder="Ej: Ana Pérez"
+              value={newAdmin.nombre}
+              onChange={(e) => setNewAdmin((s) => ({ ...s, nombre: e.target.value }))}
+              required
+            />
+          </label>
+          <label>
+            Email institucional
+            <input
+              className="full-width-input"
+              placeholder="ana@universidad.edu"
+              type="email"
+              value={newAdmin.email}
+              onChange={(e) => setNewAdmin((s) => ({ ...s, email: e.target.value }))}
+              required
+            />
+          </label>
+          <label>
+            Contraseña temporal
+            <input
+              className="full-width-input"
+              placeholder="Mínimo 6 caracteres"
+              type="password"
+              minLength={6}
+              value={newAdmin.password}
+              onChange={(e) => setNewAdmin((s) => ({ ...s, password: e.target.value }))}
+              required
+            />
+          </label>
+          <button className="btn primary admin-create-submit" type="submit">Crear administrador</button>
         </form>
       </div>
 
@@ -157,7 +151,7 @@ export default function AdminUsers() {
                 <td>{user.email}</td>
                 <td>
                   <span className="role-badge" style={{ margin: 0, fontSize: '0.75rem' }}>
-                    {user.role}
+                    {roleLabel(user.role)}
                   </span>
                 </td>
                 <td>
@@ -199,7 +193,7 @@ export default function AdminUsers() {
           <div key={user._id} className="user-card">
             <div className="user-card-header">
               <div className="user-card-name">{user.nombre}</div>
-              <span className="user-card-role">{user.role}</span>
+              <span className="user-card-role">{roleLabel(user.role)}</span>
             </div>
             <div className="user-card-body">
               <div className="user-card-info">

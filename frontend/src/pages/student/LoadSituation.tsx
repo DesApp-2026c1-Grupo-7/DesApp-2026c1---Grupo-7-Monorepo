@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft, FileSpreadsheet, ListPlus } from "lucide-react";
 import api from "../../services/api";
 import "../../styles/LoadSituation.css";
+import "../../styles/Profile.css";
 
 interface Subject {
   _id: string;
@@ -42,8 +44,13 @@ const LoadSituation = () => {
   }]);
   const [preview, setPreview] = useState<PreviewRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => setMessage(null), message.type === "success" ? 4000 : 5000);
+    return () => clearTimeout(timer);
+  }, [message]);
 
   useEffect(() => {
     api.get("/academico/pendientes").then((r) => setSubjects(r.data)).catch(() => {});
@@ -68,8 +75,7 @@ const LoadSituation = () => {
 
   const submitManual = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
+    setMessage(null);
     setLoading(true);
     try {
       const records = rows
@@ -82,52 +88,48 @@ const LoadSituation = () => {
           anioCursada: Number(row.anioCursada)
         }));
       if (records.length === 0) {
-        setError("Agrega al menos una materia.");
+        setMessage({ text: "Agregá al menos una materia.", type: "error" });
         return;
       }
       const res = await api.post("/academico/situacion/bulk", { records });
-      setSuccess(res.data.mensaje);
+      setMessage({ text: res.data.mensaje, type: "success" });
       window.setTimeout(() => navigate("/student/situation"), 1000);
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "Error al cargar la situacion");
+      setMessage({ text: ax.response?.data?.mensaje || "Error al cargar la situación", type: "error" });
     } finally {
       setLoading(false);
     }
   };
 
   const previewExcel = async (file: File) => {
-    setError("");
-    setSuccess("");
+    setMessage(null);
     setPreview([]);
     setLoading(true);
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await api.post("/academico/situacion/preview-excel", fd, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
+      const res = await api.post("/academico/situacion/preview-excel", fd);
       setPreview(res.data.preview);
-      setSuccess(res.data.mensaje);
+      setMessage({ text: res.data.mensaje, type: "success" });
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "Error al generar preview");
+      setMessage({ text: ax.response?.data?.mensaje || "Error al generar preview", type: "error" });
     } finally {
       setLoading(false);
     }
   };
 
   const confirmPreview = async () => {
-    setError("");
-    setSuccess("");
+    setMessage(null);
     setLoading(true);
     try {
       const res = await api.post("/academico/situacion/confirm-excel", { records: preview });
-      setSuccess(res.data.mensaje);
+      setMessage({ text: res.data.mensaje, type: "success" });
       window.setTimeout(() => navigate("/student/situation"), 1000);
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
-      setError(ax.response?.data?.mensaje || "Error al confirmar importacion");
+      setMessage({ text: ax.response?.data?.mensaje || "Error al confirmar la importación", type: "error" });
     } finally {
       setLoading(false);
     }
@@ -153,24 +155,33 @@ const LoadSituation = () => {
 
   return (
     <div className="load-situation">
-      <span className="back" onClick={() => navigate("/student/situation")}>Volver al historial</span>
-      <h1>Cargar Situacion Academica</h1>
-      <p className="subtitle">Carga manual o importacion con preview y correccion antes de confirmar.</p>
+      <button className="back" type="button" onClick={() => navigate("/student/situation")}>
+        <ArrowLeft size={16} /> Volver al historial
+      </button>
+      <h1>Cargar Situación Académica</h1>
+      <p className="subtitle">Carga manual o importación con vista previa y corrección antes de confirmar.</p>
 
-      {error && <div style={{ padding: 12, background: "#fee", color: "#c33", borderRadius: 8 }}>{error}</div>}
-      {success && <div style={{ padding: 12, background: "#dfd", color: "#363", borderRadius: 8 }}>{success}</div>}
+      {message && (
+        <div className={`profile-alert ${message.type}`} role={message.type === "success" ? "status" : "alert"}>
+          <span className="profile-alert__icon" aria-hidden="true">
+            {message.type === "success" ? "✓" : "!"}
+          </span>
+          <span className="profile-alert__message">{message.text}</span>
+          <button className="profile-alert__close" onClick={() => setMessage(null)} aria-label="Cerrar">×</button>
+        </div>
+      )}
 
       <div className="options">
-        <div className={`option-card ${mode === "manual" ? "active" : ""}`} onClick={() => setMode("manual")} style={{ cursor: "pointer" }}>
-          <div className="icon blue">M</div>
-          <h3>Carga Manual</h3>
-          <p>Ingresa materias una por una.</p>
-        </div>
-        <div className={`option-card ${mode === "excel" ? "active" : ""}`} onClick={() => setMode("excel")} style={{ cursor: "pointer" }}>
-          <div className="icon green">X</div>
+        <button type="button" className={`option-card ${mode === "manual" ? "active" : ""}`} onClick={() => setMode("manual")}>
+          <div className="icon blue"><ListPlus size={28} /></div>
+          <h3>Carga manual</h3>
+          <p>Ingresá materias una por una.</p>
+        </button>
+        <button type="button" className={`option-card ${mode === "excel" ? "active" : ""}`} onClick={() => setMode("excel")}>
+          <div className="icon green"><FileSpreadsheet size={28} /></div>
           <h3>Subir Excel</h3>
-          <p>Genera preview, corrige filas y confirma.</p>
-        </div>
+          <p>Generá la vista previa, corregí filas y confirmá.</p>
+        </button>
       </div>
 
       {mode === "manual" && (
@@ -181,6 +192,7 @@ const LoadSituation = () => {
               <div key={idx} className="manual-row">
                 <select 
                   className="subject-select"
+                  aria-label={`Materia de la fila ${idx + 1}`}
                   value={row.materiaId} 
                   onChange={(e) => updateRow(idx, "materiaId", e.target.value)}
                 >
@@ -193,6 +205,7 @@ const LoadSituation = () => {
                 </select>
                 <select 
                   className="status-select"
+                  aria-label={`Estado de la fila ${idx + 1}`}
                   value={row.estado} 
                   onChange={(e) => updateRow(idx, "estado", e.target.value)}
                 >
@@ -203,6 +216,7 @@ const LoadSituation = () => {
                 <input 
                   type="number" 
                   className="grade-input"
+                  aria-label={`Nota de la fila ${idx + 1}`}
                   min={0} 
                   max={10} 
                   placeholder="Nota" 
@@ -211,6 +225,7 @@ const LoadSituation = () => {
                 />
                 <select 
                   className="term-select"
+                  aria-label={`Período de la fila ${idx + 1}`}
                   value={row.cuatrimestre} 
                   onChange={(e) => updateRow(idx, "cuatrimestre", Number(e.target.value))}
                 >
@@ -221,6 +236,7 @@ const LoadSituation = () => {
                 <input 
                   type="number" 
                   className="year-input"
+                  aria-label={`Año de cursada de la fila ${idx + 1}`}
                   value={row.anioCursada} 
                   onChange={(e) => updateRow(idx, "anioCursada", Number(e.target.value))} 
                 />
@@ -313,7 +329,7 @@ const LoadSituation = () => {
                 </table>
               </div>
               <button className="btn-primary" onClick={confirmPreview} disabled={loading} style={{ marginTop: 12 }}>
-                Confirmar importacion
+                Confirmar importación
               </button>
             </div>
           )}

@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Trash2, Settings2 } from "lucide-react";
 import api from "../../services/api";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 import "../../styles/CreateCareer.css";
 
 interface Career { _id: string; nombre: string; }
@@ -40,7 +42,7 @@ export default function CreateStudyPlan() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const { toast, showToast, hideToast } = useToast();
 
   useEffect(() => {
     Promise.all([
@@ -101,7 +103,6 @@ export default function CreateStudyPlan() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
     try {
       await api.post("/planes", {
         ...form,
@@ -120,7 +121,9 @@ export default function CreateStudyPlan() {
           esUnahur: m.esUnahur
         }))
       });
-      navigate("/admin/studyplans");
+      navigate("/admin/studyplans", {
+        state: { toast: { text: "Plan de estudio creado con éxito", type: "success" } }
+      });
     } catch (err: unknown) {
       console.error("Error creating plan:", err);
       const ax = err as { response?: { data?: { mensaje?: string; error?: string | Record<string, unknown> } } };
@@ -130,7 +133,7 @@ export default function CreateStudyPlan() {
       } else if (typeof ax.response?.data?.error === 'object') {
         detail = JSON.stringify(ax.response.data.error);
       }
-      setError(`${ax.response?.data?.mensaje || "Error al crear el plan"} ${detail ? `: ${detail}` : ""}`);
+      showToast(`${ax.response?.data?.mensaje || "No se pudo crear el plan"}${detail ? `: ${detail}` : ""}`, "error");
     } finally {
       setLoading(false);
     }
@@ -138,10 +141,10 @@ export default function CreateStudyPlan() {
 
   return (
     <div className="create-career-page">
+      <Toast toast={toast} onClose={hideToast} />
       <div className="create-career-container" style={{ maxWidth: 900 }}>
         <h1>Nuevo Plan de Estudio</h1>
         <form className="create-career-form" onSubmit={handleSubmit}>
-          {error && <p style={{ color: 'var(--error)', marginBottom: '1rem' }}>{error}</p>}
 
           <div className="form-group">
             <label>Nombre del Plan</label>

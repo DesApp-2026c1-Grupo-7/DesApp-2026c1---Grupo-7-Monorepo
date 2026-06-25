@@ -15,7 +15,13 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true
+    // Sólo obligatorio para cuentas con login local; las de Google no tienen password.
+    required: function () { return !this.googleId; }
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true
   },
   role: {
     type: String,

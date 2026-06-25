@@ -1,0 +1,162 @@
+/* POP-UP DE NOTIFICACIONES IN-APP
+   Aparece flotando arriba a la derecha, debajo del header. */
+.notif-pop {
+  --notif-accent: #3157d5;
+  --notif-duration: 6s;
+  position: fixed;
+  top: 88px;
+  right: 24px;
+  z-index: 9998;
+  width: 360px;
+  max-width: calc(100vw - 48px);
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-left: 4px solid var(--notif-accent);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+  overflow: hidden;
+  animation: notifSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Area izquierda clickeable (icono + texto): lleva a la pantalla de notificaciones. */
+.notif-pop__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.85rem 0.6rem 0.85rem 1rem;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.notif-pop__main:hover {
+  background: rgba(0, 0, 0, 0.035);
+}
+
+.notif-pop__icon {
+  flex-shrink: 0;
+  width: 1.9rem;
+  height: 1.9rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--notif-accent);
+  color: #fff;
+}
+
+.notif-pop__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.notif-pop__title {
+  display: block;
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.notif-pop__desc {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  color: #4b5563;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Boton "Cerrar": columna de altura completa pegada al borde derecho. */
+.notif-pop__close {
+  flex-shrink: 0;
+  align-self: stretch;
+  border: none;
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0 1rem;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.notif-pop__close:hover {
+  color: #111827;
+  background: rgba(0, 0, 0, 0.05);
+  box-shadow: inset 0 0 14px rgba(15, 23, 42, 0.18);
+}
+
+.notif-pop__close:active {
+  box-shadow: inset 0 0 18px rgba(15, 23, 42, 0.26);
+}
+
+/* Barra que acompaña el auto-cierre (duracion = --notif-duration). */
+.notif-pop::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--notif-accent);
+  opacity: 0.45;
+  transform-origin: left;
+  animation: notifTimer var(--notif-duration, 6s) linear forwards;
+}
+
+.notif-pop.notif-success { --notif-accent: #22c55e; }
+.notif-pop.notif-info { --notif-accent: #3b82f6; }
+.notif-pop.notif-warning { --notif-accent: #f59e0b; }
+.notif-pop.notif-default { --notif-accent: #3157d5; }
+
+/* Salida: el pop-up entero se desliza, se achica un poco y se desvanece.
+   Rapido (para no molestar) pero con easing suave. */
+.notif-pop.is-closing {
+  animation: notifSlideOut 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
+
+@keyframes notifSlideIn {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes notifSlideOut {
+  from { transform: translateX(0) scale(1); opacity: 1; }
+  to { transform: translateX(28px) scale(0.94); opacity: 0; }
+}
+
+@keyframes notifTimer {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+/* En pantallas chicas pegamos el pop-up al borde derecho. */
+@media (max-width: 1024px) {
+  .notif-pop {
+    right: 16px;
+    top: 80px;
+    width: min(360px, calc(100vw - 32px));
+    max-width: calc(100vw - 32px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notif-pop { animation: none; }
+  .notif-pop::after { animation: none; opacity: 0; }
+}

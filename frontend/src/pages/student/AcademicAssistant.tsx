@@ -1,6 +1,18 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import api from "../../services/api";
+import { moverMateriaConCascada } from "../../utils/planificadorCascada";
 import "../../styles/AcademicAssistant.css";
+import {
+  DndContext,
+  closestCorners,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  useDroppable,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 
 interface Subject {
   _id: string;
@@ -43,7 +55,7 @@ interface Avance {
   materiasUnahurRequeridas: number;
   nivelInglesRequerido: string;
   materiasUnahurFaltantes: number;
-  avancePorAnio: Record<string, { aprobadas: number; regulares: number; cursando: number; total?: number }>;
+  avancePorAnio: Record<string, { aprobadas: number; regulares: number; cursando: number; total?: number; materiasFaltantes?: string[] }>;
   porcentajeAvance: number;
 }
 
@@ -75,6 +87,7 @@ interface ComparacionPlan {
   plan: string;
   materiasEsperadas: number;
   materiasCumplidas: number;
+  totalPlan?: number;
   diferencia: number;
   estado: "al-dia" | "leve-desvio" | "atrasado";
   porcentajeCumplimiento: number;
@@ -86,6 +99,31 @@ interface ComparacionPlan {
     cumplidas: number;
     materiasAtrasadas: { nombre: string; codigo: string }[];
   }[];
+}
+
+function MateriaArrastrable({ id, nombre, children }: { id: string; nombre: string; children: ReactNode }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `materia-${id}` });
+  return (
+    <span
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className="materia-drag-handle"
+      style={{ cursor: isDragging ? "grabbing" : "grab", opacity: isDragging ? 0.4 : 1, touchAction: "none" }}
+      aria-label={`Arrastrar ${nombre} a otro cuatrimestre`}
+    >
+      ⠿ {children}
+    </span>
+  );
+}
+
+function PeriodoSoltable({ idx, children }: { idx: number; children: ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `periodo-${idx}` });
+  return (
+    <div ref={setNodeRef} className={isOver ? "periodo-drop-activo" : undefined}>
+      {children}
+    </div>
+  );
 }
 
 const AcademicAssistant = () => {
@@ -115,9 +153,15 @@ const AcademicAssistant = () => {
   });
   const [filterAnio, setFilterAnio] = useState("todos");
   const [showOptativas, setShowOptativas] = useState<"todas" | "obligatorias" | "optativas">("todas");
+  // Año cuyo tooltip de materias faltantes está abierto (hover/foco). Se renderiza
+  // de forma condicional para no dejar los nombres en el DOM cuando está cerrado.
+  const [faltantesAbierto, setFaltantesAbierto] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [resaltadas, setResaltadas] = useState<string[]>([]);
+  const resaltadoTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(resaltadoTimer.current), []);
 
   // Estado para el modal de resultados de finales
   const [showGradeModal, setShowGradeModal] = useState(false);
@@ -282,68 +326,54 @@ const AcademicAssistant = () => {
     });
   };
 
-  const horasDePeriodo = (materias: Subject[]) =>
-    materias.reduce((sum, m) => sum + (m.horasSemanalesEstimadas ?? m.creditos ?? 0), 0);
+  const resaltarMovidas = (ids: string[]) => {
+    window.clearTimeout(resaltadoTimer.current);
+    setResaltadas(ids);
+    resaltadoTimer.current = window.setTimeout(() => setResaltadas([]), 1200);
+  };
 
-  const esPrimerPeriodo = (p: Periodo) =>
-    !!primerPeriodo && p.anio === primerPeriodo.anio && p.cuatrimestre === primerPeriodo.cuatrimestre;
-
-  // Una planificación es válida si toda materia tiene sus correlativas (que estén dentro del
-  // plan) en un cuatrimestre estrictamente anterior. Las correlativas aprobadas no figuran en el
-  // plan (no restringen). Las correlativas que están solo "en curso" todavía no están aprobadas:
-  // por eso la materia que depende de ellas no puede ubicarse en el primer cuatrimestre proyectado.
-  const validarPlan = (periodos: PlanPeriodo[]): { ok: boolean; motivo?: string } => {
-    const periodoDe = new Map<string, number>();
-    periodos.forEach((p, idx) => p.materias.forEach((m) => periodoDe.set(m._id, idx)));
-    for (let idx = 0; idx < periodos.length; idx++) {
-      for (const m of periodos[idx].materias) {
-        for (const corrId of m.correlativas ?? []) {
-          if (periodoDe.has(corrId) && periodoDe.get(corrId)! >= idx) {
-            return { ok: false, motivo: `${m.nombre} quedaría en el mismo cuatrimestre o antes que sus correlativas.` };
-          }
-        }
-        if ((m.correlativasEnCurso?.length ?? 0) > 0 && esPrimerPeriodo(periodos[idx])) {
-          return {
-            ok: false,
-            motivo: `${m.nombre} no puede ir en el primer cuatrimestre: su correlativa (${m.correlativasEnCurso!.join(", ")}) todavía no está aprobada.`
-          };
-        }
-      }
+  const aplicarMovimiento = (materiaId: string, destinoIdx: number) => {
+    setError("");
+    setSuccess("");
+    const primerPeriodoIdx = primerPeriodo
+      ? planificador.findIndex(
+          (p) => p.anio === primerPeriodo.anio && p.cuatrimestre === primerPeriodo.cuatrimestre
+        )
+      : 0;
+    const { periodos, movidas } = moverMateriaConCascada(planificador, materiaId, destinoIdx, {
+      primerPeriodoIdx: primerPeriodoIdx < 0 ? 0 : primerPeriodoIdx,
+    });
+    if (movidas.length === 0) {
+      setSuccess("Sin cambios en el plan");
+      return;
     }
-    return { ok: true };
+    setPlanificador(periodos);
+    resaltarMovidas(movidas);
+    setSuccess(
+      movidas.length > 1
+        ? `Se reacomodaron ${movidas.length} materias para mantener las correlatividades`
+        : "Materia movida"
+    );
   };
 
   const moverMateria = (periodoIdx: number, materiaId: string, dir: -1 | 1) => {
-    setError("");
-    setSuccess("");
     const destino = periodoIdx + dir;
     if (destino < 0) return;
+    aplicarMovimiento(materiaId, destino);
+  };
 
-    const next: PlanPeriodo[] = planificador.map((p) => ({ ...p, materias: [...p.materias] }));
-    const materia = next[periodoIdx].materias.find((m) => m._id === materiaId);
-    if (!materia) return;
+  const sensores = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor)
+  );
 
-    // Si movemos a la derecha más allá del último período, creamos el cuatrimestre siguiente.
-    if (destino >= next.length) {
-      const last = next[next.length - 1];
-      const sig = last.cuatrimestre === 1
-        ? { anio: last.anio, cuatrimestre: 2 }
-        : { anio: last.anio + 1, cuatrimestre: 1 };
-      next.push({ ...sig, horasUsadas: 0, materias: [] });
-    }
-
-    next[periodoIdx].materias = next[periodoIdx].materias.filter((m) => m._id !== materiaId);
-    next[destino].materias.push(materia);
-    next.forEach((p) => { p.horasUsadas = horasDePeriodo(p.materias); });
-
-    while (next.length > 1 && next[next.length - 1].materias.length === 0) next.pop();
-
-    const validez = validarPlan(next);
-    if (!validez.ok) {
-      setError(`No se puede mover: ${validez.motivo}`);
-      return;
-    }
-    setPlanificador(next);
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over) return;
+    const destino = Number(String(over.id).replace("periodo-", ""));
+    const materiaId = String(active.id).replace("materia-", "");
+    if (Number.isNaN(destino)) return;
+    aplicarMovimiento(materiaId, destino);
   };
 
   const compararConPlan = async (planId: string) => {
@@ -471,7 +501,27 @@ const AcademicAssistant = () => {
                       <span style={{ padding: "2px 8px", borderRadius: 6, background: "#dcfce7", color: "#166534" }}>Aprobadas: {row.aprobadas}</span>
                       <span style={{ padding: "2px 8px", borderRadius: 6, background: "#dbeafe", color: "#1e40af" }}>Regulares: {row.regulares}</span>
                       <span style={{ padding: "2px 8px", borderRadius: 6, background: "#fef9c3", color: "#854d0e" }}>Cursando: {row.cursando}</span>
-                      <span style={{ padding: "2px 8px", borderRadius: 6, background: "#fee2e2", color: "#991b1b" }}>Faltantes: {faltantes}</span>
+                      <span
+                        className="faltantes-chip"
+                        style={{ padding: "2px 8px", borderRadius: 6, background: "#fee2e2", color: "#991b1b", cursor: faltantes > 0 ? "help" : "default", position: "relative" }}
+                        tabIndex={faltantes > 0 ? 0 : undefined}
+                        onMouseEnter={() => faltantes > 0 && setFaltantesAbierto(anio)}
+                        onMouseLeave={() => setFaltantesAbierto((prev) => (prev === anio ? null : prev))}
+                        onFocus={() => faltantes > 0 && setFaltantesAbierto(anio)}
+                        onBlur={() => setFaltantesAbierto((prev) => (prev === anio ? null : prev))}
+                      >
+                        Faltantes: {faltantes}
+                        {faltantesAbierto === anio && row.materiasFaltantes && row.materiasFaltantes.length > 0 && (
+                          <span className="faltantes-tooltip" role="tooltip">
+                            <strong className="faltantes-tooltip-title">Materias faltantes de Año {anio}</strong>
+                            <ul className="faltantes-tooltip-list">
+                              {row.materiasFaltantes.map((nombre) => (
+                                <li key={nombre}>{nombre}</li>
+                              ))}
+                            </ul>
+                          </span>
+                        )}
+                      </span>
                       <span style={{ padding: "2px 8px", borderRadius: 6, background: "#f3f4f6", color: "#374151" }}>Total: {total}</span>
                     </div>
                   </div>
@@ -539,7 +589,6 @@ const AcademicAssistant = () => {
             <div style={{ display: "flex", gap: 8 }}>
               {f.yaInscripto ? (
                 <>
-                  <button className="btn-disabled" style={{ background: '#e2e8f0', color: '#94a3b8' }} disabled>INSCRIPTO</button>
                   <button 
                     className="btn-primary" 
                     onClick={() => openGradeModal(f.finalId!, f.materia.nombre, f.materia._id)}
@@ -651,43 +700,52 @@ const AcademicAssistant = () => {
           </p>
         )}
 
-        {planificador.map((periodo, idx) => {
-          const excedido = periodo.horasUsadas > horasPorSemana;
-          return (
-            <div key={`${periodo.anio}-${periodo.cuatrimestre}-${idx}`} className="projection" data-testid="periodo">
-              <h4 style={excedido ? { color: "#b91c1c" } : {}}>
-                {periodo.anio} - {periodo.cuatrimestre === 0 ? "Anual" : `${periodo.cuatrimestre}C`}
-                {" "}({periodo.horasUsadas} / {horasPorSemana} h/sem){excedido && " ⚠ sobrecarga"}
-              </h4>
-              <ul>
-                {periodo.materias.map((m) => (
-                  <li key={m._id} data-testid="periodo-materia" style={{ justifyContent: "space-between", width: "100%" }}>
-                    <span>{m.nombre} ({m.creditos} cr., {m.horasSemanalesEstimadas ?? m.creditos} h/sem)</span>
-                    <span style={{ display: "inline-flex", gap: 4, marginLeft: "auto" }}>
-                      <button
-                        className="btn-secondary"
-                        aria-label={`Mover ${m.nombre} a un cuatrimestre anterior`}
-                        disabled={idx === 0}
-                        style={{ padding: "2px 8px" }}
-                        onClick={() => moverMateria(idx, m._id, -1)}
+        <DndContext sensors={sensores} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
+          {planificador.map((periodo, idx) => {
+            const excedido = periodo.horasUsadas > horasPorSemana;
+            return (
+              <PeriodoSoltable key={`${periodo.anio}-${periodo.cuatrimestre}-${idx}`} idx={idx}>
+                <div className="projection" data-testid="periodo">
+                  <h4 style={excedido ? { color: "#b91c1c" } : {}}>
+                    {periodo.anio} - {periodo.cuatrimestre === 0 ? "Anual" : `${periodo.cuatrimestre}C`}
+                    {" "}({periodo.horasUsadas} / {horasPorSemana} h/sem){excedido && " ⚠ sobrecarga"}
+                  </h4>
+                  <ul>
+                    {periodo.materias.map((m) => (
+                      <li
+                        key={m._id}
+                        data-testid="periodo-materia"
+                        className={resaltadas.includes(m._id) ? "materia-resaltada" : undefined}
+                        style={{ justifyContent: "space-between", width: "100%" }}
                       >
-                        ◀
-                      </button>
-                      <button
-                        className="btn-secondary"
-                        aria-label={`Mover ${m.nombre} a un cuatrimestre posterior`}
-                        style={{ padding: "2px 8px" }}
-                        onClick={() => moverMateria(idx, m._id, 1)}
-                      >
-                        ▶
-                      </button>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        })}
+                        <MateriaArrastrable id={m._id} nombre={m.nombre}>{m.nombre} ({m.creditos} cr., {m.horasSemanalesEstimadas ?? m.creditos} h/sem)</MateriaArrastrable>
+                        <span style={{ display: "inline-flex", gap: 4, marginLeft: "auto" }}>
+                          <button
+                            className="btn-secondary"
+                            aria-label={`Mover ${m.nombre} a un cuatrimestre anterior`}
+                            disabled={idx === 0}
+                            style={{ padding: "2px 8px" }}
+                            onClick={() => moverMateria(idx, m._id, -1)}
+                          >
+                            ◀
+                          </button>
+                          <button
+                            className="btn-secondary"
+                            aria-label={`Mover ${m.nombre} a un cuatrimestre posterior`}
+                            style={{ padding: "2px 8px" }}
+                            onClick={() => moverMateria(idx, m._id, 1)}
+                          >
+                            ▶
+                          </button>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </PeriodoSoltable>
+            );
+          })}
+        </DndContext>
 
         {pendientesPlan.length > 0 && (
           <div style={{ marginTop: 12, padding: 12, background: "#fef3c7", borderRadius: 8, border: "1px solid #fcd34d" }} data-testid="pendientes-plan">
@@ -719,8 +777,11 @@ const AcademicAssistant = () => {
                   {comp && (
                     <div style={{ marginTop: 8 }} data-testid="comparacion">
                       <p>
-                        Cumpliste {comp.materiasCumplidas} de {comp.materiasEsperadas} materias previstas
+                        Cumpliste {comp.materiasCumplidas} de {comp.materiasEsperadas} materias previstas hasta hoy
                         {" "}({comp.porcentajeCumplimiento}%) · Estado: <strong>{comp.estado.replace("-", " ")}</strong>
+                        {typeof comp.totalPlan === "number" && (
+                          <span style={{ color: "#6b7280" }}> · Plan completo: {comp.totalPlan} materias</span>
+                        )}
                       </p>
                       {comp.periodos && comp.periodos.filter((p) => p.transcurrido).length > 0 && (
                         <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
