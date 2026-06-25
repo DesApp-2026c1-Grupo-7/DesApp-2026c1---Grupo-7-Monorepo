@@ -7,7 +7,7 @@ export type MaterialIconInput = {
 
 export type MaterialIconDisplay = {
   icon: string | null;
-  brand?: 'youtube' | 'drive' | 'github' | 'discord';
+  brand?: 'youtube' | 'drive' | 'github' | 'discord' | 'powerpoint' | 'word' | 'zip';
   cssClass: string;
 };
 
@@ -28,25 +28,27 @@ function iconFromExtension(ext: string): MaterialIconDisplay | null {
       return { icon: '📕', cssClass: 'category-pdf' };
     case '.doc':
     case '.docx':
-      return { icon: '📝', cssClass: 'category-word' };
+      return { icon: null, brand: 'word', cssClass: 'category-word' };
     case '.ppt':
     case '.pptx':
-      return { icon: '📽️', cssClass: 'category-powerpoint' };
+      return { icon: null, brand: 'powerpoint', cssClass: 'category-powerpoint' };
     case '.xls':
     case '.xlsx':
       return { icon: '📊', cssClass: 'category-excel' };
     case '.zip':
-      return { icon: '🗜️', cssClass: 'category-zip' };
+      return { icon: null, brand: 'zip', cssClass: 'category-zip' };
     default:
       return null;
   }
 }
 
-const PLATFORM_CATEGORIES = new Set(['youtube', 'drive', 'github', 'discord']);
+// Marcas que ademas del icono reciben la linea/borde de color destacado en la card
+// (plataformas y archivos Office). El zip usa icono de carpeta pero sin destacado.
+const PLATFORM_BRANDS = new Set(['youtube', 'drive', 'github', 'discord', 'powerpoint', 'word']);
 
-export function getPlatformCardClass(categoria: string): string {
-  if (PLATFORM_CATEGORIES.has(categoria)) {
-    return `is-platform is-${categoria}`;
+export function getPlatformCardClass(display: MaterialIconDisplay): string {
+  if (display.brand && PLATFORM_BRANDS.has(display.brand)) {
+    return `is-platform is-${display.brand}`;
   }
   return '';
 }
