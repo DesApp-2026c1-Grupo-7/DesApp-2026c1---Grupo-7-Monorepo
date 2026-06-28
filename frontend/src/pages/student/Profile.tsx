@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import api from "../../services/api";
+import Toast from "../../components/Toast";
+import { useToast } from "../../hooks/useToast";
 import "../../styles/Profile.css";
 
 interface ProfileData {
@@ -46,8 +48,8 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
-  
+  const { toast, showToast, hideToast } = useToast();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form states
@@ -80,11 +82,11 @@ export default function Profile() {
       });
     } catch (error) {
       console.error("Error al cargar perfil:", error);
-      setMessage({ text: "Error al cargar el perfil. Intenta recargar la página.", type: "error" });
+      showToast("Error al cargar el perfil. Intenta recargar la página.", "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -97,7 +99,7 @@ export default function Profile() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        setMessage({ text: "La imagen es demasiado grande (máximo 2MB)", type: "error" });
+        showToast("La imagen es demasiado grande (máximo 2MB)", "error");
         return;
       }
       const reader = new FileReader();
@@ -125,15 +127,13 @@ export default function Profile() {
 
       setProfile(sanitizedUpdated);
       setEditing(false);
-      setMessage({ text: "¡Perfil actualizado con éxito!", type: "success" });
-      
+      showToast("¡Perfil actualizado con éxito!", "success");
+
       // Actualizamos localStorage por si otras partes de la app lo usan
       localStorage.setItem("user", JSON.stringify(sanitizedUpdated));
-      
-      setTimeout(() => setMessage(null), 4000);
     } catch (error) {
       console.error("Error al guardar perfil:", error);
-      setMessage({ text: "No se pudieron guardar los cambios. Revisa tu conexión.", type: "error" });
+      showToast("No se pudieron guardar los cambios. Revisa tu conexión.", "error");
     } finally {
       setSaving(false);
     }
@@ -165,15 +165,7 @@ export default function Profile() {
       <h1>Mi Perfil</h1>
       <p className="subtitle">Gestiona tu presencia académica y configuraciones de privacidad</p>
 
-      {message && (
-        <div className={`profile-alert ${message.type}`} role={message.type === 'success' ? 'status' : 'alert'}>
-          <span className="profile-alert__icon" aria-hidden="true">
-            {message.type === 'success' ? '✓' : '!'}
-          </span>
-          <span className="profile-alert__message">{message.text}</span>
-          <button className="profile-alert__close" onClick={() => setMessage(null)} aria-label="Cerrar">×</button>
-        </div>
-      )}
+      <Toast toast={toast} onClose={hideToast} />
 
       {/* CARD PRINCIPAL DE PERFIL */}
       <div className="card profile-header-card">
