@@ -4,6 +4,7 @@ import "../../styles/Materials.css";
 import { resolveMaterialUrl } from "../../utils/materialUrl";
 import { getMaterialIconDisplay, getPlatformCardClass } from "../../utils/materialIcon";
 import MaterialCategoryIcon from "../../components/MaterialCategoryIcon";
+import SearchableSelect from "../../components/SearchableSelect";
 import { Flag, AlertTriangle, CheckCircle, Info, Trash2 } from "lucide-react";
 import Toast from "../../components/Toast";
 import { useToast } from "../../hooks/useToast";
@@ -70,6 +71,8 @@ export default function Materials() {
   const [search, setSearch] = useState("");
   const [subjectSearch, setSubjectSearch] = useState("");
   const [sortBy, setSortBy] = useState("recientes");
+  const [filterBy, setFilterBy] = useState("todos");
+  const [contactIds, setContactIds] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Admin filters
@@ -119,8 +122,12 @@ export default function Materials() {
       const res = await api.get(`/materiales?materia=${subjectId}&search=${search}&sort=${sortParam}`);
       
       let data = res.data;
-      if (sortBy === 'denunciados') {
+      if (filterBy === 'denunciados') {
         data = data.filter(tieneDenuncias);
+      } else if (filterBy === 'propios') {
+        data = data.filter((m: Material) => m.autor?._id === currentUserId);
+      } else if (filterBy === 'amigos') {
+        data = data.filter((m: Material) => contactIds.includes(m.autor?._id));
       }
       if (filterReported) {
         data = data.filter(tieneDenuncias);
@@ -128,14 +135,27 @@ export default function Materials() {
       if (filterSuspended) {
         data = data.filter((m: Material) => m.suspendido);
       }
-      
+      if (sortBy === 'alfabetico') {
+        data = [...data].sort((a: Material, b: Material) =>
+          a.titulo.localeCompare(b.titulo, 'es', { sensitivity: 'base' }));
+      }
+
       setMaterials(data);
     } catch (err) {
       console.error("Error al cargar materiales", err);
     } finally {
       setLoading(false);
     }
-  }, [search, sortBy, filterReported, filterSuspended]);
+  }, [search, sortBy, filterBy, filterReported, filterSuspended, currentUserId, contactIds]);
+
+  const fetchContacts = useCallback(async () => {
+    try {
+      const res = await api.get("/invitaciones/contactos");
+      setContactIds(res.data.map((c: { _id: string }) => c._id));
+    } catch (err) {
+      console.error("Error al cargar contactos", err);
+    }
+  }, []);
 
   const fetchReasons = useCallback(async () => {
     try {
@@ -150,8 +170,9 @@ export default function Materials() {
     (async () => {
       await fetchSubjects();
       await fetchReasons();
+      await fetchContacts();
     })();
-  }, [fetchSubjects, fetchReasons]);
+  }, [fetchSubjects, fetchReasons, fetchContacts]);
 
   useEffect(() => {
     if (selectedSubject) {
@@ -364,6 +385,7 @@ export default function Materials() {
     setUploadLoading(true);
 
     try {
+      if (!formData.materia) throw new Error("Seleccioná una materia válida de la lista");
       const data = new FormData();
       data.append("titulo", formData.titulo);
       data.append("descripcion", formData.descripcion);
@@ -463,7 +485,7 @@ export default function Materials() {
           <input
             type="text"
             className="search-input"
-            placeholder={selectedSubject ? "Buscar en este repositorio..." : "Buscar materia..."}
+            placeholder={selectedSubject ? "Buscar material por nombre o tag..." : "Buscar materia..."}
             value={selectedSubject ? search : subjectSearch}
             onChange={(e) => selectedSubject ? setSearch(e.target.value) : setSubjectSearch(e.target.value)}
           />
@@ -490,13 +512,25 @@ export default function Materials() {
       {selectedSubject && (
         <div className="sort-container">
           <span className="sort-label">Ordenar por:</span>
-          <select 
-            className="sort-select" 
-            value={sortBy} 
+          <select
+            className="sort-select"
+            value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >
             <option value="recientes">Más recientes</option>
             <option value="valoracion">Mejor valorados</option>
+            <option value="alfabetico">A - Z (alfabético)</option>
+          </select>
+
+          <span className="sort-label">Filtrar por:</span>
+          <select
+            className="sort-select"
+            value={filterBy}
+            onChange={(e) => setFilterBy(e.target.value)}
+          >
+            <option value="todos">Todos</option>
+            <option value="propios">Propios</option>
+            <option value="amigos">Amigos</option>
             <option value="denunciados">Denunciados</option>
           </select>
         </div>
@@ -530,8 +564,10 @@ export default function Materials() {
         <div className="materials-list">
           {materials.length === 0 ? (
             <div className="no-results py-10 text-center">
-              {sortBy === 'denunciados' ? (
+              {filterBy === 'denunciados' ? (
                 <>No hay materiales denunciados en esta materia.</>
+              ) : filterBy === 'amigos' ? (
+                <>No hay materiales de tus contactos en esta materia.</>
               ) : (
                 <>
                   No hay materiales compartidos en esta materia todavía. <br />
@@ -833,12 +869,12 @@ export default function Materials() {
 
               <div className="form-group">
                 <label>Materia *</label>
-                <select name="materia" value={formData.materia || ""} onChange={handleInputChange} required>
-                  <option value="">Seleccionar materia</option>
-                  {subjects.map(s => (
-                    <option key={s._id} value={s._id}>{s.nombre} ({s.codigo})</option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  options={subjects.map(s => ({ value: s._id, label: `${s.nombre} (${s.codigo})` }))}
+                  value={formData.materia}
+                  onChange={(value) => setFormData(prev => ({ ...prev, materia: value }))}
+                  placeholder="Escribí o seleccioná una materia..."
+                />
               </div>
 
               <div className="form-group">
