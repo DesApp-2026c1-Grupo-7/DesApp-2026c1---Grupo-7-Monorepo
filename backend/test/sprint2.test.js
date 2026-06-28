@@ -226,6 +226,69 @@ test('evento: requiere contenido no vacío', async () => {
     .expect(400);
 });
 
+test('evento: el autor puede editar su publicación y queda marcada como editada', async () => {
+  const post = await request(app)
+    .post('/api/eventos')
+    .set('Authorization', `Bearer ${student1Token}`)
+    .send({ contenido: 'Contenido original' })
+    .expect(201);
+  assert.equal(post.body.editado, false);
+
+  const edit = await request(app)
+    .put(`/api/eventos/${post.body._id}`)
+    .set('Authorization', `Bearer ${student1Token}`)
+    .send({ contenido: 'Contenido editado' })
+    .expect(200);
+  assert.equal(edit.body.contenido, 'Contenido editado');
+  assert.equal(edit.body.editado, true);
+});
+
+test('evento: un usuario no puede editar la publicación de otro', async () => {
+  const post = await request(app)
+    .post('/api/eventos')
+    .set('Authorization', `Bearer ${student1Token}`)
+    .send({ contenido: 'Publicación de student1' })
+    .expect(201);
+
+  await request(app)
+    .put(`/api/eventos/${post.body._id}`)
+    .set('Authorization', `Bearer ${student2Token}`)
+    .send({ contenido: 'Intento de edición ajena' })
+    .expect(403);
+});
+
+test('evento: un usuario no puede eliminar la publicación de otro', async () => {
+  const post = await request(app)
+    .post('/api/eventos')
+    .set('Authorization', `Bearer ${student1Token}`)
+    .send({ contenido: 'Otra publicación de student1' })
+    .expect(201);
+
+  await request(app)
+    .delete(`/api/eventos/${post.body._id}`)
+    .set('Authorization', `Bearer ${student2Token}`)
+    .expect(403);
+});
+
+test('evento: el autor puede eliminar su propia publicación', async () => {
+  const post = await request(app)
+    .post('/api/eventos')
+    .set('Authorization', `Bearer ${student1Token}`)
+    .send({ contenido: 'Publicación a eliminar' })
+    .expect(201);
+
+  await request(app)
+    .delete(`/api/eventos/${post.body._id}`)
+    .set('Authorization', `Bearer ${student1Token}`)
+    .expect(200);
+
+  const feed = await request(app)
+    .get('/api/eventos/feed')
+    .set('Authorization', `Bearer ${student1Token}`)
+    .expect(200);
+  assert.ok(!feed.body.some((e) => e._id === post.body._id));
+});
+
 test('sesiones: proponer una sesión con todos los campos requeridos', async () => {
   const data = {
     materia: subjectId,

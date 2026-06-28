@@ -184,6 +184,12 @@
   color: #475467 !important;
 }
 
+.status-badge.transition,
+.badge.yellow {
+  background: #fef3c7 !important;
+  color: #92600e !important;
+}
+
 .filters,
 .subjects-filters,
 .plans-filters,
