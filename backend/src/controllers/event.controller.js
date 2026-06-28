@@ -58,4 +58,52 @@ const getFeed = async (req, res) => {
   }
 };
 
-module.exports = { createEvent, getFeed };
+const updateEvent = async (req, res) => {
+  try {
+    const { contenido } = req.body;
+    if (!contenido || !contenido.trim()) {
+      return res.status(400).json({ mensaje: 'El contenido es requerido' });
+    }
+    if (contenido.trim().length > 500) {
+      return res.status(400).json({ mensaje: 'El contenido no puede superar los 500 caracteres' });
+    }
+
+    const event = await Event.findById(req.params.id);
+    if (!event) {
+      return res.status(404).json({ mensaje: 'Publicación no encontrada' });
+    }
+    // Solo el autor puede editar su propia publicación.
+    if (event.autor.toString() !== req.user.id) {
+      return res.status(403).json({ mensaje: 'No podés editar esta publicación' });
+    }
+
+    event.contenido = contenido.trim();
+    event.editado = true;
+    await event.save();
+
+    await event.populate('autor', 'nombre foto carrera');
+    res.json(event);
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al editar el evento', error: error.message });
+  }
+};
+
+const deleteEvent = async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) {
+      return res.status(404).json({ mensaje: 'Publicación no encontrada' });
+    }
+    // Solo el autor puede eliminar su propia publicación.
+    if (event.autor.toString() !== req.user.id) {
+      return res.status(403).json({ mensaje: 'No podés eliminar esta publicación' });
+    }
+
+    await event.deleteOne();
+    res.json({ mensaje: 'Publicación eliminada' });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al eliminar el evento', error: error.message });
+  }
+};
+
+module.exports = { createEvent, getFeed, updateEvent, deleteEvent };

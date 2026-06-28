@@ -16,6 +16,10 @@ const eventSchema = new mongoose.Schema({
     required: true,
     maxlength: 500,
     trim: true
+  },
+  editado: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

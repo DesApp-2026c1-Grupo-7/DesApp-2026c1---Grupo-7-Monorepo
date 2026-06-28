@@ -7,5 +7,7 @@ router.use(auth);
 
 router.get('/feed', eventController.getFeed);
 router.post('/', eventController.createEvent);
+router.put('/:id', eventController.updateEvent);
+router.delete('/:id', eventController.deleteEvent);
 
 module.exports = router;
