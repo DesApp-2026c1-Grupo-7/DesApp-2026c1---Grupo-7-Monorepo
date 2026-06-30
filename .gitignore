@@ -30,6 +30,11 @@ dist-ssr
 !docs/sprint-1/situacion-academica-ejemplo.xlsx
 *.pdf
 
+# Excepcion: archivos de ejemplo usados por los seeds (si se versionan)
+!backend/src/utils/seed-assets/materiales/*.pdf
+!backend/src/utils/seed-assets/materiales/*.docx
+!backend/src/utils/seed-assets/materiales/*.xlsx
+
 # Variables de entorno
 .env
 .env.local
