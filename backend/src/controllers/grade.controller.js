@@ -18,13 +18,6 @@ const sortBySubjectPosition = (items) => [...items].sort((a, b) => {
 
 const APPROVED_STATES = ['Aprobada', 'Promocion'];
 const UNLOCKING_STATES = ['Regular', 'Aprobada', 'Promocion'];
-const REGULAR_YEARS = 2;
-
-const addYears = (date, years) => {
-  const result = new Date(date);
-  result.setFullYear(result.getFullYear() + years);
-  return result;
-};
 
 const getPlanSubjectsForUser = async (userId) => {
   const user = await User.findById(userId).populate('planEstudio').populate('carrera');
@@ -176,6 +169,9 @@ const updateGrade = async (req, res) => {
     };
     if (cuatrimestre !== undefined) update.cuatrimestre = cuatrimestre;
     if (anioCursada !== undefined) update.anioCursada = anioCursada;
+    // Al (re)regularizar arranca de nuevo el plazo de 2 años, asi que el aviso de
+    // vencimiento debe poder dispararse otra vez.
+    if (estado === 'Regular') update.notificacionVencimientoEnviada = false;
 
     const grade = await Grade.findOneAndUpdate(
       { estudiante: userId, materia: materiaId },
@@ -236,7 +232,8 @@ const bulkLoadSituation = async (req, res) => {
           nota: r.nota,
           cuatrimestre: r.cuatrimestre,
           anioCursada: r.anioCursada,
-          fecha: Date.now()
+          fecha: Date.now(),
+          ...(r.estado === 'Regular' ? { notificacionVencimientoEnviada: false } : {})
         },
         { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
       ).populate('materia');
@@ -318,7 +315,12 @@ const cerrarCuatrimestre = async (req, res) => {
 
     const grade = await Grade.findOneAndUpdate(
       { estudiante: userId, materia: materiaId },
-      { estado, nota, fecha: Date.now() },
+      {
+        estado,
+        nota,
+        fecha: Date.now(),
+        ...(estado === 'Regular' ? { notificacionVencimientoEnviada: false } : {})
+      },
       { new: true, runValidators: true }
     ).populate('materia');
 
