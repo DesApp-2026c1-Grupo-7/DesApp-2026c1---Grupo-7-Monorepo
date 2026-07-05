@@ -264,7 +264,17 @@ async function seedDemoGrades(student, subjectsMap) {
     { codigo: 'BD2', estado: 'Aprobada', nota: 8, anioCursada: 2025, cuatrimestre: 1 },
     { codigo: 'IS1', estado: 'Regular', anioCursada: 2025, cuatrimestre: 1 },
     // En curso ahora: su correlativa (PROG3) NO debe habilitarse en el primer cuatri del plan
-    { codigo: 'PROG2', estado: 'Cursando', anioCursada: 2025, cuatrimestre: 1 }
+    { codigo: 'PROG2', estado: 'Cursando', anioCursada: 2025, cuatrimestre: 1 },
+    // Regularizada "hace 2 anios menos ~25 dias": vencimiento cae dentro de la ventana de
+    // aviso de 1 mes, para poder mostrar en vivo la notificacion de vencimiento de regularidad.
+    {
+      codigo: 'SO',
+      estado: 'Regular',
+      nota: 6,
+      anioCursada: 2024,
+      cuatrimestre: 1,
+      fecha: new Date('2024-07-30T12:00:00')
+    }
   ];
 
   for (const n of notas) {
@@ -277,7 +287,7 @@ async function seedDemoGrades(student, subjectsMap) {
       nota: n.nota,
       anioCursada: n.anioCursada,
       cuatrimestre: n.cuatrimestre,
-      fecha: Date.now()
+      fecha: n.fecha || Date.now()
     });
   }
   logger.info('Situacion academica de demo cargada para el estudiante por defecto.');

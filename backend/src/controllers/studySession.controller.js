@@ -157,6 +157,15 @@ const joinStudySession = async (req, res) => {
         console.error('Error al enviar mail de confirmación de sesión:', mailError);
       }
 
+      // Notificar al estudiante (mismo formato que al ser aceptado en una sesion con aprobacion)
+      await Notification.create({
+        usuario: userId,
+        titulo: 'Solicitud de sesión aprobada',
+        descripcion: `Has sido aceptado en la sesión de "${sesion.tema}"`,
+        tipo: 'success',
+        link: '/student/sessions'
+      });
+
       // Notificar al creador
       await Notification.create({
         usuario: sesion.creador._id,
@@ -233,6 +242,15 @@ const manageJoinRequest = async (req, res) => {
     } else if (action === 'reject') {
       solicitud.estado = 'rechazada';
       await sesion.save();
+
+      // Enviar mail de rechazo
+      try {
+        const student = await User.findById(userId);
+        const sesionConMateria = await StudySession.findById(sessionId).populate('materia', 'nombre');
+        await mailService.sendSessionRejectionEmail(student.email, student.nombre, sesionConMateria);
+      } catch (mailError) {
+        console.error('Error al enviar mail de rechazo de sesión:', mailError);
+      }
 
       // Notificar al estudiante
       await Notification.create({

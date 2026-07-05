@@ -170,6 +170,17 @@ test('escenario 1: al unirse a una sesion sin aprobacion entran directo y se les
   const ids = detalle.body.participantes.map(p => p._id);
   assert.ok(ids.includes(matias.id));
   assert.ok(ids.includes(privado.id));
+
+  // Ademas del mail, cada uno recibe la misma notificacion in-app que al ser
+  // aceptado en una sesion con aprobacion manual.
+  for (const participante of [matias, privado]) {
+    const notis = await request(app)
+      .get('/api/notificaciones')
+      .set('Authorization', `Bearer ${participante.token}`)
+      .expect(200);
+    assert.ok(notis.body.some((n) => n.titulo === 'Solicitud de sesión aprobada'
+      && n.descripcion === 'Has sido aceptado en la sesión de "Union directa"'));
+  }
 });
 
 test('escenario 1: el creador puede editar su sesion y un no-creador recibe 403', async () => {
@@ -281,8 +292,9 @@ test('escenario 2: al solicitar unirse a una sesion con aprobacion queda pendien
   assert.equal(spyConfirmacion.mock.callCount(), 0);
 });
 
-test('escenario 2: si el creador rechaza, el solicitante no queda como participante y no recibe mail', async (t) => {
+test('escenario 2: si el creador rechaza, el solicitante no queda como participante, no recibe mail de confirmacion pero si de rechazo', async (t) => {
   const spyConfirmacion = t.mock.method(mailService, 'sendSessionConfirmationEmail', async () => ({ messageId: 'test' }));
+  const spyRechazo = t.mock.method(mailService, 'sendSessionRejectionEmail', async () => ({ messageId: 'test' }));
   const sesion = await crearSesion(prueba.token, { tema: 'Sesion para rechazar', requiereAprobacion: true });
 
   await request(app).post(`/api/sesiones/${sesion._id}/join`).set('Authorization', `Bearer ${privado.token}`).expect(200);
@@ -301,6 +313,17 @@ test('escenario 2: si el creador rechaza, el solicitante no queda como participa
   assert.equal(solicitud.estado, 'rechazada');
   assert.ok(!detalle.body.participantes.map(p => p._id).includes(privado.id));
   assert.equal(spyConfirmacion.mock.callCount(), 0);
+
+  // Recibe el mail de rechazo (distinto del de confirmacion).
+  assert.equal(spyRechazo.mock.callCount(), 1);
+  assert.equal(spyRechazo.mock.calls[0].arguments[0], privado.email);
+
+  // Y tambien la notificacion in-app que ya existia.
+  const notis = await request(app)
+    .get('/api/notificaciones')
+    .set('Authorization', `Bearer ${privado.token}`)
+    .expect(200);
+  assert.ok(notis.body.some((n) => n.titulo === 'Solicitud de sesión rechazada'));
 });
 
 test('escenario 2: si el creador aprueba, el solicitante queda participante y recibe mail de confirmacion', async (t) => {
@@ -404,6 +427,16 @@ test('escenario 4: se envia recordatorio a los participantes de una sesion dentr
     .set('Authorization', `Bearer ${prueba.token}`)
     .expect(200);
   assert.equal(detalle.body.recordatorioEnviado, true);
+
+  // Junto con el mail, cada participante recibe la notificacion in-app del recordatorio.
+  for (const participante of [prueba, matias, privado]) {
+    const notis = await request(app)
+      .get('/api/notificaciones')
+      .set('Authorization', `Bearer ${participante.token}`)
+      .expect(200);
+    assert.ok(notis.body.some((n) => n.titulo === 'Recordatorio de sesión de estudio'
+      && n.descripcion.includes('Sesion inminente')));
+  }
 });
 
 test('escenario 4: no se reenvia el recordatorio si ya fue enviado', async (t) => {
@@ -413,6 +446,15 @@ test('escenario 4: no se reenvia el recordatorio si ya fue enviado', async (t) =
   await checkAndSendReminders();
 
   assert.equal(spyRecordatorio.mock.callCount(), 0);
+
+  // Tampoco se duplica la notificacion in-app del recordatorio anterior.
+  const notis = await request(app)
+    .get('/api/notificaciones')
+    .set('Authorization', `Bearer ${prueba.token}`)
+    .expect(200);
+  const cantidad = notis.body.filter((n) => n.titulo === 'Recordatorio de sesión de estudio'
+    && n.descripcion.includes('Sesion inminente')).length;
+  assert.equal(cantidad, 1);
 });
 
 test('escenario 4: no se envia recordatorio a sesiones a mas de 24h', async (t) => {
@@ -434,4 +476,11 @@ test('escenario 4: no se envia recordatorio a sesiones a mas de 24h', async (t) 
     .set('Authorization', `Bearer ${prueba.token}`)
     .expect(200);
   assert.equal(detalle.body.recordatorioEnviado, false);
+
+  const notis = await request(app)
+    .get('/api/notificaciones')
+    .set('Authorization', `Bearer ${matias.token}`)
+    .expect(200);
+  assert.ok(!notis.body.some((n) => n.titulo === 'Recordatorio de sesión de estudio'
+    && n.descripcion.includes('Sesion lejana')));
 });
