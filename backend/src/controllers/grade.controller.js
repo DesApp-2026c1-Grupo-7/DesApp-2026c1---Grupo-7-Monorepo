@@ -791,8 +791,11 @@ const getPlanificador = async (req, res) => {
       }
 
       // Tras el primer período proyectado, las materias en curso se consideran aprobadas y
-      // pasan a desbloquear sus correlativas para los cuatrimestres siguientes.
-      if (!enCursoDesbloqueado) {
+      // pasan a desbloquear sus correlativas para los cuatrimestres siguientes. Se exige que
+      // ese primer período ya haya quedado registrado en "periodos" (no alcanza con que haya
+      // pasado una vuelta del loop): si la primera vuelta no ubico nada (por falta de materias
+      // elegibles), el desbloqueo debe esperar al primer periodo que si se registre.
+      if (!enCursoDesbloqueado && periodos.length > 0) {
         inProgressIds.forEach((id) => virtualApproved.add(id));
         enCursoDesbloqueado = true;
       }
