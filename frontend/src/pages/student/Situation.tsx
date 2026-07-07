@@ -107,6 +107,15 @@ const Situation = () => {
     }
   };
 
+  // La regularidad vence a los 2 años de la fecha de carga. Solo aplica a
+  // materias regulares; aprobadas/promocionadas u otros estados muestran "-".
+  const getVencimiento = (m: AcademicRecord) => {
+    if (m.estado !== "Regular") return "-";
+    const vence = new Date(m.fecha);
+    vence.setFullYear(vence.getFullYear() + 2);
+    return vence.toLocaleDateString();
+  };
+
   return (
     <div className="situation">
 
@@ -204,7 +213,7 @@ const Situation = () => {
         {loading ? (
           <p style={{ padding: '20px', textAlign: 'center' }}>Cargando situación académica...</p>
         ) : (
-          <table>
+          <table className="materias-table">
             <thead>
               <tr>
                 <th>Materia</th>
@@ -212,6 +221,7 @@ const Situation = () => {
                 <th>Estado</th>
                 <th>Nota</th>
                 <th>Fecha</th>
+                <th>Vence</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -225,6 +235,7 @@ const Situation = () => {
                     <td><span className={getBadgeClass(m.estado)}>{m.estado}</span></td>
                     <td>{m.nota || "-"}</td>
                     <td>{new Date(m.fecha).toLocaleDateString()}</td>
+                    <td>{getVencimiento(m)}</td>
                     <td>
                       <button
                         className={`btn-baja ${m.estado === 'Aprobada' || m.estado === 'Promocion' || m.estado === 'Regular' ? 'btn-disabled' : 'btn-danger'}`}
@@ -239,7 +250,7 @@ const Situation = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '20px' }}>No hay registros académicos.</td>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '20px' }}>No hay registros académicos.</td>
                 </tr>
               )}
             </tbody>
@@ -270,6 +281,10 @@ const Situation = () => {
                 <div>
                   <label>Fecha</label>
                   <span>{new Date(m.fecha).toLocaleDateString()}</span>
+                </div>
+                <div>
+                  <label>Vence</label>
+                  <span>{getVencimiento(m)}</span>
                 </div>
               </div>
               <div className="card-footer">

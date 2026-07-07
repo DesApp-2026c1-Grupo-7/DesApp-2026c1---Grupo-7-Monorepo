@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Career = require('../models/Career');
@@ -65,14 +67,17 @@ async function seedReportReasons() {
     { titulo: 'Otro', orden: 6 }
   ];
 
+  const creados = [];
   for (const r of reasons) {
-    await ReportReason.findOneAndUpdate(
+    const reason = await ReportReason.findOneAndUpdate(
       { titulo: r.titulo },
       r,
       { upsert: true, new: true }
     );
+    creados.push(reason);
   }
   logger.info('Motivos de denuncia sembrados con orden específico.');
+  return creados;
 }
 
 async function seedCareers() {
@@ -259,7 +264,17 @@ async function seedDemoGrades(student, subjectsMap) {
     { codigo: 'BD2', estado: 'Aprobada', nota: 8, anioCursada: 2025, cuatrimestre: 1 },
     { codigo: 'IS1', estado: 'Regular', anioCursada: 2025, cuatrimestre: 1 },
     // En curso ahora: su correlativa (PROG3) NO debe habilitarse en el primer cuatri del plan
-    { codigo: 'PROG2', estado: 'Cursando', anioCursada: 2025, cuatrimestre: 1 }
+    { codigo: 'PROG2', estado: 'Cursando', anioCursada: 2025, cuatrimestre: 1 },
+    // Regularizada "hace 2 anios menos ~25 dias": vencimiento cae dentro de la ventana de
+    // aviso de 1 mes, para poder mostrar en vivo la notificacion de vencimiento de regularidad.
+    {
+      codigo: 'SO',
+      estado: 'Regular',
+      nota: 6,
+      anioCursada: 2024,
+      cuatrimestre: 1,
+      fecha: new Date('2024-07-30T12:00:00')
+    }
   ];
 
   for (const n of notas) {
@@ -272,10 +287,195 @@ async function seedDemoGrades(student, subjectsMap) {
       nota: n.nota,
       anioCursada: n.anioCursada,
       cuatrimestre: n.cuatrimestre,
-      fecha: Date.now()
+      fecha: n.fecha || Date.now()
     });
   }
   logger.info('Situacion academica de demo cargada para el estudiante por defecto.');
+}
+
+// Materiales de demo con archivos reales de ejemplo (uno por tipo permitido).
+// Los binarios viven versionados en seed-assets/materiales y se copian a
+// uploads/materials (servido estaticamente) para que el link de descarga funcione.
+async function seedMateriales(subjectsMap, autores) {
+  const assetsDir = path.join(__dirname, 'seed-assets', 'materiales');
+  const uploadsDir = path.join(__dirname, '../../uploads/materials');
+  if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+  const materiales = [
+    { asset: 'ejemplo.pdf', titulo: 'Archivo PDF', autor: autores.student, tag: 'Der', mimetype: 'application/pdf' },
+    { asset: 'ejemplo.docx', titulo: 'Archivo Word', autor: autores.matias, tag: 'Diagrama', mimetype: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+    { asset: 'ejemplo.pptx', titulo: 'Archivo PPT', autor: autores.student2, tag: 'ClavePrimaria', mimetype: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
+    { asset: 'ejemplo.xlsx', titulo: 'Archivo Excel', autor: autores.privado, tag: 'ClaveForanea', mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+    { asset: 'ejemplo.zip', titulo: 'Archivo ZIP', autor: autores.marcos, tag: 'Atributos', mimetype: 'application/zip' },
+    { asset: 'ejemplo.jpg', titulo: 'Archivo JPG', autor: autores.student, tag: 'SQL', mimetype: 'image/jpeg' },
+    { asset: 'ejemplo.png', titulo: 'Archivo PNG', autor: autores.matias, tag: 'Der', mimetype: 'image/png' }
+  ];
+
+  const materiaId = subjectsMap['BD1']._id;
+
+  const creados = [];
+  for (const m of materiales) {
+    const destName = `seed-${m.asset}`;
+    const destPath = path.join(uploadsDir, destName);
+    const srcPath = path.join(assetsDir, m.asset);
+    if (!fs.existsSync(destPath) && fs.existsSync(srcPath)) {
+      fs.copyFileSync(srcPath, destPath);
+    }
+    const size = fs.existsSync(destPath) ? fs.statSync(destPath).size : 0;
+
+    const material = await Material.findOneAndUpdate(
+      { titulo: m.titulo, autor: m.autor._id },
+      {
+        titulo: m.titulo,
+        materia: materiaId,
+        autor: m.autor._id,
+        tipo: 'archivo',
+        categoria: 'archivo',
+        url: `/uploads/materials/${destName}`,
+        nombreOriginal: m.asset,
+        mimetype: m.mimetype,
+        size,
+        tags: [m.tag]
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    creados.push(material);
+  }
+  logger.info('Materiales de demo sembrados (archivos de ejemplo).');
+  return creados;
+}
+
+// Materiales de demo tipo link: recursos externos (YouTube, Discord, GitHub, web).
+async function seedMaterialesLinks(subjectsMap, autores) {
+  const materiaId = subjectsMap['BD1']._id;
+
+  const links = [
+    {
+      titulo: 'Link de youtube',
+      url: 'https://www.youtube.com/watch?v=l5PDQtUVye8',
+      categoria: 'youtube',
+      autor: autores.student2,
+      tag: 'SQL'
+    },
+    {
+      titulo: 'Link de discord',
+      url: 'https://discord.gg/akjYqKywJ',
+      categoria: 'discord',
+      autor: autores.student,
+      tag: 'Der',
+      discordMetadata: {
+        serverName: 'Comunidad Bases de Datos',
+        channelName: 'general',
+        channelDescription: 'Canal de consultas sobre Bases de Datos',
+        memberCount: null,
+        inviteCode: 'akjYqKywJ'
+      }
+    },
+    {
+      titulo: 'link de github',
+      url: 'https://github.com/',
+      categoria: 'github',
+      autor: autores.marcos,
+      tag: 'Diagrama'
+    },
+    {
+      titulo: 'link de la web',
+      url: 'https://www.usfhealthonline.com/resources/health-informatics/what-is-database-theory/',
+      categoria: 'web',
+      autor: autores.student,
+      tag: 'Atributos'
+    }
+  ];
+
+  const creados = [];
+  for (const l of links) {
+    const material = await Material.findOneAndUpdate(
+      { titulo: l.titulo, autor: l.autor._id },
+      {
+        titulo: l.titulo,
+        descripcion: 'Este es un link educativo',
+        materia: materiaId,
+        autor: l.autor._id,
+        tipo: 'link',
+        categoria: l.categoria,
+        url: l.url,
+        tags: [l.tag],
+        ...(l.discordMetadata ? { discordMetadata: l.discordMetadata } : {})
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    creados.push(material);
+  }
+  logger.info('Materiales de demo (links externos) sembrados.');
+  return creados;
+}
+
+// Valoraciones y denuncias de demo sobre los materiales sembrados.
+// - Cada material recibe el voto (pulgar arriba/abajo) de todos los estudiantes
+//   menos su autor.
+// - 6 materiales acumulan denuncias cubriendo los 6 motivos: uno queda con 3
+//   denuncias pendientes (se suspende por umbral), otro con 2, y cuatro con 1.
+async function seedValoracionesYDenuncias(materiales, usuarios, reasons) {
+  const { student, student2, matias, privado, marcos } = usuarios;
+  const todos = [student, student2, matias, privado, marcos];
+
+  const porTitulo = {};
+  for (const m of materiales) porTitulo[m.titulo] = m;
+
+  // 1) Valoraciones: votan todos los estudiantes excepto el autor (mezcla 👍/👎).
+  for (const mat of materiales) {
+    const elegibles = todos.filter(u => u._id.toString() !== mat.autor.toString());
+    elegibles.forEach((u, i) => {
+      const yaVoto = mat.valoraciones.some(v => v.usuario.toString() === u._id.toString());
+      if (!yaVoto) {
+        mat.valoraciones.push({ usuario: u._id, voto: i % 2 === 0 ? 1 : -1 });
+      }
+    });
+    await mat.save();
+  }
+
+  // 2) Denuncias: motivos indexados por su campo `orden` (1..6).
+  const motivoPorOrden = {};
+  for (const r of reasons) motivoPorOrden[r.orden] = r;
+
+  const denuncias = [
+    // Archivo PDF -> 3 denuncias (queda suspendido por superar el umbral)
+    { titulo: 'Archivo PDF', denunciante: matias, orden: 1 },
+    { titulo: 'Archivo PDF', denunciante: student2, orden: 4 },
+    { titulo: 'Archivo PDF', denunciante: marcos, orden: 5 },
+    // Archivo Word -> 2 denuncias
+    { titulo: 'Archivo Word', denunciante: student, orden: 2 },
+    { titulo: 'Archivo Word', denunciante: student2, orden: 3 },
+    // Cuatro materiales con 1 denuncia cada uno
+    { titulo: 'Archivo PPT', denunciante: marcos, orden: 6 },
+    { titulo: 'Archivo Excel', denunciante: student, orden: 1 },
+    { titulo: 'Archivo ZIP', denunciante: student2, orden: 2 },
+    { titulo: 'Archivo JPG', denunciante: privado, orden: 3 }
+  ];
+
+  for (const d of denuncias) {
+    const mat = porTitulo[d.titulo];
+    const motivo = motivoPorOrden[d.orden];
+    if (!mat || !motivo) continue;
+
+    const yaDenunciado = await MaterialReport.findOne({
+      material: mat._id,
+      denunciante: d.denunciante._id
+    });
+    if (yaDenunciado) continue;
+
+    await MaterialReport.create({
+      material: mat._id,
+      denunciante: d.denunciante._id,
+      motivo: motivo._id,
+      detalle: `Denuncia de demo por: ${motivo.titulo}`,
+      ...(motivo.titulo === 'Otro'
+        ? { motivoEspecifico: 'El contenido no corresponde a la materia' }
+        : {}),
+      estado: 'pendiente'
+    });
+  }
+  logger.info('Valoraciones y denuncias de demo sembradas.');
 }
 
 async function seedUsers() {
@@ -419,7 +619,7 @@ async function seedUsers() {
         tema: 'Resolucion del TP 3',
         tipo: 'virtual',
         link: 'https://meet.google.com/jpy-mfyd-xdp',
-        fechaHora: new Date('2026-06-21T14:30:00'),
+        fechaHora: new Date('2026-07-24T19:00:00'),
         duracion: { horas: 2, minutos: 0 },
         cupos: 2,
         descripcion: 'Guia para resolver correctamente el Trabajo Practico 3',
@@ -439,7 +639,7 @@ async function seedUsers() {
         tema: 'Sesion privada',
         tipo: 'presencial',
         ubicacion: 'Cafeteria',
-        fechaHora: new Date('2026-06-19T16:00:00'),
+        fechaHora: new Date('2026-07-25T16:00:00'),
         duracion: { horas: 0, minutos: 40 },
         cupos: 5,
         descripcion: 'Reunion informativa del grupo 4',
@@ -450,8 +650,35 @@ async function seedUsers() {
       logger.info('Sesion de estudio de demo creada para Estudiante Privado.');
     }
 
+    // Crear sesion de estudio LLENA (cupo completo) para Estudiante de Prueba
+    const yaTieneSesionLlena = await StudySession.findOne({ creador: student._id, tema: 'Calculos en binario' });
+    if (!yaTieneSesionLlena) {
+      await StudySession.create({
+        creador: student._id,
+        materia: subjectsMap['OC']._id,
+        tema: 'Calculos en binario',
+        tipo: 'presencial',
+        ubicacion: 'Aula 110 - Malvinas Argentinas',
+        fechaHora: new Date('2026-07-25T18:00:00'),
+        duracion: { horas: 1, minutos: 0 },
+        cupos: 3,
+        requiereAprobacion: false,
+        participantes: [student._id, student2._id, matias._id],
+        estado: 'activa'
+      });
+      logger.info('Sesion de estudio LLENA de demo creada para Estudiante de Prueba.');
+    }
+
+    const matArchivos = await seedMateriales(subjectsMap, { student, student2, matias, privado, marcos });
+    const matLinks = await seedMaterialesLinks(subjectsMap, { student, student2, matias, privado, marcos });
+    const reasons = await seedReportReasons();
+    await seedValoracionesYDenuncias(
+      [...matArchivos, ...matLinks],
+      { student, student2, matias, privado, marcos },
+      reasons
+    );
+
     await seedAcademicOffer(subjectsMap);
-    await seedReportReasons();
     await seedSystemConfig();
     logger.info('Sembrado de datos completado exitosamente.');
 

@@ -14,8 +14,23 @@ interface StudyPlan {
   creditosNecesarios?: number;
   materiasUnahurRequeridas?: number;
   nivelInglesRequerido?: string;
+  estado?: 'Vigente' | 'En transicion' | 'Discontinuado';
   activo: boolean;
 }
+
+// Deriva el badge a partir del estado del plan (con fallback al booleano activo
+// para planes viejos que no tengan el campo estado).
+const getEstadoBadge = (plan: StudyPlan): { className: string; label: string } => {
+  const estado = plan.estado ?? (plan.activo ? 'Vigente' : 'Discontinuado');
+  switch (estado) {
+    case 'En transicion':
+      return { className: 'transition', label: 'En transición' };
+    case 'Discontinuado':
+      return { className: 'inactive', label: 'Inactivo' };
+    default:
+      return { className: 'active', label: 'Vigente' };
+  }
+};
 
 const StudyPlans = () => {
   const navigate = useNavigate();
@@ -103,9 +118,10 @@ const StudyPlans = () => {
                   <h3>{plan.carrera?.nombre || 'Sin carrera'}</h3>
                   <span className="plan-subtitle">{plan.nombre} ({plan.anio})</span>
                 </div>
-                <span className={`status-badge ${plan.activo ? 'active' : 'inactive'}`}>
-                  {plan.activo ? 'Vigente' : 'Inactivo'}
-                </span>
+                {(() => {
+                  const badge = getEstadoBadge(plan);
+                  return <span className={`status-badge ${badge.className}`}>{badge.label}</span>;
+                })()}
               </div>
 
               <div className="plan-info">

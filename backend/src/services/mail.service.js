@@ -189,10 +189,35 @@ const sendSessionReminderEmail = async (to, studentName, session) => {
   return transporter.sendMail(mailOptions);
 };
 
+const sendSessionRejectionEmail = async (to, studentName, session) => {
+  const mailOptions = {
+    from: `"Asistente Académico" <${process.env.MAIL_FROM || 'no-reply@asistente.edu'}>`,
+    to,
+    subject: `Solicitud rechazada: Sesión de ${session.materia.nombre}`,
+    text: `Hola ${studentName}, te informamos que tu solicitud para unirte a la sesión de estudio de ${session.materia.nombre} sobre "${session.tema}" ha sido rechazada por el organizador.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
+        <h2 style="color: #E24A4A;">Solicitud Rechazada</h2>
+        <p>Hola <strong>${studentName}</strong>,</p>
+        <p>Te informamos que tu solicitud para unirte a la siguiente sesión de estudio fue rechazada por el organizador:</p>
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>Materia:</strong> ${session.materia.nombre}</p>
+          <p style="margin: 5px 0;"><strong>Tema:</strong> ${session.tema}</p>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 0.8rem; color: #777;">Este es un mensaje automático, por favor no respondas a este correo.</p>
+      </div>
+    `
+  };
+
+  return transporter.sendMail(mailOptions);
+};
+
 module.exports = {
   sendInvitationEmail,
   sendUserNotFoundEmail,
   sendSessionConfirmationEmail,
   sendSessionCancellationEmail,
-  sendSessionReminderEmail
+  sendSessionReminderEmail,
+  sendSessionRejectionEmail
 };

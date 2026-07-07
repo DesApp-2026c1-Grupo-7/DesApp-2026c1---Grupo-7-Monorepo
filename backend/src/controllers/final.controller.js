@@ -1,14 +1,7 @@
 const Final = require('../models/Final');
 const Grade = require('../models/Grade');
 const { createAcademicEvent } = require('../utils/academicEvents');
-
-const REGULAR_YEARS = 2;
-
-const addYears = (date, years) => {
-  const result = new Date(date);
-  result.setFullYear(result.getFullYear() + years);
-  return result;
-};
+const { getVencimientoRegularidad } = require('../utils/regularity');
 
 const getFinales = async (req, res) => {
   try {
@@ -51,7 +44,7 @@ const getFinalesPendientes = async (req, res) => {
         anioCursada: g.anioCursada,
         fechaRegular: g.fecha,
         intentosPrevios,
-        venceRegularidad: addYears(g.fecha, REGULAR_YEARS),
+        venceRegularidad: getVencimientoRegularidad(g.fecha),
         yaInscripto: !!inscripcionActiva,
         finalId: inscripcionActiva ? inscripcionActiva._id : null
       });
