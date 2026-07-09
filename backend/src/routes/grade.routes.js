@@ -3,7 +3,7 @@ const multer = require('multer');
 const router = express.Router();
 const gradeController = require('../controllers/grade.controller');
 const importController = require('../controllers/import.controller');
-const { auth } = require('../middlewares/auth');
+const { auth, authorize } = require('../middlewares/auth');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -37,5 +37,11 @@ router.post('/planes-guardados', auth, gradeController.saveStudyPlan);
 router.get('/planes-guardados/:id/comparacion', auth, gradeController.getComparacionPlanGuardado);
 router.get('/actividades-creditos', auth, gradeController.listCreditActivities);
 router.post('/actividades-creditos', auth, gradeController.createCreditActivity);
+
+// Admin — estadísticas
+router.get('/admin/materias-por-alumno', auth, authorize('admin'), gradeController.getMateriasPorAlumno);
+router.get('/admin/materias-aprobadas-por-alumno', auth, authorize('admin'), gradeController.getMateriasAprobadasPorAlumno);
+router.get('/admin/materias-cursadas-por-carrera', auth, authorize('admin'), gradeController.getMateriasCursadasPorCarrera);
+router.get('/admin/materias-aprobadas-por-carrera', auth, authorize('admin'), gradeController.getMateriasAprobadasPorCarrera);
 
 module.exports = router;

@@ -233,3 +233,63 @@ exports.updateReason = async (req, res) => {
         res.status(500).json({ mensaje: 'Error al actualizar el motivo' });
     }
 };
+
+exports.getReportStats = async (req, res) => {
+    try {
+        const totalDenuncias = await MaterialReport.countDocuments();
+
+        const totales = await MaterialReport.aggregate([
+            { $group: { _id: '$estado', count: { $sum: 1 } } }
+        ]);
+
+        const totalesMap = { pendiente: 0, revisado: 0, ignorado: 0 };
+        totales.forEach(t => { totalesMap[t._id] = t.count; });
+
+        const porMotivo = await MaterialReport.aggregate([
+            {
+                $lookup: {
+                    from: 'reportreasons',
+                    localField: 'motivo',
+                    foreignField: '_id',
+                    as: 'motivoData'
+                }
+            },
+            { $unwind: '$motivoData' },
+            { $group: { _id: '$motivoData.titulo', cantidad: { $sum: 1 } } },
+            { $sort: { cantidad: -1 } }
+        ]);
+
+        const porPeriodo = await MaterialReport.aggregate([
+            {
+                $group: {
+                    _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+                    cantidad: { $sum: 1 }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        const materialesConDenunciasArr = await Material.aggregate([
+            {
+                $lookup: {
+                    from: 'materialreports',
+                    localField: '_id',
+                    foreignField: 'material',
+                    as: 'denuncias'
+                }
+            },
+            { $match: { 'denuncias.0': { $exists: true } } },
+            { $count: 'total' }
+        ]);
+
+        res.json({
+            totalDenuncias,
+            totales: totalesMap,
+            porMotivo,
+            porPeriodo,
+            materialesConDenuncias: materialesConDenunciasArr[0]?.total || 0
+        });
+    } catch (error) {
+        res.status(500).json({ mensaje: 'Error al obtener estadísticas de denuncias', error: error.message });
+    }
+};
