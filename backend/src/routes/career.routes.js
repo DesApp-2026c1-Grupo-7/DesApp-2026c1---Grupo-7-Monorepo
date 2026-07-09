@@ -12,4 +12,7 @@ router.post('/', auth, authorize('admin'), careerController.createCareer);
 router.put('/:id', auth, authorize('admin'), careerController.updateCareer);
 router.delete('/:id', auth, authorize('admin'), careerController.deleteCareer);
 
+// Admin — estadísticas de comunidad
+router.get('/admin/comunidad-activa', auth, authorize('admin'), careerController.getComunidadActiva);
+
 module.exports = router;

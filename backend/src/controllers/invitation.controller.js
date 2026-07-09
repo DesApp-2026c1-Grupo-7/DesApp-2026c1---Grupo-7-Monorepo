@@ -265,6 +265,36 @@ const removeContacto = async (req, res) => {
   }
 };
 
+const getConexionEstudiantes = async (req, res) => {
+  try {
+    const result = await User.aggregate([
+      { $match: { role: 'student' } },
+      {
+        $project: {
+          nombre: 1,
+          email: 1,
+          foto: 1,
+          cantidadContactos: { $size: { $ifNull: ['$contactos', []] } }
+        }
+      },
+      { $sort: { cantidadContactos: -1 } }
+    ]);
+
+    const totalEstudiantes = result.length;
+    const totalConexiones = result.reduce((acc, u) => acc + u.cantidadContactos, 0);
+    const promedioConexiones = totalEstudiantes > 0 ? (totalConexiones / totalEstudiantes).toFixed(1) : 0;
+
+    res.json({
+      estudiantes: result,
+      totalEstudiantes,
+      totalConexiones,
+      promedioConexiones
+    });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener conexiones entre estudiantes', error: error.message });
+  }
+};
+
 module.exports = {
   sendInvitation,
   getInvitationByToken,
@@ -274,5 +304,6 @@ module.exports = {
   getInvitacionesEnviadas,
   cancelarInvitacion,
   getContactos,
-  removeContacto
+  removeContacto,
+  getConexionEstudiantes
 };

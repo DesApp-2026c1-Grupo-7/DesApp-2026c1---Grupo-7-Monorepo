@@ -34,6 +34,7 @@ interface Session {
   cupos?: number;
   participantes: User[];
   solicitudes: { usuario: string | { _id: string; nombre: string }; estado: string }[];
+  estado: string;
   requiereAprobacion: boolean;
   descripcion?: string;
 }
@@ -326,7 +327,7 @@ const StudySessions = () => {
               return solUserId === currentUser?.id && sol.estado === 'pendiente';
             });
             const isFull = !!s.cupos && s.participantes.length >= s.cupos;
-            const isClosed = new Date(s.fechaHora) < new Date();
+            const isClosed = s.estado === 'finalizada' || new Date(s.fechaHora) < new Date();
 
             return (
               <div key={s._id} className="session-card" style={{ opacity: isClosed ? 0.7 : 1 }}>

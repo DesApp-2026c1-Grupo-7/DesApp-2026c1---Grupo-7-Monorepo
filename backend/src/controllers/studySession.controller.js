@@ -61,8 +61,8 @@ const getStudySessions = async (req, res) => {
   try {
     const currentUser = await User.findById(req.user.id);
     
-    // Obtenemos todas las sesiones activas
-    const sesiones = await StudySession.find({ estado: 'activa' })
+    // Obtenemos sesiones activas y finalizadas
+    const sesiones = await StudySession.find({ estado: { $in: ['activa', 'finalizada'] } })
       .populate('creador', 'nombre foto configuracionPrivacidad contactos')
       .populate('materia', 'nombre codigo')
       .populate('participantes', 'nombre foto')
@@ -460,6 +460,163 @@ const kickParticipant = async (req, res) => {
   }
 };
 
+const getSessionsByPeriod = async (req, res) => {
+  try {
+    const result = await StudySession.aggregate([
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+          creadas: { $sum: 1 },
+          activas: {
+            $sum: { $cond: [{ $eq: ['$estado', 'activa'] }, 1, 0] }
+          },
+          finalizadas: {
+            $sum: { $cond: [{ $eq: ['$estado', 'finalizada'] }, 1, 0] }
+          },
+          canceladas: {
+            $sum: { $cond: [{ $eq: ['$estado', 'cancelada'] }, 1, 0] }
+          }
+        }
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          _id: 0,
+          periodo: '$_id',
+          creadas: 1,
+          activas: 1,
+          finalizadas: 1,
+          canceladas: 1
+        }
+      }
+    ]);
+
+    const totalSesiones = await StudySession.countDocuments();
+
+    const totales = await StudySession.aggregate([
+      {
+        $group: {
+          _id: null,
+          activas: { $sum: { $cond: [{ $eq: ['$estado', 'activa'] }, 1, 0] } },
+          finalizadas: { $sum: { $cond: [{ $eq: ['$estado', 'finalizada'] }, 1, 0] } },
+          canceladas: { $sum: { $cond: [{ $eq: ['$estado', 'cancelada'] }, 1, 0] } }
+        }
+      }
+    ]);
+
+    res.json({
+      periodos: result,
+      totalSesiones,
+      totales: totales[0] || { activas: 0, finalizadas: 0, canceladas: 0 }
+    });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener sesiones por período', error: error.message });
+  }
+};
+
+const getSessionUtilization = async (req, res) => {
+  try {
+    const totalSesiones = await StudySession.countDocuments();
+
+    const porEstado = await StudySession.aggregate([
+      { $group: { _id: '$estado', count: { $sum: 1 } } }
+    ]);
+
+    const porTipo = await StudySession.aggregate([
+      { $group: { _id: '$tipo', count: { $sum: 1 } } }
+    ]);
+
+    const participantes = await StudySession.aggregate([
+      {
+        $project: {
+          cantidadParticipantes: { $size: { $ifNull: ['$participantes', []] } },
+          cupos: 1,
+          solicitudesPendientes: {
+            $size: {
+              $filter: {
+                input: { $ifNull: ['$solicitudes', []] },
+                as: 's',
+                cond: { $eq: ['$$s.estado', 'pendiente'] }
+              }
+            }
+          }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalParticipantes: { $sum: '$cantidadParticipantes' },
+          participantesConCupo: {
+            $sum: {
+              $cond: [{ $gt: ['$cupos', 0] }, '$cantidadParticipantes', 0]
+            }
+          },
+          totalCupos: { $sum: { $ifNull: ['$cupos', 0] } },
+          sesionesConCupo: { $sum: { $cond: [{ $gt: ['$cupos', 0] }, 1, 0] } },
+          sesionesSinCupo: {
+            $sum: {
+              $cond: [
+                { $eq: [{ $ifNull: ['$cupos', 0] }, 0] },
+                1,
+                0
+              ]
+            }
+          },
+          totalSolicitudesPendientes: { $sum: '$solicitudesPendientes' }
+        }
+      }
+    ]);
+
+    const porMateria = await StudySession.aggregate([
+      { $group: { _id: '$materia', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+      {
+        $lookup: {
+          from: 'subjects',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'materia'
+        }
+      },
+      { $unwind: { path: '$materia', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 0,
+          nombre: { $ifNull: ['$materia.nombre', 'Sin materia'] },
+          sesiones: '$count'
+        }
+      }
+    ]);
+
+    const estadoMap = { activa: 0, finalizada: 0, cancelada: 0 };
+    porEstado.forEach(e => { estadoMap[e._id] = e.count; });
+
+    const tipoMap = { virtual: 0, presencial: 0 };
+    porTipo.forEach(t => { tipoMap[t._id] = t.count; });
+
+    const p = participantes[0] || { totalParticipantes: 0, participantesConCupo: 0, totalCupos: 0, sesionesConCupo: 0, sesionesSinCupo: 0, totalSolicitudesPendientes: 0 };
+    const promedioParticipantes = totalSesiones > 0 ? (p.totalParticipantes / totalSesiones).toFixed(1) : 0;
+    const ocupacionPromedio = p.sesionesConCupo > 0 ? ((p.participantesConCupo / p.totalCupos) * 100).toFixed(1) : 0;
+
+    res.json({
+      totalSesiones,
+      porEstado: estadoMap,
+      porTipo: tipoMap,
+      totalParticipantes: p.totalParticipantes,
+      totalCupos: p.totalCupos,
+      sesionesConCupo: p.sesionesConCupo,
+      sesionesSinCupo: p.sesionesSinCupo,
+      promedioParticipantes: Number(promedioParticipantes),
+      ocupacionPromedio: Number(ocupacionPromedio),
+      solicitudesPendientes: p.totalSolicitudesPendientes,
+      materiasTop: porMateria
+    });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener utilización de sesiones', error: error.message });
+  }
+};
+
 module.exports = {
   createStudySession,
   getStudySessions,
@@ -469,5 +626,7 @@ module.exports = {
   getStudySessionById,
   updateStudySession,
   cancelStudySession,
-  kickParticipant
+  kickParticipant,
+  getSessionsByPeriod,
+  getSessionUtilization
 };

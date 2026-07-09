@@ -605,9 +605,9 @@ async function seedUsers() {
         descripcion: 'Repaso para el primer parcial con ayudantes',
         requiereAprobacion: false,
         participantes: [student._id],
-        estado: 'activa'
+        estado: 'finalizada'
       });
-      logger.info('Sesion de estudio de demo creada para Estudiante de Prueba.');
+      logger.info('Sesion de estudio finalizada de demo creada para Estudiante de Prueba.');
     }
 
     // Crear sesion de estudio para Matias Lopez

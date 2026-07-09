@@ -958,6 +958,81 @@ const deleteGrade = async (req, res) => {
   }
 };
 
+const getMateriasPorAlumno = async (req, res) => {
+  try {
+    const stats = await Grade.aggregate([
+      { $match: { estado: { $in: ['Inscripto', 'Cursando'] } } },
+      { $group: { _id: '$estudiante', materias: { $addToSet: '$materia' } } },
+      { $project: { _id: 1, cantidad: { $size: '$materias' } } },
+      { $group: { _id: '$cantidad', alumnos: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const totalAlumnos = stats.reduce((sum, s) => sum + s.alumnos, 0);
+
+    res.json({ distribucion: stats, totalAlumnos });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener estadísticas de materias por alumno', error: error.message });
+  }
+};
+
+const getMateriasAprobadasPorAlumno = async (req, res) => {
+  try {
+    const stats = await Grade.aggregate([
+      { $match: { estado: { $in: ['Aprobada', 'Promocion'] } } },
+      { $group: { _id: '$estudiante', materias: { $addToSet: '$materia' } } },
+      { $project: { _id: 1, cantidad: { $size: '$materias' } } },
+      { $group: { _id: '$cantidad', alumnos: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const totalAlumnos = stats.reduce((sum, s) => sum + s.alumnos, 0);
+
+    res.json({ distribucion: stats, totalAlumnos });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener estadísticas de materias aprobadas por alumno', error: error.message });
+  }
+};
+
+const getMateriasCursadasPorCarrera = async (req, res) => {
+  try {
+    const stats = await Grade.aggregate([
+      { $lookup: { from: 'users', localField: 'estudiante', foreignField: '_id', as: 'usuario' } },
+      { $unwind: '$usuario' },
+      { $lookup: { from: 'careers', localField: 'usuario.carrera', foreignField: '_id', as: 'carrera' } },
+      { $unwind: { path: '$carrera', preserveNullAndEmptyArrays: true } },
+      { $group: { _id: { $ifNull: ['$carrera.nombre', 'Sin carrera'] }, cursadas: { $sum: 1 } } },
+      { $sort: { cursadas: -1 } }
+    ]);
+
+    const totalCursadas = stats.reduce((sum, s) => sum + s.cursadas, 0);
+
+    res.json({ distribucion: stats, totalCursadas });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener estadísticas de materias cursadas por carrera', error: error.message });
+  }
+};
+
+const getMateriasAprobadasPorCarrera = async (req, res) => {
+  try {
+    const stats = await Grade.aggregate([
+      { $match: { estado: { $in: ['Aprobada', 'Promocion'] } } },
+      { $lookup: { from: 'users', localField: 'estudiante', foreignField: '_id', as: 'usuario' } },
+      { $unwind: '$usuario' },
+      { $lookup: { from: 'careers', localField: 'usuario.carrera', foreignField: '_id', as: 'carrera' } },
+      { $unwind: { path: '$carrera', preserveNullAndEmptyArrays: true } },
+      { $group: { _id: { $ifNull: ['$carrera.nombre', 'Sin carrera'] }, aprobadas: { $sum: 1 } } },
+      { $sort: { aprobadas: -1 } }
+    ]);
+
+    const totalAprobadas = stats.reduce((sum, s) => sum + s.aprobadas, 0);
+
+    res.json({ distribucion: stats, totalAprobadas });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener estadísticas de materias aprobadas por carrera', error: error.message });
+  }
+};
+
 module.exports = {
   getPlanSubjectsForUser,
   getStudentSituation,
@@ -978,5 +1053,9 @@ module.exports = {
   listSavedStudyPlans,
   saveStudyPlan,
   getComparacionPlanGuardado,
-  deleteGrade
+  deleteGrade,
+  getMateriasPorAlumno,
+  getMateriasAprobadasPorAlumno,
+  getMateriasCursadasPorCarrera,
+  getMateriasAprobadasPorCarrera
 };
