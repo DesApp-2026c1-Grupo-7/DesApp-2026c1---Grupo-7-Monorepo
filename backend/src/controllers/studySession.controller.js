@@ -61,8 +61,8 @@ const getStudySessions = async (req, res) => {
   try {
     const currentUser = await User.findById(req.user.id);
     
-    // Obtenemos todas las sesiones activas
-    const sesiones = await StudySession.find({ estado: 'activa' })
+    // Obtenemos sesiones activas y finalizadas
+    const sesiones = await StudySession.find({ estado: { $in: ['activa', 'finalizada'] } })
       .populate('creador', 'nombre foto configuracionPrivacidad contactos')
       .populate('materia', 'nombre codigo')
       .populate('participantes', 'nombre foto')
@@ -545,7 +545,8 @@ const getSessionUtilization = async (req, res) => {
       {
         $group: {
           _id: null,
-          totalParticipantes: {
+          totalParticipantes: { $sum: '$cantidadParticipantes' },
+          participantesConCupo: {
             $sum: {
               $cond: [{ $gt: ['$cupos', 0] }, '$cantidadParticipantes', 0]
             }
@@ -594,9 +595,9 @@ const getSessionUtilization = async (req, res) => {
     const tipoMap = { virtual: 0, presencial: 0 };
     porTipo.forEach(t => { tipoMap[t._id] = t.count; });
 
-    const p = participantes[0] || { totalParticipantes: 0, totalCupos: 0, sesionesConCupo: 0, sesionesSinCupo: 0, totalSolicitudesPendientes: 0 };
+    const p = participantes[0] || { totalParticipantes: 0, participantesConCupo: 0, totalCupos: 0, sesionesConCupo: 0, sesionesSinCupo: 0, totalSolicitudesPendientes: 0 };
     const promedioParticipantes = totalSesiones > 0 ? (p.totalParticipantes / totalSesiones).toFixed(1) : 0;
-    const ocupacionPromedio = p.sesionesConCupo > 0 ? ((p.totalParticipantes / p.totalCupos) * 100).toFixed(1) : 0;
+    const ocupacionPromedio = p.sesionesConCupo > 0 ? ((p.participantesConCupo / p.totalCupos) * 100).toFixed(1) : 0;
 
     res.json({
       totalSesiones,
