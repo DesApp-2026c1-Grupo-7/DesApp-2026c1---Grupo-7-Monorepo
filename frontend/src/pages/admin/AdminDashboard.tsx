@@ -354,14 +354,17 @@ export default function AdminDashboard() {
     return <span className="admin-rank-badge">{i + 1}</span>;
   };
 
-  const progressBar = (pct: number, color = "") => (
-    <div className="admin-progress-cell">
-      <span>{pct.toFixed(1)}%</span>
-      <div className="admin-progress-bar">
-        <div className={`admin-progress-fill ${color}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+  const progressBar = (pct: number, color = "") => {
+    const safe = isFinite(pct) ? Math.max(0, pct) : 0;
+    return (
+      <div className="admin-progress-cell">
+        <span>{safe.toFixed(1)}%</span>
+        <div className="admin-progress-bar">
+          <div className={`admin-progress-fill ${color}`} style={{ width: `${Math.min(safe, 100)}%` }} />
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="admin-container admin-dashboard">

@@ -105,10 +105,11 @@ const getMaterials = async (req, res) => {
     }
     
     if (search) {
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       match.$or = [
-        { titulo: { $regex: search, $options: 'i' } },
-        { descripcion: { $regex: search, $options: 'i' } },
-        { tags: { $in: [new RegExp(search, 'i')] } }
+        { titulo: { $regex: escaped, $options: 'i' } },
+        { descripcion: { $regex: escaped, $options: 'i' } },
+        { tags: { $in: [new RegExp(escaped, 'i')] } }
       ];
     }
 
