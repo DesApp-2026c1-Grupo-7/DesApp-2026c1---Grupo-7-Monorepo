@@ -545,7 +545,11 @@ const getSessionUtilization = async (req, res) => {
       {
         $group: {
           _id: null,
-          totalParticipantes: { $sum: '$cantidadParticipantes' },
+          totalParticipantes: {
+            $sum: {
+              $cond: [{ $gt: ['$cupos', 0] }, '$cantidadParticipantes', 0]
+            }
+          },
           totalCupos: { $sum: { $ifNull: ['$cupos', 0] } },
           sesionesConCupo: { $sum: { $cond: [{ $gt: ['$cupos', 0] }, 1, 0] } },
           sesionesSinCupo: {
