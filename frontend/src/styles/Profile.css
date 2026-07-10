@@ -413,6 +413,11 @@ input:disabled + .toggle-slider {
   color: #991b1b;
 }
 
+.status-badge.desaprobado {
+  background: #fecaca;
+  color: #991b1b;
+}
+
 .grade-badge {
   background: var(--primary);
   color: white;

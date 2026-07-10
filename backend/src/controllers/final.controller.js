@@ -2,6 +2,7 @@ const Final = require('../models/Final');
 const Grade = require('../models/Grade');
 const { createAcademicEvent } = require('../utils/academicEvents');
 const { getVencimientoRegularidad } = require('../utils/regularity');
+const { calcularEstadoFinal } = require('../utils/gradeState');
 
 const getFinales = async (req, res) => {
   try {
@@ -96,7 +97,10 @@ const inscribirseAFinal = async (req, res) => {
 
 const registrarResultadoFinal = async (req, res) => {
   try {
-    const { estado, nota } = req.body;
+    const { nota, ausente } = req.body;
+    const estado = ausente ? 'Ausente' :
+      nota !== undefined && nota !== null ? calcularEstadoFinal(nota) : req.body.estado;
+
     const final = await Final.findOneAndUpdate(
       { _id: req.params.id, estudiante: req.user.id },
       { estado, nota },

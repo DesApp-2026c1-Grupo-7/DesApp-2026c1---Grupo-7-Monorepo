@@ -4,7 +4,7 @@ const Event = require('../models/Event');
 /**
  * Crea un evento académico en el feed según la privacidad del usuario.
  * @param {string} userId - ID del usuario autor
- * @param {string} type - Estado de la materia (Inscripto, Regular, Aprobada, Promocion)
+ * @param {string} type - Estado de la materia (Cursando, Regular, Aprobada, Promocion)
  * @param {string} subjectName - Nombre de la materia
  */
 const createAcademicEvent = async (userId, type, subjectName) => {
@@ -15,7 +15,7 @@ const createAcademicEvent = async (userId, type, subjectName) => {
     let shouldPublish = false;
     let content = '';
 
-    if (type === 'Inscripto' && user.configuracionPrivacidad.publicarInscripciones) {
+    if (type === 'Cursando' && user.configuracionPrivacidad.publicarInscripciones) {
       shouldPublish = true;
       content = `Se inscribió a la materia ${subjectName}`;
     } else if (type === 'Regular' && user.configuracionPrivacidad.publicarRegularizaciones) {

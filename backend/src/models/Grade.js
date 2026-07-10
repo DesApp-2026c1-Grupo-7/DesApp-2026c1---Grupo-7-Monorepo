@@ -13,7 +13,7 @@ const gradeSchema = new mongoose.Schema({
   },
   estado: {
     type: String,
-    enum: ['Pendiente', 'Inscripto', 'Cursando', 'Regular', 'Aprobada', 'Libre', 'Promocion'],
+    enum: ['Pendiente', 'Inscripto', 'Cursando', 'Regular', 'Aprobada', 'Desaprobado', 'Libre', 'Promocion'],
     default: 'Pendiente'
   },
   nota: {

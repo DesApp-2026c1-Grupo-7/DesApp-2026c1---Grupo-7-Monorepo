@@ -221,6 +221,11 @@ td {
   color: #374151;
 }
 
+.badge.red {
+  background: #fecaca;
+  color: #991b1b;
+}
+
 /* Dropdown */
 .dropdown {
   position: relative;
