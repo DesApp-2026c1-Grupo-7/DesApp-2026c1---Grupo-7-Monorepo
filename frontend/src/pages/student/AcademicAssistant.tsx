@@ -284,7 +284,7 @@ const AcademicAssistant = () => {
 
   const previewEstadoFinal = (nota: number): string => {
     if (nota >= 1 && nota <= 3) return "Desaprobado";
-    if (nota >= 4 && nota <= 10) return "Aprobado";
+    if (nota > 3 && nota <= 10) return "Aprobado";
     return "";
   };
 

@@ -7,7 +7,7 @@ const AcademicOffer = require('../models/AcademicOffer');
 const SavedStudyPlan = require('../models/SavedStudyPlan');
 const Event = require('../models/Event');
 const { createAcademicEvent } = require('../utils/academicEvents');
-const { calcularEstadoGrade } = require('../utils/gradeState');
+const { calcularEstadoGrade, APPROVED_STATES, CORRELATIVA_STATES } = require('../utils/gradeState');
 
 const sortBySubjectPosition = (items) => [...items].sort((a, b) => {
   const materiaA = a.materia || {};
@@ -17,7 +17,6 @@ const sortBySubjectPosition = (items) => [...items].sort((a, b) => {
     (materiaA.nombre || '').localeCompare(materiaB.nombre || '');
 });
 
-const APPROVED_STATES = ['Aprobada', 'Promocion'];
 const UNLOCKING_STATES = ['Regular', 'Aprobada', 'Promocion'];
 
 const getPlanSubjectsForUser = async (userId) => {
@@ -149,8 +148,6 @@ const updateGrade = async (req, res) => {
     const { materias: planSubjects } = await getPlanSubjectsForUser(userId);
     const subjectInPlan = planSubjects.find(m => m._id.toString() === materiaId.toString());
 
-    const CORRELATIVA_STATES = [...APPROVED_STATES, 'Regular'];
-
     if (['Cursando', ...CORRELATIVA_STATES].includes(estado)) {
       if (subjectInPlan && subjectInPlan.correlativas.length > 0) {
         const approvedGrades = await Grade.find({
@@ -213,8 +210,6 @@ const bulkLoadSituation = async (req, res) => {
     const results = [];
     const errors = [];
 
-    const CORRELATIVA_STATES = [...APPROVED_STATES, 'Regular'];
-
     // Obtenemos todas las notas actuales para validar correlativas en memoria durante el loop
     const currentGrades = await Grade.find({ estudiante: userId });
     const approvedIds = new Set(
@@ -226,6 +221,12 @@ const bulkLoadSituation = async (req, res) => {
 
     for (let fila = 1; fila <= records.length; fila++) {
       const r = records[fila - 1];
+
+      if (!r.materiaId) {
+        errors.push({ fila, materiaNombre: 'N/A', motivo: 'Falta materia' });
+        continue;
+      }
+
       const estadoCalculado = r.nota !== undefined && r.nota !== null
         ? calcularEstadoGrade(r.nota)
         : (r.estado || 'Cursando');

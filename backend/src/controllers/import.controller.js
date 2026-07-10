@@ -3,7 +3,7 @@ const Subject = require('../models/Subject');
 const Grade = require('../models/Grade');
 const { createAcademicEvent } = require('../utils/academicEvents');
 const { getPlanSubjectsForUser } = require('./grade.controller');
-const { calcularEstadoGrade } = require('../utils/gradeState');
+const { calcularEstadoGrade, CORRELATIVA_STATES } = require('../utils/gradeState');
 
 const VALID_ESTADOS = ['PENDIENTE', 'INSCRIPTO', 'INSCRIPTA', 'CURSANDO', 'REGULAR', 'APROBADA', 'APROBADO', 'DESAPROBADO', 'LIBRE', 'PROMOCION'];
 
@@ -39,6 +39,7 @@ const normalizeImportRow = async (raw, idx) => {
   let estado;
   if (nota !== undefined && !Number.isNaN(nota)) {
     estado = calcularEstadoGrade(nota);
+    if (!estado) errores.push('Nota invalida (debe ser 1-10)');
   } else if (rawEstado) {
     const estadoUpper = rawEstado.toUpperCase();
     if (!VALID_ESTADOS.includes(estadoUpper)) {
@@ -76,8 +77,6 @@ const normalizeImportRow = async (raw, idx) => {
 };
 
 const validateCorrelativasEnPreview = async (preview, userId) => {
-  const CORRELATIVA_STATES = ['Aprobada', 'Promocion', 'Regular'];
-
   const currentGrades = await Grade.find({ estudiante: userId });
   const approvedIds = new Set(
     currentGrades.filter(g => CORRELATIVA_STATES.includes(g.estado)).map(g => g.materia.toString())
@@ -119,8 +118,6 @@ const buildPreview = async (rows) => {
 const persistPreview = async (userId, preview, res) => {
   const procesados = [];
   const errores = [];
-
-  const CORRELATIVA_STATES = ['Aprobada', 'Promocion', 'Regular'];
 
   // Obtenemos aprobadas actuales para validar correlativas
   const currentGrades = await Grade.find({ estudiante: userId });

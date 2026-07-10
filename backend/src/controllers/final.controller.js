@@ -101,6 +101,10 @@ const registrarResultadoFinal = async (req, res) => {
     const estado = ausente ? 'Ausente' :
       nota !== undefined && nota !== null ? calcularEstadoFinal(nota) : req.body.estado;
 
+    if (!estado) {
+      return res.status(400).json({ mensaje: 'Nota invalida (debe ser 1-10)' });
+    }
+
     const final = await Final.findOneAndUpdate(
       { _id: req.params.id, estudiante: req.user.id },
       { estado, nota },

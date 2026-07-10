@@ -35,8 +35,8 @@ const previewEstado = (nota: string | number | undefined | null): string => {
   const n = typeof nota === 'string' ? Number(nota) : (nota ?? NaN);
   if (isNaN(n)) return "Cursando";
   if (n >= 1 && n <= 3) return "Desaprobado";
-  if (n >= 4 && n <= 6) return "Regular";
-  if (n >= 7 && n <= 10) return "Promocion";
+  if (n > 3 && n <= 6) return "Regular";
+  if (n > 6 && n <= 10) return "Promocion";
   return "Cursando";
 };
 const currentYear = new Date().getFullYear();
@@ -111,6 +111,7 @@ const LoadSituation = () => {
     setLoading(true);
     try {
       const records = rows
+        .filter((row) => row.materiaId)
         .map((row, idx) => ({
           fila: idx + 1,
           materiaId: row.materiaId,
@@ -118,7 +119,7 @@ const LoadSituation = () => {
           cuatrimestre: Number(row.cuatrimestre),
           anioCursada: Number(row.anioCursada)
         }));
-      if (records.filter((r) => r.materiaId).length === 0) {
+      if (records.length === 0) {
         setMessage({ text: "Agregá al menos una materia.", type: "error" });
         return;
       }
