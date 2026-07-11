@@ -34,7 +34,7 @@ export default function Dashboard() {
       return "Estudiante";
     }
   });
-  const [stats, setStats] = useState({ aprobadas: 0, regular: 0, pendientes: 0 });
+  const [stats, setStats] = useState({ aprobadas: 0, regular: 0, desaprobadas: 0, pendientes: 0 });
   const [avance, setAvance] = useState<Avance | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -44,18 +44,20 @@ export default function Dashboard() {
         const records: AcademicRecord[] = response.data;
         const counts = records.reduce(
           (acc, curr) => {
-            if (curr.estado === "Aprobada") acc.aprobadas++;
+            if (curr.estado === "Aprobada" || curr.estado === "Promocion") acc.aprobadas++;
             else if (curr.estado === "Regular") acc.regular++;
+            else if (curr.estado === "Desaprobado") acc.desaprobadas++;
             else if (curr.estado === "Pendiente") acc.pendientes++;
             return acc;
           },
-          { aprobadas: 0, regular: 0, pendientes: 0 }
+          { aprobadas: 0, regular: 0, desaprobadas: 0, pendientes: 0 }
         );
         const avanceData: Avance = avanceResponse.data;
         setAvance(avanceData);
         setStats({
           aprobadas: avanceData.aprobadas ?? counts.aprobadas,
           regular: avanceData.regularizadas ?? counts.regular,
+          desaprobadas: counts.desaprobadas,
           pendientes: avanceData.pendientes ?? counts.pendientes
         });
       })

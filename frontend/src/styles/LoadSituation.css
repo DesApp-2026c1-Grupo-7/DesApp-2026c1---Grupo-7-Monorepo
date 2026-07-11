@@ -177,44 +177,23 @@
   font-weight: 600;
 }
 
-.manual-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.manual-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr 0.6fr 0.7fr 0.8fr auto;
-  gap: 8px;
-  align-items: center;
-}
-
-.manual-row select, .manual-row input {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  width: 100%;
-}
-
 .btn-remove {
   background: #fee2e2;
   color: #dc2626;
   border: none;
-  padding: 8px 12px;
+  padding: 6px 14px;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
   transition: background 0.2s;
+  white-space: nowrap;
 }
 
 .btn-remove:hover {
   background: #fecaca;
 }
 
-.manual-actions, .excel-actions {
+.excel-actions {
   display: flex;
   gap: 12px;
   margin-top: 16px;
@@ -223,10 +202,16 @@
 /* Excel styles */
 .table-responsive {
   width: 100%;
-  overflow-x: auto;
   margin-top: 16px;
   border: 1px solid #eee;
   border-radius: 8px;
+}
+
+@media (min-width: 769px) {
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 .table-responsive table {
@@ -234,11 +219,17 @@
   border-collapse: collapse;
 }
 
+@media (min-width: 769px) {
+  .table-responsive table {
+    min-width: 640px;
+  }
+}
+
 .table-responsive th, .table-responsive td {
-  padding: 12px;
+  padding: 10px 8px;
   text-align: left;
   border-bottom: 1px solid #eee;
-  font-size: 14px;
+  font-size: 13px;
   white-space: nowrap;
 }
 
@@ -247,44 +238,182 @@
   font-weight: 600;
 }
 
+.table-responsive td select,
+.table-responsive td input {
+  padding: 6px;
+  font-size: 13px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-sizing: border-box;
+  max-width: 140px;
+}
+
+.table-responsive td select {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 110px;
+}
+
+.table-responsive td input[type="number"] {
+  width: 100%;
+  min-width: 50px;
+}
+
+.table-responsive .error-text {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+  max-width: 160px;
+}
+
+/* responsive: cards en lugar de scroll */
+@media (max-width: 768px) {
+  .load-situation {
+    padding: 16px;
+  }
+  .manual-form, .excel-import-container {
+    padding: 16px;
+    overflow: hidden;
+  }
+  .table-responsive {
+    border: none;
+    overflow: visible;
+  }
+  .table-responsive table,
+  .table-responsive thead,
+  .table-responsive tbody,
+  .table-responsive th,
+  .table-responsive td,
+  .table-responsive tr {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .table-responsive thead {
+    display: none;
+  }
+  .table-responsive table {
+    border-spacing: 0;
+  }
+  .table-responsive tr {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 12px;
+    background: #fff;
+  }
+  .table-responsive td {
+    display: grid;
+    grid-template-columns: 75px minmax(0, 1fr);
+    gap: 6px;
+    padding: 5px 0;
+    border: none;
+    font-size: 13px;
+    white-space: normal;
+    overflow: hidden;
+    justify-items: start;
+  }
+  .table-responsive td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #475569;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .table-responsive td[data-label=""] {
+    display: block;
+    text-align: left;
+    padding-top: 8px;
+    border-top: 1px solid #eee;
+    margin-top: 4px;
+    overflow: visible;
+  }
+  .table-responsive td[data-label=""]::before {
+    display: none;
+  }
+  .table-responsive td[data-label=""] button {
+    display: inline-block;
+    width: auto;
+    min-width: 120px;
+    min-height: 40px;
+    font-size: 14px;
+    padding: 8px 16px;
+    text-align: center;
+  }
+  .table-responsive td select,
+  .table-responsive td input {
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .table-responsive td input[type="number"] {
+    max-width: 80px;
+  }
+  .table-responsive td select {
+    min-width: 90px;
+  }
+  .table-responsive td .status-badge {
+    justify-self: start;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+  .table-responsive td[data-label="Errores"] {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+  .manual-table td:first-child,
+  .manual-table th:first-child { width: auto; }
+  .manual-table td:last-child,
+  .manual-table th:last-child { width: auto; }
+}
+
 .error-text { color: #dc2626; font-weight: 500; }
 .ok-text { color: #16a34a; font-weight: 500; }
 
-/* Mobile Adjustments for manual rows */
+.estado-preview-table {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.manual-table td:first-child,
+.manual-table th:first-child { width: 32px; text-align: center; }
+
+.manual-table td:last-child,
+.manual-table th:last-child { width: 40px; text-align: center; }
+
+.confirm-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.confirm-bar .error-count {
+  font-size: 13px;
+  color: #dc2626;
+  font-weight: 500;
+}
+
 @media (max-width: 768px) {
-  .manual-row {
-    grid-template-columns: 1fr 1fr;
-    padding: 16px;
-    background: #f8fafc;
-    border-radius: 8px;
-    border: 1px solid #eef2f6;
-  }
-
-  .subject-select {
-    grid-column: span 2;
-  }
-
-  .btn-remove {
-    grid-column: span 2;
-    margin-top: 4px;
-  }
-
-  .manual-actions, .excel-actions {
+  .excel-actions {
     flex-direction: column;
   }
 
-  .manual-actions button, .excel-actions button {
+  .excel-actions button {
     width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
-  .manual-row {
-    grid-template-columns: 1fr;
-  }
-
-  .subject-select, .btn-remove {
-    grid-column: span 1;
   }
 }
 

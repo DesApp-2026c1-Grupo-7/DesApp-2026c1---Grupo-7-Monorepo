@@ -166,7 +166,7 @@ const AcademicAssistant = () => {
   // Estado para el modal de resultados de finales
   const [showGradeModal, setShowGradeModal] = useState(false);
   const [finalToGrade, setFinalToGrade] = useState<{ id: string, nombre: string, subjectId: string } | null>(null);
-  const [gradeResult, setGradeResult] = useState({ estado: "Aprobado", nota: 7 });
+  const [gradeResult, setGradeResult] = useState({ nota: 7, ausente: false });
 
   // Estado para el modal de baja de finales
   const [showFinalModal, setShowFinalModal] = useState(false);
@@ -282,12 +282,21 @@ const AcademicAssistant = () => {
     setFinalToGrade(null);
   };
 
+  const previewEstadoFinal = (nota: number): string => {
+    if (nota >= 1 && nota <= 3) return "Desaprobado";
+    if (nota > 3 && nota <= 10) return "Aprobado";
+    return "";
+  };
+
   const registrarNotaFinal = async () => {
     if (!finalToGrade) return;
     setError("");
     setSuccess("");
     try {
-      await api.put(`/finales/${finalToGrade.id}/resultado`, gradeResult);
+      const payload = gradeResult.ausente
+        ? { ausente: true, nota: undefined }
+        : { nota: gradeResult.nota };
+      await api.put(`/finales/${finalToGrade.id}/resultado`, payload);
       setSuccess("Resultado de final registrado");
       await fetchAll();
       closeGradeModal();
@@ -850,31 +859,37 @@ const AcademicAssistant = () => {
             
             <div style={{ margin: '20px 0', display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '5px' }}>Estado del examen:</label>
-                <select 
-                  value={gradeResult.estado} 
-                  onChange={(e) => setGradeResult({...gradeResult, estado: e.target.value})}
+                <label style={{ display: 'block', marginBottom: '5px' }}>Nota (1-10):</label>
+                <input 
+                  type="number" 
+                  min="1" 
+                  max="10" 
+                  value={gradeResult.nota}
+                  onChange={(e) => setGradeResult({...gradeResult, nota: parseInt(e.target.value), ausente: false})}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                >
-                  <option value="Aprobado">Aprobado</option>
-                  <option value="Desaprobado">Desaprobado</option>
-                  <option value="Ausente">Ausente</option>
-                </select>
+                  disabled={gradeResult.ausente}
+                />
+                {!gradeResult.ausente && gradeResult.nota && previewEstadoFinal(gradeResult.nota) && (
+                  <span style={{
+                    display: 'inline-block', marginTop: 6, padding: '4px 10px',
+                    borderRadius: 6, fontSize: 12, fontWeight: 600,
+                    background: '#e0e7ff', color: '#4338ca'
+                  }}>
+                    Estado: {previewEstadoFinal(gradeResult.nota)}
+                  </span>
+                )}
               </div>
 
-              {gradeResult.estado !== "Ausente" && (
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px' }}>Nota (1-10):</label>
-                  <input 
-                    type="number" 
-                    min="1" 
-                    max="10" 
-                    value={gradeResult.nota}
-                    onChange={(e) => setGradeResult({...gradeResult, nota: parseInt(e.target.value)})}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+              <div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={gradeResult.ausente}
+                    onChange={(e) => setGradeResult({...gradeResult, ausente: e.target.checked})}
                   />
-                </div>
-              )}
+                  Ausente
+                </label>
+              </div>
             </div>
 
             <div className="modal-actions">

@@ -7,6 +7,7 @@ const AcademicOffer = require('../models/AcademicOffer');
 const SavedStudyPlan = require('../models/SavedStudyPlan');
 const Event = require('../models/Event');
 const { createAcademicEvent } = require('../utils/academicEvents');
+const { calcularEstadoGrade, APPROVED_STATES, CORRELATIVA_STATES } = require('../utils/gradeState');
 
 const sortBySubjectPosition = (items) => [...items].sort((a, b) => {
   const materiaA = a.materia || {};
@@ -16,7 +17,6 @@ const sortBySubjectPosition = (items) => [...items].sort((a, b) => {
     (materiaA.nombre || '').localeCompare(materiaB.nombre || '');
 });
 
-const APPROVED_STATES = ['Aprobada', 'Promocion'];
 const UNLOCKING_STATES = ['Regular', 'Aprobada', 'Promocion'];
 
 const getPlanSubjectsForUser = async (userId) => {
@@ -135,19 +135,25 @@ const getPendingSubjects = async (req, res) => {
 
 const updateGrade = async (req, res) => {
   try {
-    const { materiaId, estado, nota, cuatrimestre, anioCursada } = req.body;
+    const { materiaId, nota, cuatrimestre, anioCursada } = req.body;
     const userId = req.user.id;
+    const estado = nota !== undefined && nota !== null
+      ? calcularEstadoGrade(nota)
+      : (req.body.estado || 'Cursando');
+
+    if (nota !== undefined && nota !== null && !estado) {
+      return res.status(400).json({ mensaje: 'Nota invalida (debe ser 1-10)' });
+    }
 
     const { materias: planSubjects } = await getPlanSubjectsForUser(userId);
     const subjectInPlan = planSubjects.find(m => m._id.toString() === materiaId.toString());
 
-    // Validación estricta de correlatividades para Aprobar/Promocionar
-    if (APPROVED_STATES.includes(estado)) {
+    if (['Cursando', ...CORRELATIVA_STATES].includes(estado)) {
       if (subjectInPlan && subjectInPlan.correlativas.length > 0) {
         const approvedGrades = await Grade.find({
           estudiante: userId,
           materia: { $in: subjectInPlan.correlativas.map(c => c._id) },
-          estado: { $in: APPROVED_STATES }
+          estado: { $in: CORRELATIVA_STATES }
         });
         
         if (approvedGrades.length < subjectInPlan.correlativas.length) {
@@ -155,8 +161,9 @@ const updateGrade = async (req, res) => {
             .filter(c => !approvedGrades.some(g => g.materia.toString() === c._id.toString()))
             .map(c => c.nombre)
             .join(', ');
+          const accion = estado === 'Cursando' ? 'cursar' : (estado === 'Regular' ? 'regularizar' : 'aprobar');
           return res.status(400).json({ 
-            mensaje: `No puedes aprobar ${subjectInPlan.nombre} sin haber aprobado antes: ${missing}` 
+            mensaje: `No puedes ${accion} ${subjectInPlan.nombre} sin haber regularizado/aprobado antes: ${missing}` 
           });
         }
       }
@@ -206,40 +213,59 @@ const bulkLoadSituation = async (req, res) => {
     // Obtenemos todas las notas actuales para validar correlativas en memoria durante el loop
     const currentGrades = await Grade.find({ estudiante: userId });
     const approvedIds = new Set(
-      currentGrades.filter(g => APPROVED_STATES.includes(g.estado)).map(g => g.materia.toString())
+      currentGrades.filter(g => CORRELATIVA_STATES.includes(g.estado)).map(g => g.materia.toString())
     );
 
     // Procesamos uno por uno para validar dependencias
     const { materias: planSubjects } = await getPlanSubjectsForUser(userId);
 
-    for (const r of records) {
-      if (APPROVED_STATES.includes(r.estado)) {
+    for (let fila = 1; fila <= records.length; fila++) {
+      const r = records[fila - 1];
+
+      if (!r.materiaId) {
+        errors.push({ fila, materiaNombre: 'N/A', motivo: 'Falta materia' });
+        continue;
+      }
+
+      const estadoCalculado = r.nota !== undefined && r.nota !== null
+        ? calcularEstadoGrade(r.nota)
+        : (r.estado || 'Cursando');
+
+      if (r.nota !== undefined && r.nota !== null && !estadoCalculado) {
+        errors.push({ fila, materiaNombre: 'N/A', motivo: 'Nota invalida (debe ser 1-10)' });
+        continue;
+      }
+
+      const necesitaCorrelativas = ['Cursando', ...CORRELATIVA_STATES].includes(estadoCalculado);
+      if (necesitaCorrelativas) {
         const subjectInPlan = planSubjects.find(m => m._id.toString() === r.materiaId.toString());
         if (subjectInPlan && subjectInPlan.correlativas.length > 0) {
           const hasAll = subjectInPlan.correlativas.every(c => approvedIds.has(c._id.toString()));
           if (!hasAll) {
-            errors.push(`Materia ${subjectInPlan.nombre} salteada: no cumple correlativas.`);
+            errors.push({ fila, materiaNombre: subjectInPlan.nombre, motivo: 'Correlativas no cumplidas' });
             continue;
           }
         }
-        approvedIds.add(r.materiaId.toString());
+        if (CORRELATIVA_STATES.includes(estadoCalculado)) {
+          approvedIds.add(r.materiaId.toString());
+        }
       }
 
       const grade = await Grade.findOneAndUpdate(
         { estudiante: userId, materia: r.materiaId },
         {
-          estado: r.estado,
+          estado: estadoCalculado,
           nota: r.nota,
           cuatrimestre: r.cuatrimestre,
           anioCursada: r.anioCursada,
           fecha: Date.now(),
-          ...(r.estado === 'Regular' ? { notificacionVencimientoEnviada: false } : {})
+          ...(estadoCalculado === 'Regular' ? { notificacionVencimientoEnviada: false } : {})
         },
         { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
       ).populate('materia');
 
       if (grade && grade.materia) {
-        await createAcademicEvent(userId, r.estado, grade.materia.nombre);
+        await createAcademicEvent(userId, estadoCalculado, grade.materia.nombre);
       }
       results.push(grade);
     }
@@ -285,7 +311,7 @@ const inscribirseACursada = async (req, res) => {
     const grade = await Grade.findOneAndUpdate(
       { estudiante: userId, materia: materiaId },
       {
-        estado: 'Inscripto',
+        estado: 'Cursando',
         cuatrimestre,
         anioCursada,
         fecha: Date.now()
@@ -295,7 +321,7 @@ const inscribirseACursada = async (req, res) => {
 
     // Crear evento académico si corresponde
     if (grade && grade.materia) {
-      await createAcademicEvent(userId, 'Inscripto', grade.materia.nombre);
+      await createAcademicEvent(userId, 'Cursando', grade.materia.nombre);
     }
 
     res.json({ mensaje: 'Inscripción a cursada registrada', grade });
@@ -307,9 +333,10 @@ const inscribirseACursada = async (req, res) => {
 const cerrarCuatrimestre = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { materiaId, estado, nota } = req.body;
+    const { materiaId, nota } = req.body;
+    const estado = nota !== undefined && nota !== null ? calcularEstadoGrade(nota) : req.body.estado;
 
-    if (!['Regular', 'Aprobada', 'Libre', 'Promocion'].includes(estado)) {
+    if (!['Regular', 'Aprobada', 'Desaprobado', 'Libre', 'Promocion'].includes(estado)) {
       return res.status(400).json({ mensaje: 'Estado inválido para cierre de cuatrimestre' });
     }
 
@@ -344,7 +371,7 @@ const getInscripcionesActivas = async (req, res) => {
     const userId = req.user.id;
     const inscripciones = await Grade.find({
       estudiante: userId,
-      estado: { $in: ['Inscripto', 'Cursando'] }
+      estado: { $in: ['Cursando'] }
     }).populate('materia');
     res.json(inscripciones);
   } catch (error) {
@@ -368,7 +395,7 @@ const getMateriasDisponibles = async (req, res) => {
         .map((g) => g.materia.toString())
     );
     const yaInscriptaIds = new Set(
-      grades.filter((g) => ['Inscripto', 'Cursando', 'Regular'].includes(g.estado))
+      grades.filter((g) => ['Cursando', 'Regular'].includes(g.estado))
         .map((g) => g.materia.toString())
     );
 
@@ -458,7 +485,7 @@ const getAvanceCarrera = async (req, res) => {
 
     const aprobadas = gradesDelPlan.filter((g) => APPROVED_STATES.includes(g.estado));
     const regularizadas = gradesDelPlan.filter((g) => g.estado === 'Regular');
-    const cursando = gradesDelPlan.filter((g) => ['Inscripto', 'Cursando'].includes(g.estado));
+    const cursando = gradesDelPlan.filter((g) => ['Cursando'].includes(g.estado));
 
     const creditosMateriasAprobadas = aprobadas.reduce(
       (sum, g) => {
@@ -504,7 +531,7 @@ const getAvanceCarrera = async (req, res) => {
         avancePorAnio[ps.anio].regulares++;
         materiasCubiertas.add(g.materia._id.toString());
       }
-      else if (['Inscripto', 'Cursando'].includes(g.estado)) {
+      else if (g.estado === 'Cursando') {
         avancePorAnio[ps.anio].cursando++;
         materiasCubiertas.add(g.materia._id.toString());
       }
@@ -630,7 +657,7 @@ const getQuePasaSi = async (req, res) => {
     );
     
     const yaInscriptaIds = new Set(
-      grades.filter((g) => ['Inscripto', 'Cursando', 'Regular', 'Aprobada', 'Promocion'].includes(g.estado))
+      grades.filter((g) => ['Cursando', 'Regular', 'Aprobada', 'Promocion'].includes(g.estado))
         .map((g) => g.materia.toString())
     );
 
@@ -961,7 +988,7 @@ const deleteGrade = async (req, res) => {
 const getMateriasPorAlumno = async (req, res) => {
   try {
     const stats = await Grade.aggregate([
-      { $match: { estado: { $in: ['Inscripto', 'Cursando'] } } },
+      { $match: { estado: 'Cursando' } },
       { $group: { _id: '$estudiante', materias: { $addToSet: '$materia' } } },
       { $project: { _id: 1, cantidad: { $size: '$materias' } } },
       { $group: { _id: '$cantidad', alumnos: { $sum: 1 } } },

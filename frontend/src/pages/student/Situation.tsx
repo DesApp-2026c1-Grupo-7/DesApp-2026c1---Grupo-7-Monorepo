@@ -41,7 +41,7 @@ const Situation = () => {
   const [subjectToDelete, setSubjectToDelete] = useState<{ id: string, nombre: string } | null>(null);
   const { toast, showToast, hideToast } = useToast();
 
-  const options = ["Todos los estados", "Aprobada", "Regular", "Cursando", "Pendiente"];
+  const options = ["Todos los estados", "Aprobada", "Regular", "Cursando", "Desaprobado", "Pendiente"];
   const yearOptions = ["Todos los años", "1°", "2°", "3°", "4°", "5°"];
 
   const fetchSituation = useCallback((showLoading = false) => {
@@ -99,9 +99,11 @@ const Situation = () => {
 
   const getBadgeClass = (estado: string) => {
     switch (estado) {
-      case "Aprobada": return "badge green";
+      case "Aprobada":
+      case "Promocion": return "badge green";
       case "Regular": return "badge blue";
       case "Cursando": return "badge yellow";
+      case "Desaprobado": return "badge red";
       case "Pendiente": return "badge gray";
       default: return "badge";
     }

@@ -13,10 +13,10 @@ interface Subject {
 
 interface ManualRow {
   materiaId: string;
-  estado: string;
   nota: string;
   cuatrimestre: number;
   anioCursada: number;
+  errores: string[];
 }
 
 interface PreviewRow {
@@ -31,7 +31,14 @@ interface PreviewRow {
   errores: string[];
 }
 
-const ESTADOS = ["Pendiente", "Inscripto", "Cursando", "Regular", "Aprobada", "Promocion", "Libre"];
+const previewEstado = (nota: string | number | undefined | null): string => {
+  const n = typeof nota === 'string' ? Number(nota) : (nota ?? NaN);
+  if (isNaN(n)) return "Cursando";
+  if (n >= 1 && n <= 3) return "Desaprobado";
+  if (n > 3 && n <= 6) return "Regular";
+  if (n > 6 && n <= 10) return "Promocion";
+  return "Cursando";
+};
 const currentYear = new Date().getFullYear();
 
 const LoadSituation = () => {
@@ -40,7 +47,7 @@ const LoadSituation = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [mode, setMode] = useState<"none" | "manual" | "excel">("none");
   const [rows, setRows] = useState<ManualRow[]>([{
-    materiaId: "", estado: "Aprobada", nota: "", cuatrimestre: 1, anioCursada: currentYear
+    materiaId: "", nota: "", cuatrimestre: 1, anioCursada: currentYear, errores: []
   }]);
   const [preview, setPreview] = useState<PreviewRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,17 +64,38 @@ const LoadSituation = () => {
   }, []);
 
   const updateRow = (idx: number, key: keyof ManualRow, value: string | number) => {
-    setRows((prev) => prev.map((row, i) => i === idx ? { ...row, [key]: value } : row));
+    setRows((prev) => prev.map((row, i) => {
+      if (i !== idx) return row;
+      const errores: string[] = [];
+      const next = { ...row, [key]: value, errores };
+      if (key === "nota" && value !== "" && value !== undefined && value !== null) {
+        const notaNum = Number(value);
+        if (notaNum < 1 || notaNum > 10) {
+          errores.push("Nota invalida (debe ser 1-10)");
+        }
+      }
+      return next;
+    }));
   };
 
   const updatePreview = (idx: number, key: keyof PreviewRow, value: string | number) => {
     setPreview((prev) => prev.map((row, i) => {
       if (i !== idx) return row;
-      const next = { ...row, [key]: value, errores: [] };
+      const errores: string[] = [];
+      const next = { ...row, [key]: value, errores };
       if (key === "materiaId") {
         const subject = subjects.find((s) => s._id === value);
-        next.codigo = subject?.codigo || row.codigo;
-        next.materiaNombre = subject?.nombre;
+        if (subject) {
+          next.codigo = subject.codigo;
+          next.materiaNombre = subject.nombre;
+        }
+      }
+      if (key === "nota") {
+        const notaNum = typeof value === 'string' ? Number(value) : value;
+        next.estado = previewEstado(notaNum);
+        if (value !== "" && value !== undefined && value !== null && (notaNum < 1 || notaNum > 10)) {
+          errores.push("Nota invalida (debe ser 1-10)");
+        }
       }
       return next;
     }));
@@ -76,24 +104,37 @@ const LoadSituation = () => {
   const submitManual = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
+
+    const inlineErrors = rows.some((r) => r.errores.length > 0);
+    if (inlineErrors) return;
+
     setLoading(true);
     try {
       const records = rows
-        .filter((row) => row.materiaId)
-        .map((row) => ({
+        .map((row, idx) => ({
+          fila: idx + 1,
           materiaId: row.materiaId,
-          estado: row.estado,
           nota: row.nota ? Number(row.nota) : undefined,
           cuatrimestre: Number(row.cuatrimestre),
           anioCursada: Number(row.anioCursada)
-        }));
+        }))
+        .filter((r) => r.materiaId);
       if (records.length === 0) {
         setMessage({ text: "Agregá al menos una materia.", type: "error" });
         return;
       }
       const res = await api.post("/academico/situacion/bulk", { records });
-      setMessage({ text: res.data.mensaje, type: "success" });
-      window.setTimeout(() => navigate("/student/situation"), 1000);
+      const { mensaje, errores } = res.data as { mensaje: string; errores?: { fila: number; motivo: string }[] };
+      if (errores && errores.length > 0) {
+        const errorMap = new Map(errores.map((e: { fila: number; motivo: string }) => [e.fila, e.motivo]));
+        setRows((prev) => prev.map((row, idx) => ({
+          ...row,
+          errores: errorMap.has(idx + 1) ? [errorMap.get(idx + 1) ?? ''] : []
+        })));
+      } else {
+        setMessage({ text: mensaje || "Carga completada", type: "success" });
+        window.setTimeout(() => navigate("/student/situation"), 1500);
+      }
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
       setMessage({ text: ax.response?.data?.mensaje || "Error al cargar la situación", type: "error" });
@@ -125,8 +166,22 @@ const LoadSituation = () => {
     setLoading(true);
     try {
       const res = await api.post("/academico/situacion/confirm-excel", { records: preview });
-      setMessage({ text: res.data.mensaje, type: "success" });
-      window.setTimeout(() => navigate("/student/situation"), 1000);
+      const { procesados, errores, mensaje } = res.data as { procesados: unknown[]; errores?: { fila: number; motivo: string }[]; mensaje: string };
+
+      if (errores && errores.length > 0) {
+        const errorMap = new Map(errores.map((e: { fila: number; motivo: string }) => [e.fila, e.motivo]));
+        setPreview((prev) => prev.map((row) => ({
+          ...row,
+          errores: errorMap.has(row.fila) ? [errorMap.get(row.fila) ?? ''] : row.errores
+        })));
+        setMessage({
+          text: `${procesados.length} registros importados. ${errores.length} errores. Corregí las filas marcadas y confirmá de nuevo.`,
+          type: "error"
+        });
+      } else {
+        setMessage({ text: mensaje || "Importación completada", type: "success" });
+        window.setTimeout(() => navigate("/student/situation"), 1500);
+      }
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
       setMessage({ text: ax.response?.data?.mensaje || "Error al confirmar la importación", type: "error" });
@@ -138,10 +193,14 @@ const LoadSituation = () => {
   const downloadTemplate = () => {
     // Usamos punto y coma para mejor compatibilidad con Excel (especialmente en locales en español)
     // y agregamos el BOM de UTF-8 (\ufeff) para que Excel reconozca correctamente los caracteres especiales.
+    // El estado se calcula automáticamente según la nota: 1-3 → Desaprobado, 4-6 → Regular, 7-10 → Promocion.
+    // Si no se especifica nota, queda como Cursando (ej: materia en curso sin nota final).
     const csvContent = [
-      "codigo;estado;nota;cuatrimestre;anio",
-      "AM1;Aprobada;9;1;2024",
-      "AED;Regular;;2;2024"
+      "codigo;nota;cuatrimestre;año",
+      "MAT;9;1;2024",
+      "IP;6;1;2024",
+      "ING1;3;1;2024",
+      "PROG1;;2;2024"
     ].join("\n");
     
     const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
@@ -187,80 +246,69 @@ const LoadSituation = () => {
       {mode === "manual" && (
         <form onSubmit={submitManual} className="manual-form">
           <h3>Carga manual</h3>
-          <div className="manual-rows">
-            {rows.map((row, idx) => (
-              <div key={idx} className="manual-row">
-                <select 
-                  className="subject-select"
-                  aria-label={`Materia de la fila ${idx + 1}`}
-                  value={row.materiaId} 
-                  onChange={(e) => updateRow(idx, "materiaId", e.target.value)}
-                >
-                  <option value="">-- Materia --</option>
-                  {subjects.map((subject) => (
-                    <option key={subject._id} value={subject._id}>
-                      {subject.nombre} ({subject.codigo})
-                    </option>
-                  ))}
-                </select>
-                <select 
-                  className="status-select"
-                  aria-label={`Estado de la fila ${idx + 1}`}
-                  value={row.estado} 
-                  onChange={(e) => updateRow(idx, "estado", e.target.value)}
-                >
-                  {ESTADOS.map((estado) => (
-                    <option key={estado} value={estado}>{estado}</option>
-                  ))}
-                </select>
-                <input 
-                  type="number" 
-                  className="grade-input"
-                  aria-label={`Nota de la fila ${idx + 1}`}
-                  min={0} 
-                  max={10} 
-                  placeholder="Nota" 
-                  value={row.nota} 
-                  onChange={(e) => updateRow(idx, "nota", e.target.value)} 
-                />
-                <select 
-                  className="term-select"
-                  aria-label={`Período de la fila ${idx + 1}`}
-                  value={row.cuatrimestre} 
-                  onChange={(e) => updateRow(idx, "cuatrimestre", Number(e.target.value))}
-                >
-                  <option value={0}>Anual</option>
-                  <option value={1}>1C</option>
-                  <option value={2}>2C</option>
-                </select>
-                <input 
-                  type="number" 
-                  className="year-input"
-                  aria-label={`Año de cursada de la fila ${idx + 1}`}
-                  value={row.anioCursada} 
-                  onChange={(e) => updateRow(idx, "anioCursada", Number(e.target.value))} 
-                />
-                <button 
-                  type="button" 
-                  className="btn-remove"
-                  onClick={() => setRows((prev) => prev.filter((_, i) => i !== idx))}
-                >
-                  Quitar
-                </button>
-              </div>
-            ))}
+          <div className="table-responsive manual-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fila</th>
+                  <th>Materia</th>
+                  <th>Estado</th>
+                  <th>Nota</th>
+                  <th>Cuatri</th>
+                  <th>Año</th>
+                  <th>Errores</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, idx) => (
+                  <tr key={idx}>
+                    <td data-label="Fila">{idx + 1}</td>
+                    <td data-label="Materia">
+                      <select value={row.materiaId} onChange={(e) => updateRow(idx, "materiaId", e.target.value)}>
+                        <option value="">-- Materia --</option>
+                        {subjects.map((subject) => (
+                          <option key={subject._id} value={subject._id}>{subject.nombre} ({subject.codigo})</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td data-label="Estado">
+                      <span className={`status-badge ${previewEstado(row.nota).toLowerCase()}`}>{previewEstado(row.nota)}</span>
+                    </td>
+                    <td data-label="Nota">
+                      <input type="number" placeholder="Nota" value={row.nota} onChange={(e) => updateRow(idx, "nota", e.target.value)} />
+                    </td>
+                    <td data-label="Cuatri">
+                      <select value={row.cuatrimestre} onChange={(e) => updateRow(idx, "cuatrimestre", Number(e.target.value))}>
+                        <option value={0}>Anual</option>
+                        <option value={1}>1C</option>
+                        <option value={2}>2C</option>
+                      </select>
+                    </td>
+                    <td data-label="Año">
+                      <input type="number" value={row.anioCursada} onChange={(e) => updateRow(idx, "anioCursada", Number(e.target.value))} />
+                    </td>
+                    <td data-label="Errores" className={row.errores.length ? "error-text" : "ok-text"}>
+                      {row.errores.join("; ") || "OK"}
+                    </td>
+                    <td data-label="">
+                      <button type="button" className="btn-remove" onClick={() => setRows((prev) => prev.filter((_, i) => i !== idx))}>Quitar fila</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div className="manual-actions">
-            <button 
-              type="button" 
-              className="btn-secondary"
-              onClick={() => setRows((prev) => [...prev, { materiaId: "", estado: "Aprobada", nota: "", cuatrimestre: 1, anioCursada: currentYear }])}
-            >
+          <div className="confirm-bar">
+            <button type="button" className="btn-secondary" onClick={() => setRows((prev) => [...prev, { materiaId: "", nota: "", cuatrimestre: 1, anioCursada: currentYear, errores: [] }])}>
               Agregar fila
             </button>
             <button type="submit" className="btn-primary" disabled={loading}>
-              Guardar
+              {loading ? "Guardando..." : "Guardar"}
             </button>
+            {rows.some((r) => r.errores.length > 0) && (
+              <span className="error-count">{rows.filter((r) => r.errores.length > 0).length} fila(s) con errores</span>
+            )}
           </div>
         </form>
       )}
@@ -298,39 +346,54 @@ const LoadSituation = () => {
                       <th>Estado</th>
                       <th>Nota</th>
                       <th>Cuatri</th>
-                      <th>Anio</th>
+                      <th>Año</th>
                       <th>Errores</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
                     {preview.map((row, idx) => (
                       <tr key={row.fila}>
-                        <td>{row.fila}</td>
-                        <td>
+                        <td data-label="Fila">{row.fila}</td>
+                        <td data-label="Materia">
                           <select value={row.materiaId || ""} onChange={(e) => updatePreview(idx, "materiaId", e.target.value)}>
-                            <option value="">-- Corregir materia --</option>
+                            <option value="">-- Materia --</option>
                             {subjects.map((subject) => <option key={subject._id} value={subject._id}>{subject.nombre} ({subject.codigo})</option>)}
                           </select>
                         </td>
-                        <td>
-                          <select value={row.estado} onChange={(e) => updatePreview(idx, "estado", e.target.value)}>
-                            {ESTADOS.map((estado) => <option key={estado} value={estado}>{estado}</option>)}
-                          </select>
+                        <td data-label="Estado">
+                          <span className={`status-badge ${previewEstado(row.nota).toLowerCase()}`}>{previewEstado(row.nota)}</span>
                         </td>
-                        <td><input type="number" min={0} max={10} value={row.nota ?? ""} onChange={(e) => updatePreview(idx, "nota", Number(e.target.value))} /></td>
-                        <td><input type="number" min={0} max={2} value={row.cuatrimestre ?? ""} onChange={(e) => updatePreview(idx, "cuatrimestre", Number(e.target.value))} /></td>
-                        <td><input type="number" value={row.anioCursada ?? ""} onChange={(e) => updatePreview(idx, "anioCursada", Number(e.target.value))} /></td>
-                        <td className={row.errores.length ? "error-text" : "ok-text"}>
+                        <td data-label="Nota"><input type="number" value={row.nota ?? ""} onChange={(e) => updatePreview(idx, "nota", Number(e.target.value))} /></td>
+                        <td data-label="Cuatri"><input type="number" min={0} max={2} value={row.cuatrimestre ?? ""} onChange={(e) => updatePreview(idx, "cuatrimestre", Number(e.target.value))} /></td>
+                        <td data-label="Año"><input type="number" value={row.anioCursada ?? ""} onChange={(e) => updatePreview(idx, "anioCursada", Number(e.target.value))} /></td>
+                        <td data-label="Errores" className={row.errores.length ? "error-text" : "ok-text"}>
                           {row.errores.join("; ") || "OK"}
+                        </td>
+                        <td data-label="">
+                          <button type="button" className="btn-remove" onClick={() => setPreview((prev) => prev.filter((_, i) => i !== idx))}>Quitar fila</button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <button className="btn-primary" onClick={confirmPreview} disabled={loading} style={{ marginTop: 12 }}>
-                Confirmar importación
-              </button>
+              <div className="confirm-bar">
+                <button type="button" className="btn-secondary" onClick={() => {
+                  const maxFila = preview.reduce((m, r) => Math.max(m, r.fila), 0);
+                  setPreview((prev) => [...prev, {
+                    fila: maxFila + 1, codigo: "", estado: "Cursando", errores: []
+                  }]);
+                }}>
+                  Agregar fila
+                </button>
+                <button className="btn-primary" onClick={confirmPreview} disabled={loading}>
+                  {loading ? "Confirmando..." : "Confirmar importación"}
+                </button>
+                {preview.some((r) => r.errores.length > 0) && (
+                  <span className="error-count">{preview.filter((r) => r.errores.length > 0).length} fila(s) con errores</span>
+                )}
+              </div>
             </div>
           )}
         </div>
