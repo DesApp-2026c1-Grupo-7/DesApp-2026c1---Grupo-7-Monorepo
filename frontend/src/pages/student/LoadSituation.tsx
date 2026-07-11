@@ -111,14 +111,14 @@ const LoadSituation = () => {
     setLoading(true);
     try {
       const records = rows
-        .filter((row) => row.materiaId)
         .map((row, idx) => ({
           fila: idx + 1,
           materiaId: row.materiaId,
           nota: row.nota ? Number(row.nota) : undefined,
           cuatrimestre: Number(row.cuatrimestre),
           anioCursada: Number(row.anioCursada)
-        }));
+        }))
+        .filter((r) => r.materiaId);
       if (records.length === 0) {
         setMessage({ text: "Agregá al menos una materia.", type: "error" });
         return;

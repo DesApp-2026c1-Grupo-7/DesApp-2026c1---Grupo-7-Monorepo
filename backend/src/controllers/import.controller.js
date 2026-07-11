@@ -37,9 +37,12 @@ const normalizeImportRow = async (raw, idx) => {
   // El estado se calcula desde la nota si está presente, o se toma del Excel (backward compat)
   // Si no hay nota ni estado, se asume Cursando.
   let estado;
-  if (nota !== undefined && !Number.isNaN(nota)) {
-    estado = calcularEstadoGrade(nota);
-    if (!estado) errores.push('Nota invalida (debe ser 1-10)');
+  if (nota !== undefined) {
+    if (Number.isNaN(nota) || nota < 1 || nota > 10) {
+      errores.push('Nota invalida (debe ser 1-10)');
+    } else {
+      estado = calcularEstadoGrade(nota);
+    }
   } else if (rawEstado) {
     const estadoUpper = rawEstado.toUpperCase();
     if (!VALID_ESTADOS.includes(estadoUpper)) {
@@ -57,7 +60,6 @@ const normalizeImportRow = async (raw, idx) => {
   } else {
     estado = 'Cursando';
   }
-  if (nota !== undefined && (Number.isNaN(nota) || nota < 1 || nota > 10)) errores.push('Nota invalida');
   if (cuatrimestre !== undefined && ![0, 1, 2].includes(cuatrimestre)) errores.push('Cuatrimestre invalido');
 
   const subject = codigo ? await Subject.findOne({ codigo }) : null;
