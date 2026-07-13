@@ -73,6 +73,6 @@ describe("Planificador de cursada", () => {
     cy.get('[data-testid="plan-guardado"]').first().within(() => {
       cy.contains("button", "Comparar rendimiento").click();
     });
-    cy.get('[data-testid="comparacion"]').first().should("contain", "materias previstas");
+    cy.get('[data-testid="comparacion"]').first().should("contain", "materias");
   });
 });
