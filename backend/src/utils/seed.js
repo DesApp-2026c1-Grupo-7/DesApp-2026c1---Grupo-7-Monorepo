@@ -293,6 +293,53 @@ async function seedDemoGrades(student, subjectsMap) {
   logger.info('Situacion academica de demo cargada para el estudiante por defecto.');
 }
 
+// Plan de estudio guardado de demo para que el estudiante por defecto ya tenga uno
+// al levantar la app, permitiendo probar la comparación de rendimiento.
+async function seedDemoSavedPlan(student, subjectsMap) {
+  const yaTiene = await SavedStudyPlan.countDocuments({ estudiante: student._id });
+  if (yaTiene > 0) return;
+
+  const id = (cod) => subjectsMap[cod]._id;
+  const materia = (cod, correlativas = []) => ({
+    materia: id(cod),
+    nombre: subjectsMap[cod].nombre,
+    codigo: cod,
+    creditos: 8,
+    horasSemanalesEstimadas: 6,
+    correlativas: correlativas.map(id)
+  });
+
+  const periodos = [
+    { anio: 2024, cuatrimestre: 1, horasUsadas: 24, materias: [
+      materia('IP'), materia('MAT'), materia('OC'), materia('ING1')
+    ]},
+    { anio: 2024, cuatrimestre: 2, horasUsadas: 24, materias: [
+      materia('PROG1', ['IP']), materia('ED', ['IP']), materia('BD1', ['IP']), materia('ING2', ['ING1'])
+    ]},
+    { anio: 2025, cuatrimestre: 1, horasUsadas: 24, materias: [
+      materia('PROG2', ['PROG1', 'ED']), materia('BD2', ['BD1']), materia('SO', ['OC']), materia('IS1', ['PROG1', 'BD1'])
+    ]},
+    { anio: 2025, cuatrimestre: 2, horasUsadas: 24, materias: [
+      materia('PROG3', ['PROG2', 'BD2']), materia('RED', ['SO']), materia('IS2', ['IS1', 'PROG2'])
+    ]},
+    { anio: 2026, cuatrimestre: 1, horasUsadas: 24, materias: [
+      materia('DAW', ['PROG3']), materia('SEG', ['RED']), materia('GP', ['IS2'])
+    ]},
+    { anio: 2026, cuatrimestre: 2, horasUsadas: 24, materias: [
+      materia('PP', ['PROG3', 'IS2', 'BD2']), materia('OPTCD', ['BD2'])
+    ]}
+  ];
+
+  await SavedStudyPlan.create({
+    estudiante: student._id,
+    nombre: 'Mi plan de cursada',
+    horasPorSemana: 24,
+    periodos,
+    periodosOriginales: periodos.map(p => ({ ...p, materias: [...p.materias] }))
+  });
+  logger.info('Plan guardado de demo creado para Estudiante de Prueba.');
+}
+
 // Materiales de demo con archivos reales de ejemplo (uno por tipo permitido).
 // Los binarios viven versionados en seed-assets/materiales y se copian a
 // uploads/materials (servido estaticamente) para que el link de descarga funcione.
@@ -589,6 +636,8 @@ async function seedUsers() {
     }
 
     await seedDemoGrades(student, subjectsMap);
+
+    await seedDemoSavedPlan(student, subjectsMap);
 
     // Crear sesion de estudio para Estudiante de Prueba
     const yaTieneSesion = await StudySession.findOne({ creador: student._id, tema: 'Repaso para el parcial' });

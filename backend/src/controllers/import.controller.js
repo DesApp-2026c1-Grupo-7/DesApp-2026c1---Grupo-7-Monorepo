@@ -4,6 +4,7 @@ const Grade = require('../models/Grade');
 const { createAcademicEvent } = require('../utils/academicEvents');
 const { getPlanSubjectsForUser } = require('./grade.controller');
 const { calcularEstadoGrade, CORRELATIVA_STATES } = require('../utils/gradeState');
+const { recalcularPlanesDelEstudiante } = require('../utils/recalcularPlan');
 
 const VALID_ESTADOS = ['PENDIENTE', 'INSCRIPTO', 'INSCRIPTA', 'CURSANDO', 'REGULAR', 'APROBADA', 'APROBADO', 'DESAPROBADO', 'LIBRE', 'PROMOCION'];
 
@@ -173,6 +174,11 @@ const persistPreview = async (userId, preview, res) => {
       }
       procesados.push({ codigo: row.codigo, estado: grade.estado });
     }
+
+  // Etapa 3: recalcular planes guardados tras importación
+  if (procesados.length > 0) {
+    await recalcularPlanesDelEstudiante(userId);
+  }
 
   res.json({
     mensaje: `Importacion completada: ${procesados.length} registros, ${errores.length} errores`,

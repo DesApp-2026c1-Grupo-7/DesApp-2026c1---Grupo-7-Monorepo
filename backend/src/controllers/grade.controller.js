@@ -8,6 +8,7 @@ const SavedStudyPlan = require('../models/SavedStudyPlan');
 const Event = require('../models/Event');
 const { createAcademicEvent } = require('../utils/academicEvents');
 const { calcularEstadoGrade, APPROVED_STATES, CORRELATIVA_STATES } = require('../utils/gradeState');
+const { recalcularPlanesDelEstudiante } = require('../utils/recalcularPlan');
 
 const sortBySubjectPosition = (items) => [...items].sort((a, b) => {
   const materiaA = a.materia || {};
@@ -191,6 +192,9 @@ const updateGrade = async (req, res) => {
       await createAcademicEvent(userId, estado, grade.materia.nombre);
     }
 
+    // Etapa 3: recalcular planes guardados si la nota afecta el progreso
+    await recalcularPlanesDelEstudiante(userId);
+
     res.json({ mensaje: 'Situación actualizada', grade });
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al actualizar situación', error: error.message });
@@ -268,6 +272,11 @@ const bulkLoadSituation = async (req, res) => {
         await createAcademicEvent(userId, estadoCalculado, grade.materia.nombre);
       }
       results.push(grade);
+    }
+
+    // Etapa 3: recalcular planes guardados tras carga masiva
+    if (results.length > 0) {
+      await recalcularPlanesDelEstudiante(userId);
     }
 
     res.json({ 
@@ -359,6 +368,9 @@ const cerrarCuatrimestre = async (req, res) => {
     if (grade && grade.materia) {
       await createAcademicEvent(userId, estado, grade.materia.nombre);
     }
+
+    // Etapa 3: recalcular planes guardados tras cierre de cuatrimestre
+    await recalcularPlanesDelEstudiante(userId);
 
     res.json({ mensaje: 'Cuatrimestre cerrado', grade });
   } catch (error) {
@@ -877,7 +889,8 @@ const saveStudyPlan = async (req, res) => {
         nombre: materia.nombre,
         codigo: materia.codigo,
         creditos: materia.creditos,
-        horasSemanalesEstimadas: materia.horasSemanalesEstimadas
+        horasSemanalesEstimadas: materia.horasSemanalesEstimadas,
+        correlativas: materia.correlativas || []
       }))
     }));
 
@@ -885,7 +898,8 @@ const saveStudyPlan = async (req, res) => {
       estudiante: req.user.id,
       nombre,
       horasPorSemana: Math.max(1, Number(horasPorSemana || 1)),
-      periodos: normalized
+      periodos: normalized,
+      periodosOriginales: JSON.parse(JSON.stringify(normalized))
     });
 
     res.status(201).json({ mensaje: 'Planificacion guardada', plan: saved });
@@ -913,23 +927,28 @@ const getComparacionPlanGuardado = async (req, res) => {
     const periodoTranscurrido = (p) =>
       p.anio < anioActual || (p.anio === anioActual && p.cuatrimestre <= cuatrimestreActual);
 
-    const periodos = plan.periodos.map((p) => {
+    const periodosSource = plan.periodosOriginales && plan.periodosOriginales.length > 0
+      ? plan.periodosOriginales
+      : plan.periodos;
+
+    const periodos = periodosSource.map((p) => {
       const transcurrido = periodoTranscurrido(p);
       const total = p.materias.length;
+      const aprobadas = p.materias.filter((m) => m.materia && aprobadasIds.has(m.materia.toString()));
+      const noAprobadas = p.materias.filter((m) => m.materia && !aprobadasIds.has(m.materia.toString()));
       return {
         anio: p.anio,
         cuatrimestre: p.cuatrimestre,
         transcurrido,
         totalMaterias: total,
-        cumplidas: p.materias.filter((m) => m.materia && aprobadasIds.has(m.materia.toString())).length,
-        materiasAtrasadas: p.materias
-          .filter((m) => m.materia && !aprobadasIds.has(m.materia.toString()))
-          .map((m) => ({ nombre: m.nombre, codigo: m.codigo }))
+        cumplidas: aprobadas.length,
+        materiasCumplidas: aprobadas.map((m) => ({ nombre: m.nombre, codigo: m.codigo })),
+        materiasAtrasadas: noAprobadas.map((m) => ({ nombre: m.nombre, codigo: m.codigo }))
       };
     });
 
     // Total absoluto del plan (sólo como referencia para mostrar).
-    const totalPlan = plan.periodos.reduce(
+    const totalPlan = periodosSource.reduce(
       (sum, p) => sum + p.materias.filter((m) => m.materia).length,
       0
     );
@@ -937,7 +956,7 @@ const getComparacionPlanGuardado = async (req, res) => {
     // El rendimiento se compara SÓLO contra los cuatrimestres ya transcurridos: cuántas
     // materias deberían estar aprobadas a esta altura del plan y cuántas realmente lo están.
     // Así el porcentaje y el estado son coherentes (no se exige el plan completo desde el día uno).
-    const periodosTranscurridos = plan.periodos.filter(periodoTranscurrido);
+    const periodosTranscurridos = periodosSource.filter(periodoTranscurrido);
     const materiasEsperadas = periodosTranscurridos.reduce(
       (sum, p) => sum + p.materias.filter((m) => m.materia).length,
       0

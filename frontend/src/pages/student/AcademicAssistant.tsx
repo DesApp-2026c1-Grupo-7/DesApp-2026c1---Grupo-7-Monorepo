@@ -81,6 +81,16 @@ interface SavedPlan {
   nombre: string;
   horasPorSemana: number;
   periodos: PlanPeriodo[];
+  ultimoRecalculo?: {
+    fecha: string;
+    materiasRetrasadas: {
+      materia: string;
+      nombre: string;
+      codigo: string;
+      periodoOrigen: string;
+      periodoNuevo: string;
+    }[];
+  };
 }
 
 interface ComparacionPlan {
@@ -97,6 +107,7 @@ interface ComparacionPlan {
     transcurrido: boolean;
     totalMaterias: number;
     cumplidas: number;
+    materiasCumplidas: { nombre: string; codigo: string }[];
     materiasAtrasadas: { nombre: string; codigo: string }[];
   }[];
 }
@@ -171,6 +182,7 @@ const AcademicAssistant = () => {
   // Estado para el modal de baja de finales
   const [showFinalModal, setShowFinalModal] = useState(false);
   const [finalToDelete, setFinalToDelete] = useState<{ id: string, nombre: string } | null>(null);
+  const [planExpandido, setPlanExpandido] = useState<string | null>(null);
 
   useEffect(() => {
     if (error || success) {
@@ -775,21 +787,95 @@ const AcademicAssistant = () => {
             </p>
             {planesGuardados.map((plan) => {
               const comp = comparaciones[plan._id];
+              const expandido = planExpandido === plan._id;
+              const retrasadas = plan.ultimoRecalculo?.materiasRetrasadas || [];
+              const retrasadasIds = new Set(retrasadas.map((r) => r.materia));
               return (
                 <div key={plan._id} className="projection" data-testid="plan-guardado">
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <span>{plan.nombre} ({plan.horasPorSemana} h/sem, {plan.periodos.length} periodos)</span>
-                    <button className="btn-secondary" onClick={() => compararConPlan(plan._id)}>
-                      Comparar rendimiento
-                    </button>
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", cursor: "pointer" }}
+                    onClick={() => setPlanExpandido(expandido ? null : plan._id)}
+                  >
+                    <span style={{ userSelect: "none" }}>{expandido ? "\u25BC " : "\u25B6 "}{plan.nombre} ({plan.horasPorSemana} h/sem, {plan.periodos.length} periodos)</span>
+                    <div style={{ display: "flex", gap: 6 }} onClick={(e) => e.stopPropagation()}>
+                      <button className="btn-secondary" onClick={() => compararConPlan(plan._id)}>
+                        Comparar rendimiento
+                      </button>
+                    </div>
                   </div>
+                  {retrasadas.length > 0 && (
+                    <div style={{ marginTop: 6, padding: "6px 10px", borderRadius: 6, background: "#fef3c7", border: "1px solid #fcd34d", fontSize: "0.85rem" }} data-testid="recalculo-info">
+                      <strong style={{ color: "#92400e" }}>Plan recalculado automáticamente</strong>
+                      <p style={{ margin: "2px 0 0", color: "#78350f" }}>
+                        {retrasadas.length === 1
+                          ? `1 materia reubicada: ${retrasadas[0].nombre}`
+                          : `${retrasadas.length} materias reubicadas: ${retrasadas.map((m) => m.codigo).join(", ")}`}
+                      </p>
+                    </div>
+                  )}
+
+                  {expandido && (
+                    <div style={{ marginTop: 10, borderTop: "1px solid #e5e7eb", paddingTop: 10 }} data-testid="plan-detalle">
+                      {plan.periodos.length === 0 && (
+                        <p style={{ fontSize: "0.85rem", color: "#6b7280" }}>Sin materias (plan vacio tras recalculo).</p>
+                      )}
+                      {plan.periodos.map((p, idx) => (
+                        <div key={idx} style={{ marginBottom: 8 }}>
+                          <div style={{ fontSize: "0.85rem", fontWeight: 600, marginBottom: 4 }}>
+                            {p.anio} - {p.cuatrimestre === 0 ? "Anual" : `${p.cuatrimestre}C`}
+                            <span style={{ fontWeight: 400, color: "#6b7280", marginLeft: 8 }}>
+                              {p.horasUsadas} h/sem - {p.materias.length} {p.materias.length === 1 ? "materia" : "materias"}
+                            </span>
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                            {p.materias.map((m) => {
+                              const fueRetrasada = retrasadasIds.has(m._id);
+                              return (
+                                <span
+                                  key={m._id}
+                                  title={fueRetrasada ? "Reubicada por recalculo automatico" : undefined}
+                                  style={{
+                                    display: "inline-block", padding: "2px 8px", borderRadius: 4,
+                                    fontSize: "0.8rem",
+                                    background: fueRetrasada ? "#fef3c7" : "#e0e7ff",
+                                    border: `1px solid ${fueRetrasada ? "#fcd34d" : "#c7d2fe"}`,
+                                    color: fueRetrasada ? "#92400e" : "#4338ca"
+                                  }}
+                                >
+                                  {m.codigo || m.nombre}{fueRetrasada ? " !!" : ""}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                      {retrasadas.length > 0 && (
+                        <div style={{ marginTop: 6, fontSize: "0.8rem", color: "#6b7280" }}>
+                          <strong>Materias reubicadas:</strong>{" "}
+                          {retrasadas.map((r) => `${r.codigo} (${r.periodoOrigen.replace(/(\d)C/, '$1 C')} -> ${r.periodoNuevo.replace(/(\d)C/, '$1 C')})`).join(", ")}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {comp && (
                     <div style={{ marginTop: 8 }} data-testid="comparacion">
                       <p>
-                        Cumpliste {comp.materiasCumplidas} de {comp.materiasEsperadas} materias previstas hasta hoy
-                        {" "}({comp.porcentajeCumplimiento}%) · Estado: <strong>{comp.estado.replace("-", " ")}</strong>
-                        {typeof comp.totalPlan === "number" && (
-                          <span style={{ color: "#6b7280" }}> · Plan completo: {comp.totalPlan} materias</span>
+                        {comp.materiasEsperadas === 0 ? (
+                          <>
+                            El período de cursada para tu plan aún no comenzó
+                            {typeof comp.totalPlan === "number" && (
+                              <span style={{ color: "#6b7280" }}> · Plan completo: {comp.totalPlan} materias</span>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            Cumpliste {comp.materiasCumplidas} de {comp.materiasEsperadas} materias previstas hasta hoy
+                            {" "}({comp.porcentajeCumplimiento}%) · Estado: <strong>{comp.estado.replace("-", " ")}</strong>
+                            {typeof comp.totalPlan === "number" && (
+                              <span style={{ color: "#6b7280" }}> · Plan completo: {comp.totalPlan} materias</span>
+                            )}
+                          </>
                         )}
                       </p>
                       {comp.periodos && comp.periodos.filter((p) => p.transcurrido).length > 0 && (
@@ -807,18 +893,15 @@ const AcademicAssistant = () => {
                               >
                                 <strong>{p.anio} - {p.cuatrimestre === 0 ? "Anual" : `${p.cuatrimestre}C`}:</strong>{" "}
                                 planeaste {p.totalMaterias}, cumpliste {p.cumplidas}
+                                {p.materiasCumplidas.length > 0 && (
+                                  <span style={{ color: "#166534" }}> ({p.materiasCumplidas.map((m) => m.codigo).join(", ")})</span>
+                                )}
                                 {p.materiasAtrasadas.length > 0 && (
-                                  <span> · atrasadas: {p.materiasAtrasadas.map((m) => m.codigo).join(", ")}</span>
+                                  <span> · atrasadas {p.materiasAtrasadas.length}: {p.materiasAtrasadas.map((m) => m.codigo).join(", ")}</span>
                                 )}
                               </div>
                             );
                           })}
-                          {comp.estado !== "al-dia" && (
-                            <p style={{ fontSize: "0.85rem", color: "#92400e", margin: "4px 0 0" }}>
-                              Cargá lo que aprobaste/regularizaste en tu situación académica y usá
-                              "Regenerar plan automático" para recalcular el plan con tu atraso.
-                            </p>
-                          )}
                         </div>
                       )}
                     </div>
