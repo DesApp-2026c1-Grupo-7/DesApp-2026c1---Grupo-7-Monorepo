@@ -920,6 +920,10 @@ const getComparacionPlanGuardado = async (req, res) => {
     const aprobadasIds = new Set(
       grades.filter((g) => APPROVED_STATES.includes(g.estado)).map((g) => g.materia.toString())
     );
+    // Mapa materiaId -> estado para mostrar el estado de cada materia pendiente
+    const gradeEstadoMap = new Map(
+      grades.map((g) => [g.materia.toString(), g.estado])
+    );
 
     const now = new Date();
     const anioActual = now.getFullYear();
@@ -943,7 +947,11 @@ const getComparacionPlanGuardado = async (req, res) => {
         totalMaterias: total,
         cumplidas: aprobadas.length,
         materiasCumplidas: aprobadas.map((m) => ({ nombre: m.nombre, codigo: m.codigo })),
-        materiasAtrasadas: noAprobadas.map((m) => ({ nombre: m.nombre, codigo: m.codigo }))
+        materiasAtrasadas: noAprobadas.map((m) => ({
+          nombre: m.nombre,
+          codigo: m.codigo,
+          estado: gradeEstadoMap.get(m.materia.toString()) || 'Sin cursar'
+        }))
       };
     });
 
@@ -966,6 +974,14 @@ const getComparacionPlanGuardado = async (req, res) => {
       0
     );
 
+    // Materias aprobadas de todo el plan (sin importar si el período ya transcurrió o no).
+    // Sirve para que el estudiante que guarda un plan con inicio futuro pueda ver cuántas
+    // materias del plan ya aprobó, aunque la comparación formal aún no haya comenzado.
+    const materiasCumplidasTotal = periodosSource.reduce(
+      (sum, p) => sum + p.materias.filter((m) => m.materia && aprobadasIds.has(m.materia.toString())).length,
+      0
+    );
+
     const diferencia = materiasCumplidas - materiasEsperadas;
     const estado = diferencia >= 0 ? 'al-dia' : diferencia >= -2 ? 'leve-desvio' : 'atrasado';
 
@@ -976,6 +992,7 @@ const getComparacionPlanGuardado = async (req, res) => {
       cuatrimestreActual,
       materiasEsperadas,
       materiasCumplidas,
+      materiasCumplidasTotal,
       totalPlan,
       diferencia,
       estado,
