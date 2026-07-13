@@ -73,6 +73,10 @@ describe("Planificador de cursada", () => {
     cy.get('[data-testid="plan-guardado"]').first().within(() => {
       cy.contains("button", "Comparar rendimiento").click();
     });
-    cy.get('[data-testid="comparacion"]').first().should("contain", "materias");
+    cy.get('[data-testid="comparacion"]').first().should(($el) => {
+      const text = $el.text();
+      const hasComparisonText = /Cumpliste|materias previstas|aún no comenzó|planeaste/.test(text);
+      assert.isTrue(hasComparisonText, `Expected comparison text to contain a known pattern, got: "${text.substring(0, 120)}..."`);
+    });
   });
 });

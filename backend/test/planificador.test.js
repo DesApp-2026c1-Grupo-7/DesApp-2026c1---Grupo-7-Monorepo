@@ -428,6 +428,14 @@ test('cargar una nota recalcula automáticamente los planes guardados (etapa 3)'
   assert.ok(planActualizado.ultimoRecalculo, 'el plan tiene fecha de recálculo');
   assert.ok(planActualizado.ultimoRecalculo.materiasRetrasadas.length > 0, 'hubo materias retrasadas');
   assert.equal(planActualizado.ultimoRecalculo.materiasRetrasadas[0].codigo, 'M1B');
+
+  // Verify structural changes: M1A should be removed (approved), M1B should be in a later period
+  const todosLosCodigos = planActualizado.periodos.flatMap((p) => p.materias.map((m) => m.codigo));
+  assert.ok(!todosLosCodigos.includes('M1A'), 'M1A fue eliminada del plan (aprobada)');
+  assert.ok(todosLosCodigos.includes('M1B'), 'M1B sigue en el plan pero reubicada');
+  // After recalc, the original period 1 is emptied and dropped; M1B moves to the next period
+  const retrasadaEntry = planActualizado.ultimoRecalculo.materiasRetrasadas.find((r) => r.codigo === 'M1B');
+  assert.ok(retrasadaEntry && retrasadaEntry.periodoNuevo !== retrasadaEntry.periodoOrigen, 'M1B fue reubicada a otro periodo');
 });
 
 test('desaprobar una materia retrasa sus dependientes en el plan guardado (etapa 3 cascade)', async () => {
@@ -468,6 +476,15 @@ test('desaprobar una materia retrasa sus dependientes en el plan guardado (etapa
   const codigosRetrasados = retrasadas.map((m) => m.codigo);
   assert.ok(codigosRetrasados.includes('M1B'), 'M1B se retrasó');
   assert.ok(codigosRetrasados.includes('M2A'), 'M2A se retrasó por cascade');
+
+  // Verify structural changes: M1A removed, M1B and M2A both repositioned
+  const todosLosCodigos = planActualizado.periodos.flatMap((p) => p.materias.map((m) => m.codigo));
+  assert.ok(!todosLosCodigos.includes('M1A'), 'M1A fue eliminada del plan (aprobada)');
+  // Both M1B and M2A should have been reubicada to a different period than their original
+  const retrasadaM1B = planActualizado.ultimoRecalculo.materiasRetrasadas.find((r) => r.codigo === 'M1B');
+  const retrasadaM2A = planActualizado.ultimoRecalculo.materiasRetrasadas.find((r) => r.codigo === 'M2A');
+  assert.ok(retrasadaM1B && retrasadaM1B.periodoNuevo !== retrasadaM1B.periodoOrigen, 'M1B fue reubicada');
+  assert.ok(retrasadaM2A && retrasadaM2A.periodoNuevo !== retrasadaM2A.periodoOrigen, 'M2A fue reubicada por cascade');
 });
 
 test('si no hay planes guardados, el recálculo no falla (etapa 3)', async () => {
@@ -506,4 +523,39 @@ test('si todas las materias de un periodo transcurrido están aprobadas, no hay 
   if (planActualizado.ultimoRecalculo) {
     assert.equal(planActualizado.ultimoRecalculo.materiasRetrasadas.length, 0, 'sin materias retrasadas');
   }
+});
+
+test('eliminar una nota recalcula los planes guardados (etapa 3 delete)', async () => {
+  const anioPasado = new Date().getFullYear() - 1;
+  const saved = await request(app)
+    .post('/api/academico/planes-guardados')
+    .set('Authorization', `Bearer ${studentToken}`)
+    .send({
+      nombre: 'Plan delete-recalc',
+      horasPorSemana: 12,
+      periodos: [
+        { anio: anioPasado, cuatrimestre: 1, horasUsadas: 8, materias: [
+          { _id: S.M1A, nombre: 'Materia 1A', codigo: 'M1A', creditos: 4, horasSemanalesEstimadas: 4, correlativas: [] },
+          { _id: S.M1B, nombre: 'Materia 1B', codigo: 'M1B', creditos: 4, horasSemanalesEstimadas: 4, correlativas: [] }
+        ] }
+      ]
+    })
+    .expect(201);
+  const planId = saved.body.plan._id;
+
+  // Ensure grade exists, then delete it → recalc should run
+  await setEstado(S.M1A, 'Aprobada').expect(200);
+
+  await request(app)
+    .delete(`/api/academico/situacion/${S.M1A}`)
+    .set('Authorization', `Bearer ${studentToken}`)
+    .expect(200);
+
+  const list = await request(app)
+    .get('/api/academico/planes-guardados')
+    .set('Authorization', `Bearer ${studentToken}`)
+    .expect(200);
+  const planAct = list.body.find((p) => p._id === planId);
+  assert.ok(planAct, 'el plan existe');
+  assert.ok(planAct.ultimoRecalculo, 'hubo recálculo tras delete');
 });

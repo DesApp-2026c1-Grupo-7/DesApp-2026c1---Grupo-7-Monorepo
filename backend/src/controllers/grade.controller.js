@@ -879,6 +879,14 @@ const saveStudyPlan = async (req, res) => {
     if (!nombre || !Array.isArray(periodos)) {
       return res.status(400).json({ mensaje: 'nombre y periodos son obligatorios' });
     }
+    for (const p of periodos) {
+      if (typeof p.anio !== 'number' || typeof p.cuatrimestre !== 'number') {
+        return res.status(400).json({ mensaje: 'Cada período debe tener anio y cuatrimestre numéricos' });
+      }
+      if (!Array.isArray(p.materias)) {
+        return res.status(400).json({ mensaje: 'Cada período debe tener un array de materias' });
+      }
+    }
 
     const normalized = periodos.map((periodo) => ({
       anio: periodo.anio,
@@ -1014,6 +1022,8 @@ const deleteGrade = async (req, res) => {
     if (!result) {
       return res.status(404).json({ mensaje: 'No se encontró la materia en tu situación académica' });
     }
+
+    await recalcularPlanesDelEstudiante(userId);
 
     res.json({ mensaje: 'Materia eliminada de la situación académica' });
   } catch (error) {

@@ -304,28 +304,28 @@ async function seedDemoSavedPlan(student, subjectsMap) {
     materia: id(cod),
     nombre: subjectsMap[cod].nombre,
     codigo: cod,
-    creditos: 8,
-    horasSemanalesEstimadas: 6,
+    creditos: subjectsMap[cod].creditos,
+    horasSemanalesEstimadas: subjectsMap[cod].horasSemanales,
     correlativas: correlativas.map(id)
   });
 
   const periodos = [
-    { anio: 2024, cuatrimestre: 1, horasUsadas: 24, materias: [
+    { anio: 2024, cuatrimestre: 1, horasUsadas: 19, materias: [
       materia('IP'), materia('MAT'), materia('OC'), materia('ING1')
     ]},
-    { anio: 2024, cuatrimestre: 2, horasUsadas: 24, materias: [
+    { anio: 2024, cuatrimestre: 2, horasUsadas: 17, materias: [
       materia('PROG1', ['IP']), materia('ED', ['IP']), materia('BD1', ['IP']), materia('ING2', ['ING1'])
     ]},
-    { anio: 2025, cuatrimestre: 1, horasUsadas: 24, materias: [
+    { anio: 2025, cuatrimestre: 1, horasUsadas: 18, materias: [
       materia('PROG2', ['PROG1', 'ED']), materia('BD2', ['BD1']), materia('SO', ['OC']), materia('IS1', ['PROG1', 'BD1'])
     ]},
-    { anio: 2025, cuatrimestre: 2, horasUsadas: 24, materias: [
+    { anio: 2025, cuatrimestre: 2, horasUsadas: 14, materias: [
       materia('PROG3', ['PROG2', 'BD2']), materia('RED', ['SO']), materia('IS2', ['IS1', 'PROG2'])
     ]},
-    { anio: 2026, cuatrimestre: 1, horasUsadas: 24, materias: [
+    { anio: 2026, cuatrimestre: 1, horasUsadas: 12, materias: [
       materia('DAW', ['PROG3']), materia('SEG', ['RED']), materia('GP', ['IS2'])
     ]},
-    { anio: 2026, cuatrimestre: 2, horasUsadas: 24, materias: [
+    { anio: 2026, cuatrimestre: 2, horasUsadas: 12, materias: [
       materia('PP', ['PROG3', 'IS2', 'BD2']), materia('OPTCD', ['BD2'])
     ]}
   ];

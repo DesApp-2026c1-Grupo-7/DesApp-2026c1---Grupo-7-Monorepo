@@ -157,6 +157,8 @@ const AcademicAssistant = () => {
   const [materiasCursando, setMateriasCursando] = useState<Subject[]>([]);
   const [seleccionQuePasaSi, setSeleccionQuePasaSi] = useState<Record<string, string>>({});
   const [horasPorSemana, setHorasPorSemana] = useState(12);
+  const [horasDraft, setHorasDraft] = useState("12");
+  const horasDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [nombrePlan, setNombrePlan] = useState("Plan tentativo");
   const [oferta, setOferta] = useState({
     anio: new Date().getFullYear(),
@@ -716,9 +718,14 @@ const AcademicAssistant = () => {
             <input
               type="number"
               min={1}
-              value={horasPorSemana}
+              value={horasDraft}
               aria-label="Horas por semana"
-              onChange={(e) => setHorasPorSemana(Number(e.target.value))}
+              onChange={(e) => {
+                setHorasDraft(e.target.value);
+                const val = Number(e.target.value);
+                if (horasDebounceRef.current) clearTimeout(horasDebounceRef.current);
+                horasDebounceRef.current = setTimeout(() => setHorasPorSemana(val), 500);
+              }}
             />
           </label>
           <label>Nombre del plan
@@ -813,7 +820,15 @@ const AcademicAssistant = () => {
                 <div key={plan._id} className="plan-guardado-card" data-testid="plan-guardado">
                   <div
                     className="plan-guardado-header"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setPlanExpandido(expandido ? null : plan._id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setPlanExpandido(expandido ? null : plan._id);
+                      }
+                    }}
                   >
                     <span className="plan-nombre">
                       <span className="arrow">{expandido ? "\u25BC" : "\u25B6"}</span>
@@ -887,7 +902,7 @@ const AcademicAssistant = () => {
                             {comp.materiasCumplidasTotal > 0 ? (
                               <>
                                 Tu cursada planeada aún no comenzó, pero ya aprobaste{" "}
-                                <strong>{comp.materiasCumplidasTotal}</strong> de {comp.totalPlan} materias del plan
+                                <strong>{comp.materiasCumplidasTotal}</strong> de {typeof comp.totalPlan === "number" ? comp.totalPlan : "—"} materias del plan
                               </>
                             ) : (
                               <>
@@ -961,7 +976,7 @@ const AcademicAssistant = () => {
 
       {/* Modal de confirmación para Finales */}
       {showFinalModal && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" onKeyDown={(e) => e.key === "Escape" && closeFinalModal()}>
           <div className="modal-content">
             <h2>¿Confirmar baja de final?</h2>
             <p>
@@ -981,7 +996,7 @@ const AcademicAssistant = () => {
 
       {/* Modal para registrar nota de Final */}
       {showGradeModal && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" onKeyDown={(e) => e.key === "Escape" && setShowGradeModal(false)}>
           <div className="modal-content">
             <h2>Registrar Resultado de Final</h2>
             <p>Materia: <strong>{finalToGrade?.nombre}</strong></p>

@@ -176,16 +176,6 @@
   margin-top: 24px;
 }
 
-.btn-secondary {
-  background: #f1f5f9;
-  color: #475569;
-  border: none;
-  padding: 10px 16px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-weight: 600;
-}
-
 /* Proyección */
 .projection {
   background: linear-gradient(135deg, #f8f7ff 0%, #f0edff 100%);
@@ -361,6 +351,35 @@
   
   .badge {
     align-self: flex-start;
+  }
+
+  .planificador-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .planificador-controls label {
+    width: 100%;
+  }
+
+  .periodo-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .plan-guardado-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .plan-guardado-header .plan-acciones {
+    width: 100%;
+  }
+
+  .plan-guardado-header .plan-acciones button {
+    width: 100%;
   }
 }
 
@@ -911,24 +930,6 @@
   font-size: 0.85rem;
   color: #78350f;
   margin-bottom: 4px;
-}
-
-@keyframes pulso-reacomodo {
-  0%   { background-color: #fde68a; }
-  100% { background-color: transparent; }
-}
-.materia-resaltada {
-  animation: pulso-reacomodo 1.2s ease-out;
-  border-radius: 6px;
-}
-
-.periodo-drop-activo {
-  outline: 2px dashed #3b82f6;
-  outline-offset: 2px;
-  border-radius: 12px;
-}
-.materia-drag-handle {
-  user-select: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

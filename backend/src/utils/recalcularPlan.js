@@ -1,6 +1,7 @@
 const Grade = require('../models/Grade');
 const SavedStudyPlan = require('../models/SavedStudyPlan');
 const { CORRELATIVA_STATES } = require('./gradeState');
+const logger = require('./logger');
 
 /**
  * Recalcula un plan de estudios guardado tras cargar/modificar notas.
@@ -94,7 +95,7 @@ async function recalcularPlanGuardado(studentId, savedPlanId) {
     const antes = periodo.materias.length;
     periodo.materias = periodo.materias.filter((m) => {
       const mId = m.materia?.toString() || m.materia;
-      return approvedIds.has(mId);
+      return !approvedIds.has(mId);
     });
     if (periodo.materias.length < antes) {
       periodo.horasUsadas = periodo.materias.reduce(
@@ -121,6 +122,9 @@ async function recalcularPlanGuardado(studentId, savedPlanId) {
   }
 
   const movidas = new Set();
+  // Shared across all cascades so dependientes of different retrasadas don't collide
+  const posicionesReal = new Map();
+
   for (const mr of materiasRetrasadas) {
     const mId = mr.materia?.toString() || mr.materia;
     if (movidas.has(mId)) continue;
@@ -157,9 +161,6 @@ async function recalcularPlanGuardado(studentId, savedPlanId) {
 
     mr.periodoNuevo = `${timeline[nuevoIdx].anio}C${timeline[nuevoIdx].cuatrimestre}`;
 
-    // Cascade: empujar dependientes, cada uno al menos 1 período después de su prerequisito
-    // posicionesReal tracking the actual period index where each moved subject ended up
-    const posicionesReal = new Map();
     posicionesReal.set(mId, nuevoIdx);
 
     const cola = [mId];
@@ -248,8 +249,8 @@ async function recalcularPlanesDelEstudiante(userId) {
     for (const plan of planes) {
       await recalcularPlanGuardado(userId, plan._id);
     }
-  } catch (_) {
-    // Silencioso: el recálculo es best-effort, no debe bloquear la carga de notas.
+  } catch (err) {
+    logger.error('Error al recalcular planes del estudiante', { error: err.message, userId });
   }
 }
 
