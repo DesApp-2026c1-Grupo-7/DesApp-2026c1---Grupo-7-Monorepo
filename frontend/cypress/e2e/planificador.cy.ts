@@ -67,7 +67,7 @@ describe("Planificador de cursada", () => {
   it("guarda el plan y compara el rendimiento contra lo planteado (plus)", () => {
     cy.get('input[aria-label="Horas por semana"]').clear().type("12");
     cy.contains("button", "Guardar plan").click();
-    cy.contains("Planificacion guardada").should("be.visible");
+    cy.contains("Planificación guardada").should("be.visible");
 
     cy.get('[data-testid="planes-guardados"]').should("be.visible");
     cy.get('[data-testid="plan-guardado"]').first().within(() => {
