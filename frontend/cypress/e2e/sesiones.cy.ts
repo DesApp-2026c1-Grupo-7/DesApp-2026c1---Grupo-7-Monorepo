@@ -135,6 +135,9 @@ describe("Sesiones de Estudio", () => {
       cy.contains("button", "Cancelar").click();
     });
 
+    // Confirmamos en el modal in-app (reemplaza al window.confirm).
+    cy.get(".confirm-modal").contains("button", "Cancelar sesión").click();
+
     // Al cancelar, la sesion deja de estar activa y no aparece mas en el listado.
     cy.contains(".session-card", tema).should("not.exist");
   });
