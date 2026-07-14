@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../../services/api";
 import Toast from "../../components/Toast";
+import ConfirmModal from "../../components/ConfirmModal";
 import { useToast } from "../../hooks/useToast";
 import "../../styles/AdminUsers.css";
+
+// Solo el administrador principal maneja la jerarquía de roles.
+const SUPREME_ADMIN_EMAIL = "admin@universidad.edu";
 
 interface UserAccount {
   _id: string;
@@ -18,7 +22,18 @@ export default function AdminUsers() {
   const [newAdmin, setNewAdmin] = useState({ nombre: "", email: "", password: "" });
   const { toast, showToast, hideToast } = useToast();
   const [processing, setProcessing] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<
+    { title: string; message: string; confirmLabel: string; onConfirm: () => void } | null
+  >(null);
   const roleLabel = (role: UserAccount["role"]) => role === "admin" ? "Administrador" : "Estudiante";
+
+  // El admin logueado: solo el principal puede promover/degradar.
+  const currentEmail = useMemo(
+    () => (JSON.parse(localStorage.getItem("user") || "{}").email || "").toLowerCase(),
+    []
+  );
+  const isSupreme = currentEmail === SUPREME_ADMIN_EMAIL;
+  const esAdminPrincipal = (user: UserAccount) => user.email.toLowerCase() === SUPREME_ADMIN_EMAIL;
 
   const fetchUsers = useCallback(async () => {
     const res = await api.get("/usuarios");
@@ -65,8 +80,6 @@ export default function AdminUsers() {
   };
 
   const promoteToAdmin = async (user: UserAccount) => {
-    if (!window.confirm(`¿Estás seguro de promover a ${user.nombre} a Administrador?`)) return;
-
     setProcessing(user._id);
     try {
       await api.put(`/usuarios/${user._id}/hacer-admin`);
@@ -79,6 +92,34 @@ export default function AdminUsers() {
       setProcessing(null);
     }
   };
+
+  const demoteAdmin = async (user: UserAccount) => {
+    setProcessing(user._id);
+    try {
+      await api.put(`/usuarios/${user._id}/quitar-admin`);
+      showToast("Administrador degradado a estudiante", "success");
+      await fetchUsers();
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { mensaje?: string } } };
+      showToast(ax.response?.data?.mensaje || "No se pudo degradar la cuenta", "error");
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  const askPromote = (user: UserAccount) => setConfirmModal({
+    title: "Promover a administrador",
+    message: `¿Seguro que querés promover a ${user.nombre} a administrador? Vas a poder degradarlo luego.`,
+    confirmLabel: "Promover",
+    onConfirm: () => promoteToAdmin(user),
+  });
+
+  const askDemote = (user: UserAccount) => setConfirmModal({
+    title: "Degradar administrador",
+    message: `¿Seguro que querés degradar a ${user.nombre} a estudiante?`,
+    confirmLabel: "Degradar",
+    onConfirm: () => demoteAdmin(user),
+  });
 
   return (
     <div className="admin-users-page">
@@ -169,14 +210,24 @@ export default function AdminUsers() {
                     >
                       {user.suspendido ? "Reactivar" : "Suspender"}
                     </button>
-                    {user.role === "student" && (
-                      <button 
+                    {isSupreme && user.role === "student" && (
+                      <button
                         className="btn primary"
                         style={{ fontSize: '0.8rem', padding: '6px 12px' }}
-                        onClick={() => promoteToAdmin(user)}
+                        onClick={() => askPromote(user)}
                         disabled={processing === user._id}
                       >
                         Promover
+                      </button>
+                    )}
+                    {isSupreme && user.role === "admin" && !esAdminPrincipal(user) && (
+                      <button
+                        className="btn"
+                        style={{ fontSize: '0.8rem', padding: '6px 12px', background: 'var(--error)', color: '#fff' }}
+                        onClick={() => askDemote(user)}
+                        disabled={processing === user._id}
+                      >
+                        Degradar
                       </button>
                     )}
                   </div>
@@ -216,19 +267,42 @@ export default function AdminUsers() {
               >
                 {user.suspendido ? "Reactivar" : "Suspender"}
               </button>
-              {user.role === "student" && (
-                <button 
+              {isSupreme && user.role === "student" && (
+                <button
                   className="btn primary"
-                  onClick={() => promoteToAdmin(user)}
+                  onClick={() => askPromote(user)}
                   disabled={processing === user._id}
                 >
                   Promover a Admin
+                </button>
+              )}
+              {isSupreme && user.role === "admin" && !esAdminPrincipal(user) && (
+                <button
+                  className="btn"
+                  style={{ background: 'var(--error)', color: '#fff' }}
+                  onClick={() => askDemote(user)}
+                  disabled={processing === user._id}
+                >
+                  Degradar
                 </button>
               )}
             </div>
           </div>
         ))}
       </div>
+
+      <ConfirmModal
+        open={!!confirmModal}
+        title={confirmModal?.title || ""}
+        message={confirmModal?.message || ""}
+        confirmLabel={confirmModal?.confirmLabel}
+        danger
+        onCancel={() => setConfirmModal(null)}
+        onConfirm={() => {
+          confirmModal?.onConfirm();
+          setConfirmModal(null);
+        }}
+      />
     </div>
   );
 }

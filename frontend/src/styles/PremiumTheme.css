@@ -319,10 +319,10 @@ tbody tr,
 }
 
 .login-card {
-  background: rgba(255, 255, 255, 0.82) !important;
-  border: 1px solid rgba(255, 255, 255, 0.82) !important;
+  background: #ffffff !important;
+  border: 1px solid #ffffff !important;
   box-shadow: var(--shadow-lg) !important;
-  backdrop-filter: blur(18px);
+  backdrop-filter: none;
 }
 
 .login-header .icon {

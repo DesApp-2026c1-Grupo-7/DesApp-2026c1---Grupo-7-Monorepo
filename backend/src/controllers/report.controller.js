@@ -75,6 +75,12 @@ exports.createReport = async (req, res) => {
       return res.status(400).json({ mensaje: 'No podés denunciar tu propio material' });
     }
 
+    // Un estudiante solo puede denunciar una vez el mismo material
+    const yaDenuncio = await MaterialReport.findOne({ material: materialId, denunciante: denuncianteId });
+    if (yaDenuncio) {
+      return res.status(409).json({ mensaje: 'Ya denunciaste este material. Solo podés denunciarlo una vez.' });
+    }
+
     // Verificar si el motivo existe
     const reason = await ReportReason.findById(reasonId);
     if (!reason) {

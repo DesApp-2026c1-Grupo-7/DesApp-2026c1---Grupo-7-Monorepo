@@ -8,9 +8,11 @@ const app = require('../src/app');
 let mongo;
 let studentToken;
 let denuncianteToken;
+let denunciante2Token;
 let adminToken;
 let materialId;
 let reasonId;
+let reasonOtroId;
 
 async function createBootstrapAdmin() {
   const User = require('../src/models/User');
@@ -82,6 +84,16 @@ test.before(async () => {
     .send({ email: 'denunciante@test.com', password: 'pass1234' });
   denuncianteToken = loginDenunciante.body.token;
 
+  // Segundo denunciante: cada estudiante solo puede denunciar una vez el mismo material.
+  await request(app)
+    .post('/api/auth/register')
+    .send({ nombre: 'Denunciante 2', email: 'denunciante2@test.com', password: 'pass1234', carrera: careerId });
+
+  const loginDenunciante2 = await request(app)
+    .post('/api/auth/login')
+    .send({ email: 'denunciante2@test.com', password: 'pass1234' });
+  denunciante2Token = loginDenunciante2.body.token;
+
   // Crear material
   const mat = await request(app)
     .post('/api/materiales')
@@ -137,10 +149,11 @@ test('sistema de denuncias: crear denuncia y validar motivos', async () => {
 
   assert.equal(resReport.body.report.estado, 'pendiente');
 
-  // 3. Crear denuncia con "Otro" sin especificar (debe fallar)
+  // 3. Crear denuncia con "Otro" sin especificar (debe fallar por validación).
+  //    Usa otro denunciante porque el primero ya denunció este material.
   await request(app)
     .post('/api/denuncias')
-    .set('Authorization', `Bearer ${denuncianteToken}`)
+    .set('Authorization', `Bearer ${denunciante2Token}`)
     .send({
       materialId: materialId,
       reasonId: reasonOtroId,
@@ -148,10 +161,10 @@ test('sistema de denuncias: crear denuncia y validar motivos', async () => {
     })
     .expect(400);
 
-  // 4. Crear denuncia con "Otro" especificado
+  // 4. Crear denuncia con "Otro" especificado (el intento 3 no guardó nada).
   await request(app)
     .post('/api/denuncias')
-    .set('Authorization', `Bearer ${denuncianteToken}`)
+    .set('Authorization', `Bearer ${denunciante2Token}`)
     .send({
       materialId: materialId,
       reasonId: reasonOtroId,

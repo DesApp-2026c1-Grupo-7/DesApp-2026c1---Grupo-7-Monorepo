@@ -11,5 +11,6 @@ router.post('/admins', userController.createAdmin);
 router.put('/:id/suspender', userController.suspendUser);
 router.put('/:id/reactivar', userController.reactivateUser);
 router.put('/:id/hacer-admin', userController.promoteUserToAdmin);
+router.put('/:id/quitar-admin', userController.demoteAdmin);
 
 module.exports = router;

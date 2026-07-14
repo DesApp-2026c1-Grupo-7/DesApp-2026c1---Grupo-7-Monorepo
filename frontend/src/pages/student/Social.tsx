@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
+import ConfirmModal from "../../components/ConfirmModal";
 import "../../styles/Social.css";
 
 interface SearchResult {
@@ -51,6 +52,9 @@ const Social = () => {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [confirmModal, setConfirmModal] = useState<
+    { title: string; message: string; confirmLabel: string; onConfirm: () => void } | null
+  >(null);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -120,7 +124,6 @@ const Social = () => {
   };
 
   const handleCancel = async (id: string) => {
-    if (!window.confirm("¿Quieres cancelar esta invitación enviada?")) return;
     try {
       await api.delete(`/invitaciones/${id}`);
       loadData();
@@ -131,7 +134,6 @@ const Social = () => {
   };
 
   const handleRemove = async (id: string) => {
-    if (!window.confirm("¿Estás seguro de que quieres eliminar este contacto?")) return;
     try {
       await api.delete(`/invitaciones/contactos/${id}`);
       loadData();
@@ -304,7 +306,12 @@ const Social = () => {
                   </div>
                 </div>
                 <div className="actions">
-                  <button className="btn secondary" onClick={() => handleCancel(inv._id)}>Cancelar Invitación</button>
+                  <button className="btn secondary" onClick={() => setConfirmModal({
+                    title: "Cancelar invitación",
+                    message: `¿Querés cancelar la invitación enviada a ${inv.destinatario.nombre}?`,
+                    confirmLabel: "Cancelar invitación",
+                    onConfirm: () => handleCancel(inv._id),
+                  })}>Cancelar Invitación</button>
                 </div>
               </div>
             ))}
@@ -338,13 +345,31 @@ const Social = () => {
                 </div>
                 <div className="actions">
                   <button className="btn secondary" onClick={() => navigate(`/student/perfil/${contacto._id}`)}>Ver Perfil</button>
-                  <button className="btn secondary" style={{ color: 'var(--error)' }} onClick={() => handleRemove(contacto._id)}>Eliminar</button>
+                  <button className="btn secondary" style={{ color: 'var(--error)' }} onClick={() => setConfirmModal({
+                    title: "Eliminar contacto",
+                    message: `¿Seguro que querés eliminar a ${contacto.nombre} de tus contactos?`,
+                    confirmLabel: "Eliminar",
+                    onConfirm: () => handleRemove(contacto._id),
+                  })}>Eliminar</button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={!!confirmModal}
+        title={confirmModal?.title || ""}
+        message={confirmModal?.message || ""}
+        confirmLabel={confirmModal?.confirmLabel}
+        danger
+        onCancel={() => setConfirmModal(null)}
+        onConfirm={() => {
+          confirmModal?.onConfirm();
+          setConfirmModal(null);
+        }}
+      />
     </div>
   );
 };

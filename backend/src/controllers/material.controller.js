@@ -155,6 +155,10 @@ const getMaterials = async (req, res) => {
               { $gte: ['$pendingReports', thresholds.nPending] },
               { $gte: ['$verifiedReports', thresholds.mVerified] }
             ]
+          },
+          // ¿El usuario actual ya denunció este material? (solo puede una vez)
+          userReported: {
+            $in: [new mongoose.Types.ObjectId(req.user.id), '$reports.denunciante']
           }
         }
       },
