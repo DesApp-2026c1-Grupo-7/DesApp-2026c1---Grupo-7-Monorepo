@@ -464,6 +464,115 @@
   font-size: 14px;
 }
 
+.report-reasons-dropdown {
+  position: relative;
+}
+
+.report-reasons-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.report-reasons-caret {
+  transition: transform 0.15s ease;
+  color: #6b7280;
+}
+
+.report-reasons-dropdown.open .report-reasons-caret {
+  transform: rotate(180deg);
+}
+
+.report-reasons-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.report-reasons-panel .report-reason-option {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 400;
+  color: #374151;
+  margin-bottom: 0;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.report-reasons-panel .report-reason-option:hover {
+  background: #f3f4f6;
+}
+
+.report-reasons-panel .report-reason-option span {
+  line-height: 1.2;
+}
+
+.report-reasons-panel .report-reason-option input {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  /* !important: sobrescribe la regla global glassmorphism de PremiumTheme.css */
+  border: 2px solid #d1d5db !important;
+  border-radius: 50% !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.report-reasons-panel .report-reason-option input:hover {
+  border-color: #3b82f6 !important;
+}
+
+.report-reasons-panel .report-reason-option input:checked {
+  border-color: #3b82f6 !important;
+  background: #3b82f6 !important;
+}
+
+.report-reasons-panel .report-reason-option input:checked::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -60%) rotate(45deg);
+}
+
 .btn-full {
   width: 100%;
   margin-top: 12px;

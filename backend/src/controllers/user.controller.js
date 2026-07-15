@@ -4,7 +4,7 @@ const User = require('../models/User');
 const publicUserFields = 'nombre email role suspendido motivoSuspension carrera planEstudio createdAt';
 
 // Solo el administrador principal puede promover/degradar administradores.
-const SUPREME_ADMIN_EMAIL = 'admin@universidad.edu';
+const SUPREME_ADMIN_EMAIL = process.env.SUPREME_ADMIN_EMAIL || 'admin@universidad.edu';
 
 const esAdminSupremo = async (userId) => {
   const actor = await User.findById(userId).select('email');

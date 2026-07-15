@@ -141,7 +141,7 @@ test('escenario 1: un estudiante denuncia un material por contenido pornográfic
   }).expect(201);
 
   assert.equal(res.body.report.estado, 'pendiente');
-  assert.equal(res.body.report.motivo, reasons[MOTIVO.PORNO]);
+  assert.equal(res.body.report.motivo[0], reasons[MOTIVO.PORNO]);
 });
 
 test('escenario 2: un estudiante denuncia un material por lenguaje ofensivo o insultos', async () => {
@@ -153,7 +153,7 @@ test('escenario 2: un estudiante denuncia un material por lenguaje ofensivo o in
   }).expect(201);
 
   assert.equal(res.body.report.estado, 'pendiente');
-  assert.equal(res.body.report.motivo, reasons[MOTIVO.LENGUAJE]);
+  assert.equal(res.body.report.motivo[0], reasons[MOTIVO.LENGUAJE]);
 });
 
 test('escenario 3: un estudiante denuncia un material por derechos de autor', async () => {
@@ -165,7 +165,7 @@ test('escenario 3: un estudiante denuncia un material por derechos de autor', as
   }).expect(201);
 
   assert.equal(res.body.report.estado, 'pendiente');
-  assert.equal(res.body.report.motivo, reasons[MOTIVO.AUTOR]);
+  assert.equal(res.body.report.motivo[0], reasons[MOTIVO.AUTOR]);
 });
 
 test('escenario 4: un estudiante denuncia un material por spam o publicidad engañosa', async () => {
@@ -177,7 +177,7 @@ test('escenario 4: un estudiante denuncia un material por spam o publicidad enga
   }).expect(201);
 
   assert.equal(res.body.report.estado, 'pendiente');
-  assert.equal(res.body.report.motivo, reasons[MOTIVO.SPAM]);
+  assert.equal(res.body.report.motivo[0], reasons[MOTIVO.SPAM]);
 });
 
 test('escenario 5: un estudiante denuncia un material por información incorrecta o engañosa', async () => {
@@ -189,7 +189,7 @@ test('escenario 5: un estudiante denuncia un material por información incorrect
   }).expect(201);
 
   assert.equal(res.body.report.estado, 'pendiente');
-  assert.equal(res.body.report.motivo, reasons[MOTIVO.INFO]);
+  assert.equal(res.body.report.motivo[0], reasons[MOTIVO.INFO]);
 });
 
 // -------------------------------------------------------------------------
@@ -206,8 +206,27 @@ test('escenario 6: un estudiante denuncia un material por "otro" indicando que n
   }).expect(201);
 
   assert.equal(res.body.report.estado, 'pendiente');
-  assert.equal(res.body.report.motivo, reasons[MOTIVO.OTRO]);
+  assert.equal(res.body.report.motivo[0], reasons[MOTIVO.OTRO]);
   assert.equal(res.body.report.motivoEspecifico, 'No es contenido correspondiente a esta materia');
+});
+
+// -------------------------------------------------------------------------
+// Escenario 6b: checklist con varios motivos en una sola denuncia
+// -------------------------------------------------------------------------
+
+test('escenario 6b: una denuncia puede tener varios motivos (checklist)', async () => {
+  const materialId = await crearMaterial('Material con multiples problemas');
+  const res = await denunciar({
+    materialId,
+    reasonIds: [reasons[MOTIVO.SPAM], reasons[MOTIVO.INFO]],
+    detalle: 'Es spam y además tiene datos incorrectos'
+  }).expect(201);
+
+  assert.equal(res.body.report.motivo.length, 2);
+  assert.deepEqual(
+    res.body.report.motivo.map(String).sort(),
+    [reasons[MOTIVO.SPAM], reasons[MOTIVO.INFO]].map(String).sort()
+  );
 });
 
 // -------------------------------------------------------------------------
@@ -231,7 +250,7 @@ test('escenario 7: el admin puede ver las denuncias (y un estudiante no)', async
   assert.ok(Array.isArray(res.body));
   const encontrada = res.body.find(r => r._id === reportId);
   assert.ok(encontrada, 'la denuncia recién creada debe aparecer en el listado');
-  assert.equal(encontrada.motivo.titulo, MOTIVO.SPAM);
+  assert.equal(encontrada.motivo[0].titulo, MOTIVO.SPAM);
   assert.ok(encontrada.denunciante && encontrada.denunciante.nombre);
 
   // Un estudiante no puede acceder al listado (ruta solo admin).

@@ -55,9 +55,9 @@ const ExternalProfile = () => {
       setProfile(response.data);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number; data?: { mensaje?: string } } };
-      if (axiosErr.response?.status === 403) {
-        setError("Este perfil es privado. Solo sus contactos pueden verlo.");
-      } else if (axiosErr.response?.status === 404) {
+      // El backend ya no devuelve 403 para perfiles privados: responde 200 con
+      // perfilPrivado=true y una vista mínima. Solo resta manejar 404 y errores.
+      if (axiosErr.response?.status === 404) {
         setError("Usuario no encontrado.");
       } else {
         setError("Error al cargar el perfil.");
