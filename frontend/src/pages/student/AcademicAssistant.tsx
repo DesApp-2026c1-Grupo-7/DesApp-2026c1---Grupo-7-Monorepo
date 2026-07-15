@@ -81,12 +81,23 @@ interface SavedPlan {
   nombre: string;
   horasPorSemana: number;
   periodos: PlanPeriodo[];
+  ultimoRecalculo?: {
+    fecha: string;
+    materiasRetrasadas: {
+      materia: string;
+      nombre: string;
+      codigo: string;
+      periodoOrigen: string;
+      periodoNuevo: string;
+    }[];
+  };
 }
 
 interface ComparacionPlan {
   plan: string;
   materiasEsperadas: number;
   materiasCumplidas: number;
+  materiasCumplidasTotal: number;
   totalPlan?: number;
   diferencia: number;
   estado: "al-dia" | "leve-desvio" | "atrasado";
@@ -97,7 +108,8 @@ interface ComparacionPlan {
     transcurrido: boolean;
     totalMaterias: number;
     cumplidas: number;
-    materiasAtrasadas: { nombre: string; codigo: string }[];
+    materiasCumplidas: { nombre: string; codigo: string }[];
+    materiasAtrasadas: { nombre: string; codigo: string; estado: string }[];
   }[];
 }
 
@@ -145,6 +157,8 @@ const AcademicAssistant = () => {
   const [materiasCursando, setMateriasCursando] = useState<Subject[]>([]);
   const [seleccionQuePasaSi, setSeleccionQuePasaSi] = useState<Record<string, string>>({});
   const [horasPorSemana, setHorasPorSemana] = useState(12);
+  const [horasDraft, setHorasDraft] = useState("12");
+  const horasDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [nombrePlan, setNombrePlan] = useState("Plan tentativo");
   const [oferta, setOferta] = useState({
     anio: new Date().getFullYear(),
@@ -171,6 +185,7 @@ const AcademicAssistant = () => {
   // Estado para el modal de baja de finales
   const [showFinalModal, setShowFinalModal] = useState(false);
   const [finalToDelete, setFinalToDelete] = useState<{ id: string, nombre: string } | null>(null);
+  const [planExpandido, setPlanExpandido] = useState<string | null>(null);
 
   useEffect(() => {
     if (error || success) {
@@ -387,6 +402,14 @@ const AcademicAssistant = () => {
 
   const compararConPlan = async (planId: string) => {
     setError("");
+    if (comparaciones[planId]) {
+      setComparaciones((prev) => {
+        const next = { ...prev };
+        delete next[planId];
+        return next;
+      });
+      return;
+    }
     try {
       const res = await api.get(`/academico/planes-guardados/${planId}/comparacion`);
       setComparaciones((prev) => ({ ...prev, [planId]: res.data }));
@@ -404,7 +427,7 @@ const AcademicAssistant = () => {
         horasPorSemana,
         periodos: planificador
       });
-      setSuccess("Planificacion guardada");
+      setSuccess("Planificación guardada");
       await fetchAll();
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { mensaje?: string } } };
@@ -588,6 +611,9 @@ const AcademicAssistant = () => {
 
       <div className="section">
         <h3>Finales pendientes</h3>
+        {finales.length === 0 && !loading && (
+          <p style={{ color: '#666', fontStyle: 'italic' }}>No hay finales pendientes.</p>
+        )}
         {finales.map((f) => (
           <div key={f.materia._id} className="final-card">
             <div>
@@ -687,24 +713,34 @@ const AcademicAssistant = () => {
           aprobaste o estás cursando no se planifican. Podés mover materias entre cuatrimestres y la
           carga horaria se recalcula sola.
         </p>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
-          <label>Horas por semana </label>
-          <input
-            type="number"
-            min={1}
-            value={horasPorSemana}
-            aria-label="Horas por semana"
-            onChange={(e) => setHorasPorSemana(Number(e.target.value))}
-          />
-          <input value={nombrePlan} onChange={(e) => setNombrePlan(e.target.value)} placeholder="Nombre del plan" />
-          <button className="btn-primary" onClick={guardarPlanificador} disabled={planificador.length === 0}>Guardar plan</button>
-          <button className="btn-secondary" onClick={() => { fetchAll().catch(() => setError("No se pudo regenerar el plan")); }}>
+        <div className="planificador-controls">
+          <label>Horas por semana
+            <input
+              type="number"
+              min={1}
+              value={horasDraft}
+              aria-label="Horas por semana"
+              onChange={(e) => {
+                setHorasDraft(e.target.value);
+                const val = Number(e.target.value);
+                if (horasDebounceRef.current) clearTimeout(horasDebounceRef.current);
+                horasDebounceRef.current = setTimeout(() => setHorasPorSemana(val), 500);
+              }}
+            />
+          </label>
+          <label>Nombre del plan
+            <input value={nombrePlan} onChange={(e) => setNombrePlan(e.target.value)} placeholder="Mi plan de cursada" />
+          </label>
+          <button className="btn-primary" onClick={guardarPlanificador} disabled={planificador.length === 0}>
+            Guardar plan
+          </button>
+          <button className="btn-secondary" onClick={() => { fetchAll().then(() => setSuccess("Plan regenerado")).catch(() => setError("No se pudo regenerar el plan")); }}>
             Regenerar plan automático
           </button>
         </div>
 
         {planificador.length === 0 && !loading && (
-          <p style={{ color: "#666", fontStyle: "italic" }}>
+          <p className="vacio-mensaje">
             No hay materias pendientes para planificar. ¡Vas al día!
           </p>
         )}
@@ -714,42 +750,44 @@ const AcademicAssistant = () => {
             const excedido = periodo.horasUsadas > horasPorSemana;
             return (
               <PeriodoSoltable key={`${periodo.anio}-${periodo.cuatrimestre}-${idx}`} idx={idx}>
-                <div className="projection" data-testid="periodo">
-                  <h4 style={excedido ? { color: "#b91c1c" } : {}}>
-                    {periodo.anio} - {periodo.cuatrimestre === 0 ? "Anual" : `${periodo.cuatrimestre}C`}
-                    {" "}({periodo.horasUsadas} / {horasPorSemana} h/sem){excedido && " ⚠ sobrecarga"}
-                  </h4>
-                  <ul>
+                <div className="periodo-card" data-testid="periodo">
+                  <div className="periodo-card-header">
+                    <h4>
+                      {periodo.anio} - {periodo.cuatrimestre === 0 ? "Anual" : `${periodo.cuatrimestre}C`}
+                    </h4>
+                    <span className={`horas-badge ${excedido ? 'excedido' : ''}`}>
+                      {periodo.horasUsadas} / {horasPorSemana} h/sem{excedido && " ⚠"}
+                    </span>
+                  </div>
+                  <div className="periodo-materias">
                     {periodo.materias.map((m) => (
-                      <li
+                      <div
                         key={m._id}
                         data-testid="periodo-materia"
-                        className={resaltadas.includes(m._id) ? "materia-resaltada" : undefined}
-                        style={{ justifyContent: "space-between", width: "100%" }}
+                        className={`periodo-materia-item ${resaltadas.includes(m._id) ? 'materia-resaltada' : ''}`}
                       >
-                        <MateriaArrastrable id={m._id} nombre={m.nombre}>{m.nombre} ({m.creditos} cr., {m.horasSemanalesEstimadas ?? m.creditos} h/sem)</MateriaArrastrable>
-                        <span style={{ display: "inline-flex", gap: 4, marginLeft: "auto" }}>
+                        <div className="materia-info">
+                          <MateriaArrastrable id={m._id} nombre={m.nombre}>{m.nombre}</MateriaArrastrable>
+                          <span className="materia-meta">{m.creditos} cr. · {m.horasSemanalesEstimadas ?? m.creditos} h/sem</span>
+                        </div>
+                        <div className="materia-acciones">
                           <button
-                            className="btn-secondary"
                             aria-label={`Mover ${m.nombre} a un cuatrimestre anterior`}
                             disabled={idx === 0}
-                            style={{ padding: "2px 8px" }}
                             onClick={() => moverMateria(idx, m._id, -1)}
                           >
                             ◀
                           </button>
                           <button
-                            className="btn-secondary"
                             aria-label={`Mover ${m.nombre} a un cuatrimestre posterior`}
-                            style={{ padding: "2px 8px" }}
                             onClick={() => moverMateria(idx, m._id, 1)}
                           >
                             ▶
                           </button>
-                        </span>
-                      </li>
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               </PeriodoSoltable>
             );
@@ -757,9 +795,9 @@ const AcademicAssistant = () => {
         </DndContext>
 
         {pendientesPlan.length > 0 && (
-          <div style={{ marginTop: 12, padding: 12, background: "#fef3c7", borderRadius: 8, border: "1px solid #fcd34d" }} data-testid="pendientes-plan">
+          <div className="pendientes-box" data-testid="pendientes-plan">
             <strong>No se pudieron ubicar ({pendientesPlan.length})</strong>
-            <p style={{ fontSize: "0.85rem", margin: "4px 0" }}>
+            <p>
               Requieren más horas semanales que el límite indicado o dependen de materias que tampoco entran.
               Subí las horas por semana para incluirlas.
             </p>
@@ -768,57 +806,163 @@ const AcademicAssistant = () => {
         )}
 
         {planesGuardados.length > 0 && (
-          <div style={{ marginTop: 12 }} data-testid="planes-guardados">
-            <strong>Planes guardados</strong>
-            <p className="subtitle" style={{ marginBottom: 8 }}>
+          <div style={{ marginTop: 16 }} data-testid="planes-guardados">
+            <h4 style={{ margin: "0 0 8px 0", fontSize: "0.95rem", fontWeight: 600, color: "#374151" }}>Planes guardados</h4>
+            <p className="subtitle" style={{ marginBottom: 12, fontSize: "0.9rem" }}>
               Compará tu avance real contra el plan que te habías planteado.
             </p>
             {planesGuardados.map((plan) => {
               const comp = comparaciones[plan._id];
+              const expandido = planExpandido === plan._id;
+              const retrasadas = plan.ultimoRecalculo?.materiasRetrasadas || [];
+              const retrasadasIds = new Set(retrasadas.map((r) => r.materia));
               return (
-                <div key={plan._id} className="projection" data-testid="plan-guardado">
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <span>{plan.nombre} ({plan.horasPorSemana} h/sem, {plan.periodos.length} periodos)</span>
-                    <button className="btn-secondary" onClick={() => compararConPlan(plan._id)}>
-                      Comparar rendimiento
-                    </button>
+                <div key={plan._id} className="plan-guardado-card" data-testid="plan-guardado">
+                  <div
+                    className="plan-guardado-header"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setPlanExpandido(expandido ? null : plan._id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setPlanExpandido(expandido ? null : plan._id);
+                      }
+                    }}
+                  >
+                    <span className="plan-nombre">
+                      <span className="arrow">{expandido ? "\u25BC" : "\u25B6"}</span>
+                      {plan.nombre}
+                      <span className="plan-meta">({plan.horasPorSemana} h/sem · {plan.periodos.length} períodos)</span>
+                    </span>
+                    <div className="plan-acciones" onClick={(e) => e.stopPropagation()}>
+                      <button className="btn-secondary" onClick={() => compararConPlan(plan._id)}>
+                        {comp ? "Ocultar comparación" : "Comparar rendimiento"}
+                      </button>
+                    </div>
                   </div>
+                  {retrasadas.length > 0 && (
+                    <div className="pendientes-box" style={{ marginTop: 8, background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)" }} data-testid="recalculo-info">
+                      <strong style={{ color: "#92400e" }}>Plan recalculado automáticamente</strong>
+                      <p style={{ margin: "4px 0 0", color: "#78350f" }}>
+                        {retrasadas.length === 1
+                          ? `1 materia reubicada: ${retrasadas[0].nombre}`
+                          : `${retrasadas.length} materias reubicadas: ${retrasadas.map((m) => m.codigo).join(", ")}`}
+                      </p>
+                    </div>
+                  )}
+
+                  {expandido && (
+                    <div className="plan-guardado-detalle" data-testid="plan-detalle">
+                      <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", fontWeight: 600, color: "#475569" }}>Tu planificación actual:</h4>
+                      {plan.periodos.length === 0 && (
+                        <p className="vacio-mensaje" style={{ margin: 0 }}>Sin materias (plan vacío tras recálculo).</p>
+                      )}
+                      {plan.periodos.map((p, idx) => (
+                        <div
+                          key={idx}
+                          className="plan-guardado-periodo transcurrido"
+                        >
+                          <div className="plan-guardado-periodo-header">
+                            {p.anio} - {p.cuatrimestre === 0 ? "Anual" : `${p.cuatrimestre}C`}
+                            <span className="periodo-meta">
+                              {p.horasUsadas} h/sem · {p.materias.length} {p.materias.length === 1 ? "materia" : "materias"}
+                            </span>
+                          </div>
+                          <div className="plan-guardado-materias">
+                            {p.materias.map((m) => {
+                              const fueRetrasada = retrasadasIds.has(m._id);
+                              return (
+                                <span
+                                  key={m._id}
+                                  title={fueRetrasada ? "Reubicada por recálculo automático" : undefined}
+                                  className={`materia-chip ${fueRetrasada ? 'retrasada' : 'normal'}`}
+                                >
+                                  {m.codigo || m.nombre}{fueRetrasada ? " !!" : ""}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                      {retrasadas.length > 0 && (
+                        <div style={{ marginTop: 8, fontSize: "0.8rem", color: "#6b7280", padding: "8px 12px", background: "#f9fafb", borderRadius: 8 }}>
+                          <strong>Materias reubicadas:</strong>{" "}
+                          {retrasadas.map((r) => `${r.codigo} (${r.periodoOrigen.replace(/(\d)C/, '$1 C')} → ${r.periodoNuevo.replace(/(\d)C/, '$1 C')})`).join(", ")}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {comp && (
-                    <div style={{ marginTop: 8 }} data-testid="comparacion">
-                      <p>
-                        Cumpliste {comp.materiasCumplidas} de {comp.materiasEsperadas} materias previstas hasta hoy
-                        {" "}({comp.porcentajeCumplimiento}%) · Estado: <strong>{comp.estado.replace("-", " ")}</strong>
-                        {typeof comp.totalPlan === "number" && (
-                          <span style={{ color: "#6b7280" }}> · Plan completo: {comp.totalPlan} materias</span>
+                    <div className="comparacion-seccion" data-testid="comparacion">
+                      <p style={{ margin: "0 0 10px 0", fontSize: "0.9rem", color: "#374151" }}>
+                        {comp.materiasEsperadas === 0 ? (
+                          <>
+                            {comp.materiasCumplidasTotal > 0 ? (
+                              <>
+                                Tu cursada planeada aún no comenzó, pero ya aprobaste{" "}
+                                <strong>{comp.materiasCumplidasTotal}</strong> de {typeof comp.totalPlan === "number" ? comp.totalPlan : "—"} materias del plan
+                              </>
+                            ) : (
+                              <>
+                                El período de cursada para tu plan aún no comenzó
+                                {typeof comp.totalPlan === "number" && (
+                                  <span style={{ color: "#6b7280" }}> · Plan completo: {comp.totalPlan} materias</span>
+                                )}
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            Cumpliste {comp.materiasCumplidas} de {comp.materiasEsperadas} materias previstas hasta hoy
+                            {" "}({comp.porcentajeCumplimiento}%) · Estado: <strong>{comp.estado.replace("-", " ")}</strong>
+                            {typeof comp.totalPlan === "number" && (
+                              <span style={{ color: "#6b7280" }}> · Plan completo: {comp.totalPlan} materias</span>
+                            )}
+                          </>
                         )}
                       </p>
-                      {comp.periodos && comp.periodos.filter((p) => p.transcurrido).length > 0 && (
-                        <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
-                          {comp.periodos.filter((p) => p.transcurrido).map((p) => {
+                      {comp.periodos && comp.periodos.length > 0 && (
+                        <div>
+                          <h4>Comparativa con tu plan propuesto originalmente:</h4>
+                          {comp.periodos.map((p) => {
                             const cerrado = p.cumplidas >= p.totalMaterias;
                             return (
                               <div
                                 key={`${p.anio}-${p.cuatrimestre}`}
-                                style={{
-                                  fontSize: "0.85rem", padding: "6px 10px", borderRadius: 6,
-                                  background: cerrado ? "#f0fdf4" : "#fef2f2",
-                                  border: `1px solid ${cerrado ? "#bbf7d0" : "#fecaca"}`
-                                }}
+                                className={`comparacion-periodo ${p.transcurrido ? 'transcurrido' : 'futuro'} ${p.transcurrido && cerrado ? 'completo' : ''} ${p.transcurrido && !cerrado ? 'pendiente' : ''}`}
                               >
-                                <strong>{p.anio} - {p.cuatrimestre === 0 ? "Anual" : `${p.cuatrimestre}C`}:</strong>{" "}
-                                planeaste {p.totalMaterias}, cumpliste {p.cumplidas}
-                                {p.materiasAtrasadas.length > 0 && (
-                                  <span> · atrasadas: {p.materiasAtrasadas.map((m) => m.codigo).join(", ")}</span>
+                                <span className="periodo-titulo">{p.anio} - {p.cuatrimestre === 0 ? "Anual" : `${p.cuatrimestre}C`}:</span>{" "}
+                                {p.transcurrido ? (
+                                  <>
+                                    planeaste {p.totalMaterias}, cumpliste {p.cumplidas}
+                                    {p.materiasCumplidas.length > 0 && (
+                                      <span style={{ color: "#166534" }}> ({p.materiasCumplidas.map((m) => m.codigo).join(", ")})</span>
+                                    )}
+                                    {p.materiasAtrasadas.length > 0 && (
+                                      <span> · {p.materiasAtrasadas.length === 1 ? "pendiente" : "pendientes"} {p.materiasAtrasadas.length}: {p.materiasAtrasadas.map((m, i) => (
+                                        <span key={m.codigo}>
+                                          {i > 0 && ", "}{m.codigo} (<span style={{
+                                            color: m.estado === "Regular" ? "#ca8a04" :
+                                                   m.estado === "Cursando" ? "#2563eb" :
+                                                   m.estado === "Desaprobada" ? "#dc2626" :
+                                                   "#6b7280"
+                                          }}>{m.estado}</span>)
+                                        </span>
+                                      ))}</span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>planeaste {p.totalMaterias} {p.totalMaterias === 1 ? "materia" : "materias"}: {p.materiasAtrasadas.map((m) => m.codigo).join(", ")}</span>
+                                    <br />
+                                    <span className="materia-estado">Esta cursada aún no transcurrió. Esperá a que empiece el período para cursar.</span>
+                                  </>
                                 )}
                               </div>
                             );
                           })}
-                          {comp.estado !== "al-dia" && (
-                            <p style={{ fontSize: "0.85rem", color: "#92400e", margin: "4px 0 0" }}>
-                              Cargá lo que aprobaste/regularizaste en tu situación académica y usá
-                              "Regenerar plan automático" para recalcular el plan con tu atraso.
-                            </p>
-                          )}
                         </div>
                       )}
                     </div>
@@ -832,7 +976,7 @@ const AcademicAssistant = () => {
 
       {/* Modal de confirmación para Finales */}
       {showFinalModal && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" onKeyDown={(e) => e.key === "Escape" && closeFinalModal()}>
           <div className="modal-content">
             <h2>¿Confirmar baja de final?</h2>
             <p>
@@ -852,7 +996,7 @@ const AcademicAssistant = () => {
 
       {/* Modal para registrar nota de Final */}
       {showGradeModal && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" onKeyDown={(e) => e.key === "Escape" && setShowGradeModal(false)}>
           <div className="modal-content">
             <h2>Registrar Resultado de Final</h2>
             <p>Materia: <strong>{finalToGrade?.nombre}</strong></p>

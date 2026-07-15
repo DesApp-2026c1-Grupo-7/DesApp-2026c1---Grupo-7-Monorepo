@@ -28,9 +28,39 @@ const savedStudyPlanSchema = new mongoose.Schema({
       nombre: String,
       codigo: String,
       creditos: Number,
-      horasSemanalesEstimadas: Number
+      horasSemanalesEstimadas: Number,
+      correlativas: [mongoose.Schema.Types.ObjectId]
     }]
-  }]
+  }],
+  periodosOriginales: [{
+    anio: Number,
+    cuatrimestre: Number,
+    horasUsadas: Number,
+    materias: [{
+      materia: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Subject'
+      },
+      nombre: String,
+      codigo: String,
+      creditos: Number,
+      horasSemanalesEstimadas: Number,
+      correlativas: [mongoose.Schema.Types.ObjectId]
+    }]
+  }],
+  ultimoRecalculo: {
+    fecha: Date,
+    materiasRetrasadas: [{
+      materia: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Subject'
+      },
+      nombre: String,
+      codigo: String,
+      periodoOrigen: String,
+      periodoNuevo: String
+    }]
+  }
 }, {
   timestamps: true
 });
