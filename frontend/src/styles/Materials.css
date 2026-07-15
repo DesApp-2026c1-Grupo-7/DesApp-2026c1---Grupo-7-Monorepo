@@ -907,9 +907,15 @@
   font-size: 14px;
 }
 
-.btn-report:hover {
+.btn-report:hover:not(:disabled) {
   background: #fee2e2;
   border-color: #fecaca;
+}
+
+.btn-report:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(1);
 }
 
 .btn-danger {

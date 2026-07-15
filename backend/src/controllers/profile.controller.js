@@ -115,10 +115,10 @@ const getPublicProfile = async (req, res) => {
     const isOwner = req.user && req.user.id === req.params.id;
     const isPublic = user.configuracionPrivacidad.perfil === 'publico';
     const isContact = user.contactos.some(c => c.toString() === req.user.id);
-    
-    if (!isPublic && !isOwner && !isContact) {
-      return res.status(403).json({ mensaje: 'Este perfil es privado. Solo sus contactos pueden verlo.' });
-    }
+
+    // Perfil privado de un no-contacto: se muestra una vista mínima (foto, nombre,
+    // email y estado) para poder mandarle solicitud, pero se oculta el resto.
+    const puedeVerCompleto = isPublic || isOwner || isContact;
 
     let invitacionPendiente = null;
     if (!isOwner && !isContact) {
@@ -134,10 +134,10 @@ const getPublicProfile = async (req, res) => {
       _id: user._id,
       nombre: user.nombre,
       carrera: user.carrera,
-      bio: user.bio,
       foto: user.foto,
       configuracionPrivacidad: user.configuracionPrivacidad,
       esContacto: isContact,
+      perfilPrivado: !puedeVerCompleto,
       invitacionPendiente: invitacionPendiente ? {
         _id: invitacionPendiente._id,
         remitente: invitacionPendiente.remitente
@@ -148,7 +148,12 @@ const getPublicProfile = async (req, res) => {
       publicData.email = user.email;
     }
 
-    if (isOwner || user.configuracionPrivacidad.mostrarSituacionAcademica) {
+    // Bio y situación académica solo se exponen si podés ver el perfil completo.
+    if (puedeVerCompleto) {
+      publicData.bio = user.bio;
+    }
+
+    if (puedeVerCompleto && (isOwner || user.configuracionPrivacidad.mostrarSituacionAcademica)) {
       const situacion = await Grade.find({ estudiante: user._id })
         .populate('materia', 'nombre')
         .sort({ fecha: -1 });

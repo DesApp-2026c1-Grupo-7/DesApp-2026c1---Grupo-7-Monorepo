@@ -45,6 +45,38 @@ const sendInvitation = async (req, res) => {
       return res.status(400).json({ mensaje: 'Este usuario ya está en tu lista de contactos' });
     }
 
+    // Perfil público: se agrega automáticamente (como seguir en Instagram),
+    // sin necesidad de que el destinatario apruebe la solicitud.
+    if (destinatario.configuracionPrivacidad?.perfil === 'publico') {
+      await User.findByIdAndUpdate(remitenteId, { $addToSet: { contactos: destinatario._id } });
+      await User.findByIdAndUpdate(destinatario._id, { $addToSet: { contactos: remitenteId } });
+
+      // Si había una invitación pendiente entre ambos, la damos por aceptada.
+      await Invitation.updateMany(
+        {
+          $or: [
+            { remitente: remitenteId, destinatario: destinatario._id, estado: 'pendiente' },
+            { remitente: destinatario._id, destinatario: remitenteId, estado: 'pendiente' }
+          ]
+        },
+        { estado: 'aceptada' }
+      );
+
+      await Notification.create({
+        usuario: destinatario._id,
+        titulo: 'Nuevo contacto',
+        descripcion: `${remitente.nombre} te sumó a sus contactos.`,
+        tipo: 'success',
+        link: `/student/social`
+      });
+
+      return res.json({
+        mensaje: `Ahora sos contacto de ${destinatario.nombre}`,
+        usuarioRegistrado: true,
+        autoAceptado: true
+      });
+    }
+
     // Verificar si ya hay una invitación pendiente
     const invitacionExistente = await Invitation.findOne({
       remitente: remitenteId,

@@ -38,7 +38,7 @@ test.before(async () => {
   assert.equal(career.status, 201);
   careerId = career.body.career._id;
 
-  adminToken = await login('admin@test.com', 'admin123');
+  adminToken = await login('admin@universidad.edu', 'admin123');
 
   for (const subject of [
     { nombre: 'Algoritmos', codigo: 'ALG', carrera: careerId },
@@ -88,13 +88,14 @@ test.after(async () => {
 async function createBootstrapAdmin() {
   const User = require('../src/models/User');
   const bcrypt = require('bcryptjs');
+  // Admin principal: único habilitado para promover/degradar (ver user.controller).
   await User.create({
     nombre: 'Admin Test',
-    email: 'admin@test.com',
+    email: 'admin@universidad.edu',
     password: await bcrypt.hash('admin123', 10),
     role: 'admin'
   });
-  return login('admin@test.com', 'admin123');
+  return login('admin@universidad.edu', 'admin123');
 }
 
 test('registro publico siempre crea estudiantes y admin gestiona cuentas', async () => {

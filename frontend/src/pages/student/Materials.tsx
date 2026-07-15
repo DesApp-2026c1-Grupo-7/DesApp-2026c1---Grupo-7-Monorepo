@@ -56,6 +56,7 @@ interface Material {
   userVote?: number;
   pendingReports: number;
   verifiedReports: number;
+  userReported: boolean;
   suspendido: boolean;
   discordMetadata?: DiscordMetadata;
 }
@@ -703,7 +704,10 @@ export default function Materials() {
                     <button
                       className="btn-report"
                       onClick={() => handleOpenReportModal(m)}
-                      title="Denunciar contenido inapropiado"
+                      disabled={m.userReported}
+                      title={m.userReported
+                        ? "Ya denunciaste este material. Solo podés denunciarlo una vez."
+                        : "Denunciar contenido inapropiado"}
                     >
                       🚩
                     </button>

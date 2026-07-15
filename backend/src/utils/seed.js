@@ -496,7 +496,7 @@ async function seedValoracionesYDenuncias(materiales, usuarios, reasons) {
     // Cuatro materiales con 1 denuncia cada uno
     { titulo: 'Archivo PPT', denunciante: marcos, orden: 6 },
     { titulo: 'Archivo Excel', denunciante: student, orden: 1 },
-    { titulo: 'Archivo ZIP', denunciante: student2, orden: 2 },
+    { titulo: 'Archivo ZIP', denunciante: student, orden: 2 },
     { titulo: 'Archivo JPG', denunciante: privado, orden: 3 }
   ];
 

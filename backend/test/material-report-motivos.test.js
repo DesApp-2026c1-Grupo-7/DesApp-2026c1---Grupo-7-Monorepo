@@ -13,6 +13,7 @@ let autorId;
 let denuncianteToken; // hace las denuncias
 let denuncianteId;
 let subjectId;
+let careerId;
 
 // titulo del motivo -> _id (motivos reales del sistema)
 const reasons = {};
@@ -61,9 +62,13 @@ async function crearMaterial(titulo) {
 }
 
 function denunciar(body) {
+  return denunciarComo(denuncianteToken, body);
+}
+
+function denunciarComo(token, body) {
   return request(app)
     .post('/api/denuncias')
-    .set('Authorization', `Bearer ${denuncianteToken}`)
+    .set('Authorization', `Bearer ${token}`)
     .send(body);
 }
 
@@ -89,7 +94,7 @@ test.before(async () => {
       nivelInglesRequerido: 'B1'
     });
   assert.equal(career.status, 201);
-  const careerId = career.body.career._id;
+  careerId = career.body.career._id;
 
   const subject = await request(app)
     .post('/api/materias')
@@ -308,8 +313,10 @@ test('escenario 9: el admin puede rechazar una denuncia y se notifica al denunci
 
 test('escenario 10: un material con 2 denuncias sigue visible para los estudiantes', async () => {
   const materialId = await crearMaterial('Material con 2 denuncias');
+  // Cada estudiante denuncia una sola vez: usamos 2 denunciantes distintos.
+  const den2 = await registrarEstudiante('Denunciante 10b', 'den10b@test.com', careerId);
   await denunciar({ materialId, reasonId: reasons[MOTIVO.SPAM], detalle: 'Denuncia 1' }).expect(201);
-  await denunciar({ materialId, reasonId: reasons[MOTIVO.SPAM], detalle: 'Denuncia 2' }).expect(201);
+  await denunciarComo(den2.token, { materialId, reasonId: reasons[MOTIVO.SPAM], detalle: 'Denuncia 2' }).expect(201);
 
   // Otro estudiante (no autor) lo sigue viendo, no suspendido y con url.
   const resOtro = await request(app)
@@ -337,8 +344,12 @@ test('escenario 10: un material con 2 denuncias sigue visible para los estudiant
 
 test('escenario 11: un material con 3 denuncias queda suspendido y oculto salvo para admin y creador', async () => {
   const materialId = await crearMaterial('Material con 3 denuncias');
-  for (let i = 1; i <= 3; i++) {
-    await denunciar({ materialId, reasonId: reasons[MOTIVO.PORNO], detalle: `Denuncia ${i}` }).expect(201);
+  // 3 denunciantes distintos: cada estudiante solo puede denunciar una vez.
+  const denA = await registrarEstudiante('Denunciante 11a', 'den11a@test.com', careerId);
+  const denB = await registrarEstudiante('Denunciante 11b', 'den11b@test.com', careerId);
+  const tokens = [denuncianteToken, denA.token, denB.token];
+  for (let i = 0; i < 3; i++) {
+    await denunciarComo(tokens[i], { materialId, reasonId: reasons[MOTIVO.PORNO], detalle: `Denuncia ${i + 1}` }).expect(201);
   }
 
   // Otro estudiante (no autor) ya NO lo ve.
