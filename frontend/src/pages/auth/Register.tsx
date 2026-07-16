@@ -79,7 +79,7 @@ const Register = () => {
       <div className="login-card">
 
         <div className="login-header">
-          <div className="icon">📝</div>
+          <img src="/unahur-logo.svg" alt="UNAHUR - Universidad Nacional de Hurlingham" className="unahur-logo" />
           <h1>Crear Cuenta</h1>
           <p>Únete al Sistema de Acompañamiento Académico</p>
         </div>
