@@ -12,9 +12,12 @@ const materialReportSchema = new mongoose.Schema({
     required: true
   },
   motivo: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'ReportReason',
-    required: true
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'ReportReason' }],
+    required: true,
+    validate: {
+      validator: (v) => Array.isArray(v) && v.length > 0,
+      message: 'Debe indicar al menos un motivo'
+    }
   },
   motivoEspecifico: {
     type: String,
@@ -42,5 +45,10 @@ const materialReportSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Un usuario solo puede denunciar un material una vez. El indice unico blinda
+// la regla contra dobles requests concurrentes (el chequeo en el controller es
+// solo la ruta rapida/amigable).
+materialReportSchema.index({ material: 1, denunciante: 1 }, { unique: true });
 
 module.exports = mongoose.model('MaterialReport', materialReportSchema);

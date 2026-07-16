@@ -35,16 +35,28 @@ function abrirRepositorioBD1() {
   cy.get(".materials-list", { timeout: 10000 }).should("exist");
 }
 
-// Denuncia un material (ajeno) de BD1 con el motivo indicado.
-function denunciarMaterial(materialTitulo: string, motivo: string, motivoEspecifico?: string) {
+// Denuncia un material (ajeno) de BD1 con el/los motivo(s) indicado(s).
+// Los motivos se seleccionan desde el checklist multi-selección (se acepta un
+// string o un array de strings).
+function denunciarMaterial(materialTitulo: string, motivo: string | string[], motivoEspecifico?: string) {
+  const motivos = Array.isArray(motivo) ? motivo : [motivo];
+
   login(estudiante2);
   abrirRepositorioBD1();
 
   cy.contains(".material-card", materialTitulo).find(".btn-report").click();
 
   cy.get(".modal-content").should("be.visible");
-  cy.get('select[name="reasonId"] option').should("have.length.greaterThan", 1);
-  cy.get('select[name="reasonId"]').select(motivo);
+
+  // Abrir el desplegable de motivos y tildar cada uno del checklist.
+  cy.get(".report-reasons-trigger").click();
+  cy.get(".report-reasons-panel").should("be.visible");
+  cy.get(".report-reasons-panel .report-reason-option").should("have.length.greaterThan", 1);
+  motivos.forEach((m) => {
+    cy.contains(".report-reason-option", m).click();
+  });
+  // Cerrar el panel para que no tape el resto del formulario.
+  cy.get(".report-reasons-trigger").click();
 
   if (motivoEspecifico) {
     cy.get('input[name="motivoEspecifico"]').type(motivoEspecifico);

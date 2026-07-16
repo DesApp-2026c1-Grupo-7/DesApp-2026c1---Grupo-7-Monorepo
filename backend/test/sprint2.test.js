@@ -150,7 +150,8 @@ test('perfil público: completo si es público, vista mínima si es privado', as
 });
 
 test('invitaciones: enviar, listar pendientes, aceptar y convertirse en contactos', async () => {
-  // El flujo de solicitud pendiente + aceptación aplica a perfiles PRIVADOS.
+  // El flujo de solicitud pendiente + aceptación aplica a TODOS los perfiles
+  // (públicos y privados): nunca se auto-acepta.
   await request(app)
     .put('/api/perfil/me')
     .set('Authorization', `Bearer ${student2Token}`)
@@ -184,7 +185,7 @@ test('invitaciones: enviar, listar pendientes, aceptar y convertirse en contacto
   assert.ok(contactos.body.some((c) => c._id === student2Id || c._id.toString() === student2Id));
 });
 
-test('invitaciones: perfil público se acepta automáticamente (sin solicitud pendiente)', async () => {
+test('invitaciones: perfil público también requiere aprobación (queda pendiente, sin auto-aceptar)', async () => {
   const regA = await request(app)
     .post('/api/auth/register')
     .send({ nombre: 'Carla Pub', email: 'carla-pub@test.com', password: 'pass1234', carrera: careerId });
@@ -198,27 +199,41 @@ test('invitaciones: perfil público se acepta automáticamente (sin solicitud pe
   const idB = regB.body.user.id;
   const tokenB = regB.body.token;
 
-  // Perfil público por defecto: al enviar la solicitud se agregan al instante.
+  // Perfil público por defecto: la solicitud NO se auto-acepta, queda pendiente.
   const send = await request(app)
     .post('/api/invitaciones/enviar')
     .set('Authorization', `Bearer ${tokenA}`)
     .send({ destinatarioId: idB })
     .expect(200);
-  assert.equal(send.body.autoAceptado, true);
+  assert.notEqual(send.body.autoAceptado, true);
 
-  // No queda ninguna invitación pendiente para el destinatario.
+  // Queda una invitación pendiente para el destinatario.
   const pendientes = await request(app)
     .get('/api/invitaciones/pendientes')
     .set('Authorization', `Bearer ${tokenB}`)
     .expect(200);
-  assert.equal(pendientes.body.length, 0);
+  assert.equal(pendientes.body.length, 1);
 
-  // Son contactos mutuos.
+  // Todavía NO son contactos: hace falta que el destinatario acepte.
   const contactosA = await request(app)
     .get('/api/invitaciones/contactos')
     .set('Authorization', `Bearer ${tokenA}`)
     .expect(200);
-  assert.ok(contactosA.body.some((c) => (c._id?.toString?.() || c._id) === idB));
+  assert.ok(!contactosA.body.some((c) => (c._id?.toString?.() || c._id) === idB));
+
+  // El destinatario acepta y recién ahí se hacen contactos mutuos.
+  const token = pendientes.body[0].token;
+  await request(app)
+    .post('/api/invitaciones/aceptar')
+    .set('Authorization', `Bearer ${tokenB}`)
+    .send({ token })
+    .expect(200);
+
+  const contactosFinal = await request(app)
+    .get('/api/invitaciones/contactos')
+    .set('Authorization', `Bearer ${tokenA}`)
+    .expect(200);
+  assert.ok(contactosFinal.body.some((c) => (c._id?.toString?.() || c._id) === idB));
 });
 
 test('feed: publicar evento y verlo en el feed de un contacto', async () => {

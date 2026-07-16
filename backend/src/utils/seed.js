@@ -97,6 +97,15 @@ async function seedCareers() {
       titulo: 'Tecnico/a Universitario/a en Tecnologia de la Informacion',
       instituto: 'Instituto de Tecnologia e Ingenieria',
       duracionAnios: 3
+    },
+    {
+      // Plan de estudios real de UNAHUR (RCS 008/2026, Exp. 870/2023).
+      nombre: 'Profesorado Universitario de Chino',
+      codigo: 'PUCH',
+      descripcion: 'Carrera de grado (4 anios) para formar profesores/as de idioma chino, con titulacion intermedia de Tecnico/a Universitario/a en Practicas Socioeducativas del Idioma Chino.',
+      titulo: 'Profesor/a Universitario/a de Chino',
+      instituto: 'Instituto de Educacion',
+      duracionAnios: 4
     }
   ];
 
@@ -218,6 +227,146 @@ async function seedStudyPlan(career, subjectsMap) {
     },
     { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
   );
+}
+
+// -------------------------------------------------------------------------
+// Profesorado Universitario de Chino (plan real UNAHUR, RCS 008/2026).
+// Materias con codigos CHN-* para no colisionar con las de Informatica.
+// Regimen: A = anual (cuatrimestre 0), C = cuatrimestral (1 o 2).
+// -------------------------------------------------------------------------
+const CHINO_MATERIAS = [
+  // PRIMER AÑO
+  { codigo: 'CHN-CIA1', nombre: 'Chino Integral Avanzado I', anio: 1, cuatrimestre: 0, creditos: 11, horasSemanales: 6 },
+  { codigo: 'CHN-COP1', nombre: 'Comprension y Produccion Oral en Chino I', anio: 1, cuatrimestre: 0, creditos: 11, horasSemanales: 4 },
+  { codigo: 'CHN-FON', nombre: 'Fonetica y Practica en Laboratorio', anio: 1, cuatrimestre: 1, creditos: 3, horasSemanales: 2 },
+  { codigo: 'CHN-CAR', nombre: 'Caracteres Chinos', anio: 1, cuatrimestre: 1, creditos: 3, horasSemanales: 2 },
+  { codigo: 'CHN-ICC', nombre: 'Introduccion a la Cultura China', anio: 1, cuatrimestre: 2, creditos: 5, horasSemanales: 3 },
+  { codigo: 'CHN-CAD', nombre: 'Cultura y Alfabetizacion Digital en la Universidad', anio: 1, cuatrimestre: 1, creditos: 4, horasSemanales: 2 },
+  { codigo: 'CHN-PED', nombre: 'Pedagogia', anio: 1, cuatrimestre: 1, creditos: 5, horasSemanales: 4 },
+  { codigo: 'CHN-LEO', nombre: 'Lectura, Escritura y Oralidad', anio: 1, cuatrimestre: 2, creditos: 4, horasSemanales: 3 },
+  { codigo: 'CHN-APE', nombre: 'Aprendizajes y Practicas Educativas', anio: 1, cuatrimestre: 2, creditos: 5, horasSemanales: 4 },
+  { codigo: 'CHN-TSI', nombre: 'Territorio, Sujetos e Instituciones', anio: 1, cuatrimestre: 1, creditos: 6, horasSemanales: 4 },
+  // SEGUNDO AÑO
+  { codigo: 'CHN-CIA2', nombre: 'Chino Integral Avanzado II', anio: 2, cuatrimestre: 0, creditos: 11, horasSemanales: 6, correlativas: ['CHN-CIA1'] },
+  { codigo: 'CHN-COP2', nombre: 'Comprension y Produccion Oral en Chino II', anio: 2, cuatrimestre: 0, creditos: 11, horasSemanales: 4, correlativas: ['CHN-COP1'] },
+  { codigo: 'CHN-GRA', nombre: 'Gramatica China', anio: 2, cuatrimestre: 1, creditos: 3, horasSemanales: 2, correlativas: ['CHN-CIA1'] },
+  { codigo: 'CHN-HISC', nombre: 'Historia China', anio: 2, cuatrimestre: 2, creditos: 3, horasSemanales: 2 },
+  { codigo: 'CHN-LEC', nombre: 'Lectura y Escritura en Chino', anio: 2, cuatrimestre: 1, creditos: 5, horasSemanales: 4, correlativas: ['CHN-CAR'] },
+  { codigo: 'CHN-DYC', nombre: 'Didactica y Curriculum', anio: 2, cuatrimestre: 1, creditos: 5, horasSemanales: 3, correlativas: ['CHN-PED'] },
+  { codigo: 'CHN-ESI', nombre: 'Educacion Sexual Integral', anio: 2, cuatrimestre: 2, creditos: 4, horasSemanales: 2 },
+  { codigo: 'CHN-PPL', nombre: 'Pensamiento Pedagogico Latinoamericano', anio: 2, cuatrimestre: 2, creditos: 5, horasSemanales: 3 },
+  { codigo: 'CHN-PES', nombre: 'Practicas de la Ensenanza en el Ambito Socioeducativo', anio: 2, cuatrimestre: 1, creditos: 6, horasSemanales: 4, correlativas: ['CHN-APE'] },
+  // TERCER AÑO
+  { codigo: 'CHN-CIA3', nombre: 'Chino Integral Avanzado III', anio: 3, cuatrimestre: 0, creditos: 14, horasSemanales: 6, correlativas: ['CHN-CIA2'] },
+  { codigo: 'CHN-COP3', nombre: 'Comprension y Produccion Oral en Chino III', anio: 3, cuatrimestre: 0, creditos: 5, horasSemanales: 2, correlativas: ['CHN-COP2'] },
+  { codigo: 'CHN-DID', nombre: 'Didactica del Chino', anio: 3, cuatrimestre: 1, creditos: 5, horasSemanales: 3, correlativas: ['CHN-DYC'] },
+  { codigo: 'CHN-SCC', nombre: 'Sociedad China Contemporanea', anio: 3, cuatrimestre: 2, creditos: 3, horasSemanales: 2 },
+  { codigo: 'CHN-HNA', nombre: 'Historia de la Nacion Argentina y sus Proyectos Educativos', anio: 3, cuatrimestre: 1, creditos: 5, horasSemanales: 3 },
+  { codigo: 'CHN-DES', nombre: 'Didactica en Contextos de Educacion Superior', anio: 3, cuatrimestre: 2, creditos: 5, horasSemanales: 3 },
+  { codigo: 'CHN-UNA', nombre: 'Asignatura UNAHUR', anio: 3, cuatrimestre: 1, creditos: 3, horasSemanales: 2, esOptativa: true, esUnahur: true },
+  { codigo: 'CHN-PDP', nombre: 'Practicas Docentes en el Nivel Primario', anio: 3, cuatrimestre: 0, creditos: 11, horasSemanales: 5, correlativas: ['CHN-PES'] },
+  // CUARTO AÑO
+  { codigo: 'CHN-CIA4', nombre: 'Chino Integral Avanzado IV', anio: 4, cuatrimestre: 0, creditos: 14, horasSemanales: 6, correlativas: ['CHN-CIA3'] },
+  { codigo: 'CHN-LIT', nombre: 'Literatura China', anio: 4, cuatrimestre: 1, creditos: 5, horasSemanales: 3, correlativas: ['CHN-CIA3'] },
+  { codigo: 'CHN-ACO', nombre: 'Analisis Contrastivo del Chino y el Espanol', anio: 4, cuatrimestre: 2, creditos: 3, horasSemanales: 2, correlativas: ['CHN-GRA'] },
+  { codigo: 'CHN-CIN', nombre: 'Comunicacion Intercultural', anio: 4, cuatrimestre: 1, creditos: 3, horasSemanales: 2 },
+  { codigo: 'CHN-IEL', nombre: 'Investigacion Educativa en Lenguas Extranjeras', anio: 4, cuatrimestre: 2, creditos: 4, horasSemanales: 2 },
+  { codigo: 'CHN-TEC', nombre: 'Tecnologia Educativa', anio: 4, cuatrimestre: 1, creditos: 4, horasSemanales: 2 },
+  { codigo: 'CHN-POL', nombre: 'Politica Educativa', anio: 4, cuatrimestre: 2, creditos: 5, horasSemanales: 3 },
+  { codigo: 'CHN-PDS', nombre: 'Practicas Docentes en el Nivel Secundario y Superior', anio: 4, cuatrimestre: 0, creditos: 11, horasSemanales: 5, correlativas: ['CHN-PDP'] }
+];
+
+async function seedSubjectsChino(careerId) {
+  const created = {};
+  for (const s of CHINO_MATERIAS) {
+    const subject = await Subject.findOneAndUpdate(
+      { codigo: s.codigo },
+      { nombre: s.nombre, codigo: s.codigo, carrera: careerId },
+      { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
+    );
+    created[s.codigo] = subject;
+  }
+  return created;
+}
+
+async function seedStudyPlanChino(career, subjectsMap) {
+  const materiasFormatted = CHINO_MATERIAS.map(m => ({
+    materia: subjectsMap[m.codigo]._id,
+    anio: m.anio,
+    cuatrimestre: m.cuatrimestre,
+    creditos: m.creditos,
+    horasSemanales: m.horasSemanales,
+    correlativas: (m.correlativas || []).map(cod => subjectsMap[cod]._id),
+    esOptativa: !!m.esOptativa,
+    esUnahur: !!m.esUnahur
+  }));
+
+  return StudyPlan.findOneAndUpdate(
+    { carrera: career._id, anio: 2026 },
+    {
+      nombre: 'Plan 2026',
+      anio: 2026,
+      carrera: career._id,
+      materias: materiasFormatted,
+      creditosNecesarios: 240,
+      materiasUnahurRequeridas: 1,
+      nivelInglesRequerido: 'Ninguno',
+      estado: 'Vigente',
+      activo: true
+    },
+    { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
+  );
+}
+
+// Crea (si no existen) los estudiantes del Profesorado de Chino, para que el
+// seed tenga alumnos de mas de una carrera.
+async function seedEstudiantesChino(career, plan, subjectsMap) {
+  const nuevos = [
+    { nombre: 'Ana Wang', email: 'ana.wang@universidad.edu', privacidad: 'publico' },
+    { nombre: 'Lucia Fernandez', email: 'lucia.fernandez@universidad.edu', privacidad: 'publico' },
+    { nombre: 'Diego Martinez', email: 'diego.martinez@universidad.edu', privacidad: 'privado' },
+    { nombre: 'Sofia Li', email: 'sofia.li@universidad.edu', privacidad: 'publico' }
+  ];
+
+  const creados = [];
+  for (const n of nuevos) {
+    let u = await User.findOne({ email: n.email });
+    if (!u) {
+      u = await User.create({
+        nombre: n.nombre,
+        email: n.email,
+        password: await bcrypt.hash('estudiante123', 10),
+        role: 'student',
+        carrera: career._id,
+        planEstudio: plan._id,
+        configuracionPrivacidad: { perfil: n.privacidad }
+      });
+    }
+    creados.push(u);
+  }
+
+  // A la primera estudiante le cargamos algunas materias de 1er anio aprobadas,
+  // asi su situacion academica / asistente no arrancan vacios.
+  const [ana] = creados;
+  if (ana && (await Grade.countDocuments({ estudiante: ana._id })) === 0) {
+    const aprobadas = [
+      { codigo: 'CHN-FON', nota: 8 },
+      { codigo: 'CHN-CAR', nota: 9 },
+      { codigo: 'CHN-PED', nota: 7 }
+    ];
+    for (const a of aprobadas) {
+      await Grade.create({
+        estudiante: ana._id,
+        materia: subjectsMap[a.codigo]._id,
+        estado: 'Aprobada',
+        nota: a.nota,
+        fecha: new Date('2026-07-01')
+      });
+    }
+  }
+
+  logger.info(`Estudiantes del Profesorado de Chino sembrados (${creados.length}).`);
+  return creados;
 }
 
 async function seedAcademicOffer(subjectsMap) {
@@ -536,6 +685,13 @@ async function seedUsers() {
     const careerTup = careers[0];
     const subjectsMap = await seedSubjects(careerTup._id);
     const plan = await seedStudyPlan(careerTup, subjectsMap);
+
+    // Carrera adicional con estudiantes propios (Profesorado de Chino), asi el
+    // seed no queda con alumnos de una sola carrera.
+    const careerChino = careers.find(c => c.codigo === 'PUCH');
+    const subjectsChino = await seedSubjectsChino(careerChino._id);
+    const planChino = await seedStudyPlanChino(careerChino, subjectsChino);
+    await seedEstudiantesChino(careerChino, planChino, subjectsChino);
 
     const adminEmail = 'admin@universidad.edu';
     let admin = await User.findOne({ email: adminEmail });
