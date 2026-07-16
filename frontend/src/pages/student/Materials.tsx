@@ -95,12 +95,13 @@ export default function Materials() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reasons, setReasons] = useState<ReportReason[]>([]);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
-  const [reportData, setReportData] = useState({
-    reasonId: "",
+  const [reportData, setReportData] = useState<{ reasonIds: string[]; motivoEspecifico: string; detalle: string }>({
+    reasonIds: [],
     motivoEspecifico: "",
     detalle: ""
   });
   const [reportLoading, setReportLoading] = useState(false);
+  const [reasonsDropdownOpen, setReasonsDropdownOpen] = useState(false);
   const [materialToDelete, setMaterialToDelete] = useState<Material | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -222,12 +223,13 @@ export default function Materials() {
   const handleOpenReportModal = (material: Material) => {
     setSelectedMaterial(material);
     setIsReportModalOpen(true);
-    setReportData({ reasonId: "", motivoEspecifico: "", detalle: "" });
+    setReportData({ reasonIds: [], motivoEspecifico: "", detalle: "" });
   };
 
   const handleCloseReportModal = () => {
     setIsReportModalOpen(false);
     setSelectedMaterial(null);
+    setReasonsDropdownOpen(false);
   };
 
   const handleReportInputChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement | HTMLInputElement>) => {
@@ -235,16 +237,29 @@ export default function Materials() {
     setReportData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleReasonToggle = (reasonId: string) => {
+    setReportData(prev => ({
+      ...prev,
+      reasonIds: prev.reasonIds.includes(reasonId)
+        ? prev.reasonIds.filter(id => id !== reasonId)
+        : [...prev.reasonIds, reasonId]
+    }));
+  };
+
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedMaterial) return;
-    
+    if (reportData.reasonIds.length === 0) {
+      showToast("Seleccioná al menos un motivo", "error");
+      return;
+    }
+
     setReportLoading(true);
 
     try {
       await api.post("/denuncias", {
         materialId: selectedMaterial._id,
-        reasonId: reportData.reasonId,
+        reasonIds: reportData.reasonIds,
         motivoEspecifico: reportData.motivoEspecifico,
         detalle: reportData.detalle
       });
@@ -776,21 +791,38 @@ export default function Materials() {
               </p>
 
               <div className="form-group">
-                <label>Motivo de la denuncia *</label>
-                <select 
-                  name="reasonId" 
-                  value={reportData.reasonId} 
-                  onChange={handleReportInputChange} 
-                  required
-                >
-                  <option value="">Seleccionar motivo</option>
-                  {reasons.map(r => (
-                    <option key={r._id} value={r._id}>{r.titulo}</option>
-                  ))}
-                </select>
+                <label>Motivos de la denuncia * (podés seleccionar más de uno)</label>
+                <div className={`report-reasons-dropdown ${reasonsDropdownOpen ? 'open' : ''}`}>
+                  <button
+                    type="button"
+                    className="report-reasons-trigger"
+                    onClick={() => setReasonsDropdownOpen(o => !o)}
+                  >
+                    <span>
+                      {reportData.reasonIds.length === 0
+                        ? 'Seleccionar motivos'
+                        : `${reportData.reasonIds.length} motivo${reportData.reasonIds.length > 1 ? 's' : ''} seleccionado${reportData.reasonIds.length > 1 ? 's' : ''}`}
+                    </span>
+                    <span className="report-reasons-caret">▾</span>
+                  </button>
+                  {reasonsDropdownOpen && (
+                    <div className="report-reasons-panel">
+                      {reasons.map(r => (
+                        <label key={r._id} className="report-reason-option">
+                          <input
+                            type="checkbox"
+                            checked={reportData.reasonIds.includes(r._id)}
+                            onChange={() => handleReasonToggle(r._id)}
+                          />
+                          <span>{r.titulo}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {reasons.find(r => r._id === reportData.reasonId)?.titulo.toLowerCase() === 'otro' && (
+              {reasons.some(r => reportData.reasonIds.includes(r._id) && r.titulo.toLowerCase() === 'otro') && (
                 <div className="form-group">
                   <label>Especificar motivo *</label>
                   <input 

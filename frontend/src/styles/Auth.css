@@ -53,6 +53,16 @@
   box-shadow: var(--shadow-glow);
 }
 
+/* Logo institucional (UNAHUR) en la pantalla de inicio.
+   Para usar el logo oficial: reemplazar public/unahur-logo.svg por el archivo real. */
+.unahur-logo {
+  display: block;
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  margin: 0 auto 1.5rem;
+}
+
 .login-header h1 {
   font-size: 1.75rem;
   font-weight: 700;
