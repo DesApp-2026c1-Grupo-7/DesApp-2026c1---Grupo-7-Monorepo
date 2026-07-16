@@ -1,6 +1,7 @@
 const Grade = require('../models/Grade');
 const Notification = require('../models/Notification');
 const { getVencimientoRegularidad } = require('../utils/regularity');
+const { perderRegularidad } = require('../utils/perderRegularidad');
 const logger = require('../utils/logger');
 
 const AVISO_DIAS = 30;
@@ -49,17 +50,51 @@ const checkAndNotifyExpiringRegularities = async () => {
   }
 };
 
+// Chequea, independientemente de si ya se avisó, todas las materias Regulares
+// cuyo plazo de 2 años ya venció, y les hace perder la regularidad. No se filtra
+// por notificacionVencimientoEnviada: ese flag solo controla el aviso previo, y
+// si lo reutilizáramos acá una materia ya avisada nunca volvería a revisarse.
+const checkAndExpireRegularities = async () => {
+  try {
+    const now = new Date();
+
+    const regulares = await Grade.find({ estado: 'Regular' }).populate('materia', 'nombre');
+    if (regulares.length === 0) return;
+
+    let expiradas = 0;
+
+    for (const grade of regulares) {
+      if (!grade.materia) continue;
+
+      const vencimiento = getVencimientoRegularidad(grade.fecha);
+      if (vencimiento > now) continue;
+
+      await perderRegularidad(grade, 'vencimiento', grade.materia.nombre);
+      expiradas++;
+    }
+
+    if (expiradas > 0) {
+      logger.info(`Materias que perdieron la regularidad por vencimiento: ${expiradas}`);
+    }
+  } catch (error) {
+    logger.error(`Error en el servicio de expiración de regularidad: ${error.message}`);
+  }
+};
+
 const initRegularityExpirationService = () => {
   // Chequeo diario: la ventana de aviso es de 1 mes, no hace falta mas frecuencia.
   const INTERVAL = 24 * 60 * 60 * 1000;
 
   checkAndNotifyExpiringRegularities();
+  checkAndExpireRegularities();
 
   setInterval(checkAndNotifyExpiringRegularities, INTERVAL);
+  setInterval(checkAndExpireRegularities, INTERVAL);
   logger.info('Servicio de aviso de vencimiento de regularidad iniciado (cada 24hs).');
 };
 
 module.exports = {
   initRegularityExpirationService,
-  checkAndNotifyExpiringRegularities
+  checkAndNotifyExpiringRegularities,
+  checkAndExpireRegularities
 };

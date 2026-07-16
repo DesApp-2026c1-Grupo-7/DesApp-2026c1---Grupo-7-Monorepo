@@ -1017,11 +1017,17 @@ const deleteGrade = async (req, res) => {
     const { materiaId } = req.params;
     const userId = req.user.id;
 
-    const result = await Grade.findOneAndDelete({ estudiante: userId, materia: materiaId });
+    const grade = await Grade.findOne({ estudiante: userId, materia: materiaId });
 
-    if (!result) {
+    if (!grade) {
       return res.status(404).json({ mensaje: 'No se encontró la materia en tu situación académica' });
     }
+
+    if (grade.estado !== 'Cursando') {
+      return res.status(400).json({ mensaje: 'Solo se puede dar de baja una materia que estás cursando' });
+    }
+
+    await grade.deleteOne();
 
     await recalcularPlanesDelEstudiante(userId);
 

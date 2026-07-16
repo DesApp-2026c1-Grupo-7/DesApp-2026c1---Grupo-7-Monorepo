@@ -180,7 +180,7 @@ const AcademicAssistant = () => {
   // Estado para el modal de resultados de finales
   const [showGradeModal, setShowGradeModal] = useState(false);
   const [finalToGrade, setFinalToGrade] = useState<{ id: string, nombre: string, subjectId: string } | null>(null);
-  const [gradeResult, setGradeResult] = useState({ nota: 7, ausente: false });
+  const [gradeResult, setGradeResult] = useState<{ nota: number | ''; ausente: boolean }>({ nota: 7, ausente: false });
 
   // Estado para el modal de baja de finales
   const [showFinalModal, setShowFinalModal] = useState(false);
@@ -1009,11 +1009,14 @@ const AcademicAssistant = () => {
                   min="1" 
                   max="10" 
                   value={gradeResult.nota}
-                  onChange={(e) => setGradeResult({...gradeResult, nota: parseInt(e.target.value), ausente: false})}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setGradeResult({...gradeResult, nota: val === '' ? '' : parseInt(val), ausente: false});
+                  }}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
                   disabled={gradeResult.ausente}
                 />
-                {!gradeResult.ausente && gradeResult.nota && previewEstadoFinal(gradeResult.nota) && (
+                {!gradeResult.ausente && typeof gradeResult.nota === 'number' && previewEstadoFinal(gradeResult.nota) && (
                   <span style={{
                     display: 'inline-block', marginTop: 6, padding: '4px 10px',
                     borderRadius: 6, fontSize: 12, fontWeight: 600,
@@ -1040,7 +1043,11 @@ const AcademicAssistant = () => {
               <button className="btn-secondary" onClick={closeGradeModal}>
                 Cancelar
               </button>
-              <button className="btn-primary" onClick={registrarNotaFinal}>
+              <button
+                className="btn-primary"
+                onClick={registrarNotaFinal}
+                disabled={!gradeResult.ausente && gradeResult.nota === ''}
+              >
                 Guardar Resultado
               </button>
             </div>

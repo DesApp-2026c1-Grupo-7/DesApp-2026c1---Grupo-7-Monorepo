@@ -1,4 +1,5 @@
 const REGULAR_YEARS = 2;
+const MAX_INTENTOS_FINAL = 10;
 
 const addYears = (date, years) => {
   const result = new Date(date);
@@ -8,4 +9,4 @@ const addYears = (date, years) => {
 
 const getVencimientoRegularidad = (fecha) => addYears(fecha, REGULAR_YEARS);
 
-module.exports = { REGULAR_YEARS, addYears, getVencimientoRegularidad };
+module.exports = { REGULAR_YEARS, MAX_INTENTOS_FINAL, addYears, getVencimientoRegularidad };
