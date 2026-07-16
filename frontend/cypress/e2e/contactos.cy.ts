@@ -47,22 +47,22 @@ describe("Crear dos usuarios y agregarlos como amigos", () => {
     registrar(alan);
 
     // 2. Alan (ya logueado) busca a Ada y le manda solicitud desde su perfil.
-    //    Ada tiene perfil público (por defecto): la solicitud se acepta al instante.
+    //    La solicitud queda pendiente hasta que Ada la apruebe (también en perfiles públicos).
     cy.visit("/student/social");
     cy.get(".search-bar-input").type(ada.nombre);
     cy.get(".search-result-item").contains(ada.nombre).click();
     cy.location("pathname").should("include", "/student/perfil/");
     cy.contains("button", "Sumar a mis contactos").click();
-    cy.contains("Es tu contacto").should("be.visible");
+    cy.contains("Invitación enviada").should("be.visible");
 
-    // 3. Ada ya figura en los contactos de Alan (sin aprobación manual).
-    cy.visit("/student/social");
-    cy.contains("h3", "Mis Contactos").should("contain", "(1)");
-    cy.get(".contacts-list").should("contain", ada.nombre);
-
-    // 4. Del lado de Ada también quedan como contactos mutuos.
+    // 3. Ada inicia sesion y acepta la solicitud pendiente.
     iniciarSesion(ada);
     cy.visit("/student/social");
+    cy.contains(".request-item", alan.nombre).within(() => {
+      cy.contains("button", "Aceptar").click();
+    });
+
+    // 4. Verificamos que Alan quedo en los contactos de Ada.
     cy.contains("h3", "Mis Contactos").should("contain", "(1)");
     cy.get(".contacts-list").should("contain", alan.nombre);
   });
