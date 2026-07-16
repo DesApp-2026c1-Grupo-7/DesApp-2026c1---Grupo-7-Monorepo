@@ -3,6 +3,14 @@ const User = require('../models/User');
 
 const publicUserFields = 'nombre email role suspendido motivoSuspension carrera planEstudio createdAt';
 
+// Solo el administrador principal puede promover/degradar administradores.
+const SUPREME_ADMIN_EMAIL = process.env.SUPREME_ADMIN_EMAIL || 'admin@universidad.edu';
+
+const esAdminSupremo = async (userId) => {
+  const actor = await User.findById(userId).select('email');
+  return actor?.email === SUPREME_ADMIN_EMAIL;
+};
+
 const listUsers = async (req, res) => {
   try {
     const { role, suspendido } = req.query;
@@ -103,6 +111,10 @@ const reactivateUser = async (req, res) => {
 
 const promoteUserToAdmin = async (req, res) => {
   try {
+    if (!(await esAdminSupremo(req.user.id))) {
+      return res.status(403).json({ mensaje: 'Solo el administrador principal puede promover usuarios' });
+    }
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { role: 'admin', suspendido: false, motivoSuspension: '' },
@@ -119,10 +131,40 @@ const promoteUserToAdmin = async (req, res) => {
   }
 };
 
+const demoteAdmin = async (req, res) => {
+  try {
+    if (!(await esAdminSupremo(req.user.id))) {
+      return res.status(403).json({ mensaje: 'Solo el administrador principal puede degradar administradores' });
+    }
+
+    const target = await User.findById(req.params.id).select('email role');
+    if (!target) {
+      return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+    }
+    if (target.email === SUPREME_ADMIN_EMAIL) {
+      return res.status(400).json({ mensaje: 'No se puede degradar al administrador principal' });
+    }
+    if (target.role !== 'admin') {
+      return res.status(400).json({ mensaje: 'El usuario no es administrador' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { role: 'student' },
+      { new: true, runValidators: true }
+    ).select(publicUserFields);
+
+    res.json({ mensaje: 'Administrador degradado a estudiante', user });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al degradar administrador', error: error.message });
+  }
+};
+
 module.exports = {
   listUsers,
   createAdmin,
   suspendUser,
   reactivateUser,
-  promoteUserToAdmin
+  promoteUserToAdmin,
+  demoteAdmin
 };

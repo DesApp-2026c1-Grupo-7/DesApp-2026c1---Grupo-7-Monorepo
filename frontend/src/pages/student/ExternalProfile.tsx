@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import api from "../../services/api";
 import "../../styles/Profile.css"; // Reuse profile styles
 import "../../styles/Situation.css"; // Reuse situation styles for the table
@@ -29,6 +30,7 @@ interface PublicProfile {
   };
   situacionAcademica?: AcademicRecord[];
   esContacto: boolean;
+  perfilPrivado?: boolean;
   invitacionPendiente?: {
     _id: string;
     remitente: string;
@@ -53,9 +55,9 @@ const ExternalProfile = () => {
       setProfile(response.data);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number; data?: { mensaje?: string } } };
-      if (axiosErr.response?.status === 403) {
-        setError("Este perfil es privado. Solo sus contactos pueden verlo.");
-      } else if (axiosErr.response?.status === 404) {
+      // El backend ya no devuelve 403 para perfiles privados: responde 200 con
+      // perfilPrivado=true y una vista mínima. Solo resta manejar 404 y errores.
+      if (axiosErr.response?.status === 404) {
         setError("Usuario no encontrado.");
       } else {
         setError("Error al cargar el perfil.");
@@ -167,6 +169,25 @@ const ExternalProfile = () => {
 
   return (
     <div className="profile-container">
+      <button
+        type="button"
+        onClick={() => navigate("/student/social")}
+        style={{
+          color: 'var(--primary)',
+          cursor: 'pointer',
+          fontSize: '14px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.4rem',
+          marginBottom: '12px',
+          padding: '0.45rem 0.65rem',
+          background: 'rgba(255, 255, 255, 0.66)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-md)'
+        }}
+      >
+        <ArrowLeft size={16} /> Volver a Red Social
+      </button>
       {message && (
         <div className={`profile-alert ${message.type}`}>
           <span>{message.type === 'success' ? '✅' : '❌'}</span>
@@ -212,6 +233,15 @@ const ExternalProfile = () => {
         </div>
       </div>
 
+      {profile.perfilPrivado ? (
+        <div className="card" style={{ textAlign: 'center', padding: '32px' }}>
+          <div style={{ fontSize: '40px', marginBottom: '12px' }}>🔒</div>
+          <h3 style={{ marginBottom: '8px' }}>Perfil privado</h3>
+          <p style={{ color: 'var(--text-muted)' }}>
+            No se puede ver toda la información de este estudiante. Enviale una solicitud de contacto para conectar.
+          </p>
+        </div>
+      ) : (
       <div className="profile-grid">
         <div className="profile-section card">
           <h3>Sobre mí</h3>
@@ -255,6 +285,7 @@ const ExternalProfile = () => {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };

@@ -4,6 +4,7 @@ import "../../styles/Materials.css";
 import { resolveMaterialUrl } from "../../utils/materialUrl";
 import { getMaterialIconDisplay, getPlatformCardClass } from "../../utils/materialIcon";
 import MaterialCategoryIcon from "../../components/MaterialCategoryIcon";
+import SearchableSelect from "../../components/SearchableSelect";
 import { Flag, AlertTriangle, CheckCircle, Info, Trash2 } from "lucide-react";
 import Toast from "../../components/Toast";
 import { useToast } from "../../hooks/useToast";
@@ -55,6 +56,7 @@ interface Material {
   userVote?: number;
   pendingReports: number;
   verifiedReports: number;
+  userReported: boolean;
   suspendido: boolean;
   discordMetadata?: DiscordMetadata;
 }
@@ -70,6 +72,8 @@ export default function Materials() {
   const [search, setSearch] = useState("");
   const [subjectSearch, setSubjectSearch] = useState("");
   const [sortBy, setSortBy] = useState("recientes");
+  const [filterBy, setFilterBy] = useState("todos");
+  const [contactIds, setContactIds] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Admin filters
@@ -91,12 +95,13 @@ export default function Materials() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reasons, setReasons] = useState<ReportReason[]>([]);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
-  const [reportData, setReportData] = useState({
-    reasonId: "",
+  const [reportData, setReportData] = useState<{ reasonIds: string[]; motivoEspecifico: string; detalle: string }>({
+    reasonIds: [],
     motivoEspecifico: "",
     detalle: ""
   });
   const [reportLoading, setReportLoading] = useState(false);
+  const [reasonsDropdownOpen, setReasonsDropdownOpen] = useState(false);
   const [materialToDelete, setMaterialToDelete] = useState<Material | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -119,8 +124,12 @@ export default function Materials() {
       const res = await api.get(`/materiales?materia=${subjectId}&search=${search}&sort=${sortParam}`);
       
       let data = res.data;
-      if (sortBy === 'denunciados') {
+      if (filterBy === 'denunciados') {
         data = data.filter(tieneDenuncias);
+      } else if (filterBy === 'propios') {
+        data = data.filter((m: Material) => m.autor?._id === currentUserId);
+      } else if (filterBy === 'amigos') {
+        data = data.filter((m: Material) => contactIds.includes(m.autor?._id));
       }
       if (filterReported) {
         data = data.filter(tieneDenuncias);
@@ -128,14 +137,27 @@ export default function Materials() {
       if (filterSuspended) {
         data = data.filter((m: Material) => m.suspendido);
       }
-      
+      if (sortBy === 'alfabetico') {
+        data = [...data].sort((a: Material, b: Material) =>
+          a.titulo.localeCompare(b.titulo, 'es', { sensitivity: 'base' }));
+      }
+
       setMaterials(data);
     } catch (err) {
       console.error("Error al cargar materiales", err);
     } finally {
       setLoading(false);
     }
-  }, [search, sortBy, filterReported, filterSuspended]);
+  }, [search, sortBy, filterBy, filterReported, filterSuspended, currentUserId, contactIds]);
+
+  const fetchContacts = useCallback(async () => {
+    try {
+      const res = await api.get("/invitaciones/contactos");
+      setContactIds(res.data.map((c: { _id: string }) => c._id));
+    } catch (err) {
+      console.error("Error al cargar contactos", err);
+    }
+  }, []);
 
   const fetchReasons = useCallback(async () => {
     try {
@@ -150,8 +172,9 @@ export default function Materials() {
     (async () => {
       await fetchSubjects();
       await fetchReasons();
+      await fetchContacts();
     })();
-  }, [fetchSubjects, fetchReasons]);
+  }, [fetchSubjects, fetchReasons, fetchContacts]);
 
   useEffect(() => {
     if (selectedSubject) {
@@ -200,12 +223,13 @@ export default function Materials() {
   const handleOpenReportModal = (material: Material) => {
     setSelectedMaterial(material);
     setIsReportModalOpen(true);
-    setReportData({ reasonId: "", motivoEspecifico: "", detalle: "" });
+    setReportData({ reasonIds: [], motivoEspecifico: "", detalle: "" });
   };
 
   const handleCloseReportModal = () => {
     setIsReportModalOpen(false);
     setSelectedMaterial(null);
+    setReasonsDropdownOpen(false);
   };
 
   const handleReportInputChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement | HTMLInputElement>) => {
@@ -213,16 +237,29 @@ export default function Materials() {
     setReportData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleReasonToggle = (reasonId: string) => {
+    setReportData(prev => ({
+      ...prev,
+      reasonIds: prev.reasonIds.includes(reasonId)
+        ? prev.reasonIds.filter(id => id !== reasonId)
+        : [...prev.reasonIds, reasonId]
+    }));
+  };
+
   const handleReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedMaterial) return;
-    
+    if (reportData.reasonIds.length === 0) {
+      showToast("Seleccioná al menos un motivo", "error");
+      return;
+    }
+
     setReportLoading(true);
 
     try {
       await api.post("/denuncias", {
         materialId: selectedMaterial._id,
-        reasonId: reportData.reasonId,
+        reasonIds: reportData.reasonIds,
         motivoEspecifico: reportData.motivoEspecifico,
         detalle: reportData.detalle
       });
@@ -364,6 +401,7 @@ export default function Materials() {
     setUploadLoading(true);
 
     try {
+      if (!formData.materia) throw new Error("Seleccioná una materia válida de la lista");
       const data = new FormData();
       data.append("titulo", formData.titulo);
       data.append("descripcion", formData.descripcion);
@@ -463,7 +501,7 @@ export default function Materials() {
           <input
             type="text"
             className="search-input"
-            placeholder={selectedSubject ? "Buscar en este repositorio..." : "Buscar materia..."}
+            placeholder={selectedSubject ? "Buscar material por nombre o tag..." : "Buscar materia..."}
             value={selectedSubject ? search : subjectSearch}
             onChange={(e) => selectedSubject ? setSearch(e.target.value) : setSubjectSearch(e.target.value)}
           />
@@ -490,13 +528,25 @@ export default function Materials() {
       {selectedSubject && (
         <div className="sort-container">
           <span className="sort-label">Ordenar por:</span>
-          <select 
-            className="sort-select" 
-            value={sortBy} 
+          <select
+            className="sort-select"
+            value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >
             <option value="recientes">Más recientes</option>
             <option value="valoracion">Mejor valorados</option>
+            <option value="alfabetico">A - Z (alfabético)</option>
+          </select>
+
+          <span className="sort-label">Filtrar por:</span>
+          <select
+            className="sort-select"
+            value={filterBy}
+            onChange={(e) => setFilterBy(e.target.value)}
+          >
+            <option value="todos">Todos</option>
+            <option value="propios">Propios</option>
+            <option value="amigos">Amigos</option>
             <option value="denunciados">Denunciados</option>
           </select>
         </div>
@@ -530,8 +580,10 @@ export default function Materials() {
         <div className="materials-list">
           {materials.length === 0 ? (
             <div className="no-results py-10 text-center">
-              {sortBy === 'denunciados' ? (
+              {filterBy === 'denunciados' ? (
                 <>No hay materiales denunciados en esta materia.</>
+              ) : filterBy === 'amigos' ? (
+                <>No hay materiales de tus contactos en esta materia.</>
               ) : (
                 <>
                   No hay materiales compartidos en esta materia todavía. <br />
@@ -667,7 +719,10 @@ export default function Materials() {
                     <button
                       className="btn-report"
                       onClick={() => handleOpenReportModal(m)}
-                      title="Denunciar contenido inapropiado"
+                      disabled={m.userReported}
+                      title={m.userReported
+                        ? "Ya denunciaste este material. Solo podés denunciarlo una vez."
+                        : "Denunciar contenido inapropiado"}
                     >
                       🚩
                     </button>
@@ -736,21 +791,38 @@ export default function Materials() {
               </p>
 
               <div className="form-group">
-                <label>Motivo de la denuncia *</label>
-                <select 
-                  name="reasonId" 
-                  value={reportData.reasonId} 
-                  onChange={handleReportInputChange} 
-                  required
-                >
-                  <option value="">Seleccionar motivo</option>
-                  {reasons.map(r => (
-                    <option key={r._id} value={r._id}>{r.titulo}</option>
-                  ))}
-                </select>
+                <label>Motivos de la denuncia * (podés seleccionar más de uno)</label>
+                <div className={`report-reasons-dropdown ${reasonsDropdownOpen ? 'open' : ''}`}>
+                  <button
+                    type="button"
+                    className="report-reasons-trigger"
+                    onClick={() => setReasonsDropdownOpen(o => !o)}
+                  >
+                    <span>
+                      {reportData.reasonIds.length === 0
+                        ? 'Seleccionar motivos'
+                        : `${reportData.reasonIds.length} motivo${reportData.reasonIds.length > 1 ? 's' : ''} seleccionado${reportData.reasonIds.length > 1 ? 's' : ''}`}
+                    </span>
+                    <span className="report-reasons-caret">▾</span>
+                  </button>
+                  {reasonsDropdownOpen && (
+                    <div className="report-reasons-panel">
+                      {reasons.map(r => (
+                        <label key={r._id} className="report-reason-option">
+                          <input
+                            type="checkbox"
+                            checked={reportData.reasonIds.includes(r._id)}
+                            onChange={() => handleReasonToggle(r._id)}
+                          />
+                          <span>{r.titulo}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {reasons.find(r => r._id === reportData.reasonId)?.titulo.toLowerCase() === 'otro' && (
+              {reasons.some(r => reportData.reasonIds.includes(r._id) && r.titulo.toLowerCase() === 'otro') && (
                 <div className="form-group">
                   <label>Especificar motivo *</label>
                   <input 
@@ -833,12 +905,12 @@ export default function Materials() {
 
               <div className="form-group">
                 <label>Materia *</label>
-                <select name="materia" value={formData.materia || ""} onChange={handleInputChange} required>
-                  <option value="">Seleccionar materia</option>
-                  {subjects.map(s => (
-                    <option key={s._id} value={s._id}>{s.nombre} ({s.codigo})</option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  options={subjects.map(s => ({ value: s._id, label: `${s.nombre} (${s.codigo})` }))}
+                  value={formData.materia}
+                  onChange={(value) => setFormData(prev => ({ ...prev, materia: value }))}
+                  placeholder="Escribí o seleccioná una materia..."
+                />
               </div>
 
               <div className="form-group">

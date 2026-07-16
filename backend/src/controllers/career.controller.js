@@ -2,6 +2,8 @@ const Career = require('../models/Career');
 const Subject = require('../models/Subject');
 const StudyPlan = require('../models/StudyPlan');
 const User = require('../models/User');
+const StudySession = require('../models/StudySession');
+const Material = require('../models/Material');
 
 const getCareers = async (req, res) => {
   try {
@@ -131,10 +133,84 @@ const deleteCareer = async (req, res) => {
   }
 };
 
+const getComunidadActiva = async (req, res) => {
+  try {
+    const studentsPorCarrera = await User.aggregate([
+      { $match: { role: 'student' } },
+      { $group: { _id: '$carrera', estudiantes: { $sum: 1 }, totalContactos: { $sum: { $size: { $ifNull: ['$contactos', []] } } } } }
+    ]);
+
+    const sesionesPorCarrera = await StudySession.aggregate([
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'creador',
+          foreignField: '_id',
+          as: 'creadorData'
+        }
+      },
+      { $unwind: '$creadorData' },
+      { $group: { _id: '$creadorData.carrera', sesiones: { $sum: 1 } } }
+    ]);
+
+    const materialesPorCarrera = await Material.aggregate([
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'autor',
+          foreignField: '_id',
+          as: 'autorData'
+        }
+      },
+      { $unwind: '$autorData' },
+      { $group: { _id: '$autorData.carrera', materiales: { $sum: 1 } } }
+    ]);
+
+    const carreras = await Career.find().sort({ nombre: 1 });
+
+    const sesionesMap = {};
+    sesionesPorCarrera.forEach(s => { if (s._id) sesionesMap[s._id.toString()] = s.sesiones; });
+
+    const materialesMap = {};
+    materialesPorCarrera.forEach(m => { if (m._id) materialesMap[m._id.toString()] = m.materiales; });
+
+    const studentsMap = {};
+    studentsPorCarrera.forEach(s => { if (s._id) studentsMap[s._id.toString()] = s; });
+
+    const result = carreras.map(c => {
+      const id = c._id.toString();
+      const studentData = studentsMap[id] || { estudiantes: 0, totalContactos: 0 };
+      return {
+        _id: c._id,
+        nombre: c.nombre,
+        codigo: c.codigo,
+        estudiantes: studentData.estudiantes,
+        conexiones: studentData.totalContactos,
+        sesiones: sesionesMap[id] || 0,
+        materiales: materialesMap[id] || 0
+      };
+    });
+
+    result.sort((a, b) => b.estudiantes - a.estudiantes);
+
+    const totales = result.reduce((acc, c) => ({
+      estudiantes: acc.estudiantes + c.estudiantes,
+      conexiones: acc.conexiones + c.conexiones,
+      sesiones: acc.sesiones + c.sesiones,
+      materiales: acc.materiales + c.materiales
+    }), { estudiantes: 0, conexiones: 0, sesiones: 0, materiales: 0 });
+
+    res.json({ carreras: result, totales });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener carreras con comunidad activa', error: error.message });
+  }
+};
+
 module.exports = {
   getCareers,
   getCareerById,
   createCareer,
   updateCareer,
-  deleteCareer
+  deleteCareer,
+  getComunidadActiva
 };

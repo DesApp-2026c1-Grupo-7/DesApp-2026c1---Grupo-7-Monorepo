@@ -1,14 +1,9 @@
 const Final = require('../models/Final');
 const Grade = require('../models/Grade');
 const { createAcademicEvent } = require('../utils/academicEvents');
-
-const REGULAR_YEARS = 2;
-
-const addYears = (date, years) => {
-  const result = new Date(date);
-  result.setFullYear(result.getFullYear() + years);
-  return result;
-};
+const { getVencimientoRegularidad, MAX_INTENTOS_FINAL } = require('../utils/regularity');
+const { calcularEstadoFinal } = require('../utils/gradeState');
+const { perderRegularidad } = require('../utils/perderRegularidad');
 
 const getFinales = async (req, res) => {
   try {
@@ -33,10 +28,13 @@ const getFinalesPendientes = async (req, res) => {
 
     const pendientes = [];
     for (const g of regulares) {
+      // Solo cuentan los intentos rendidos desde que se regularizó por última vez:
+      // si recursó y volvió a regularizarse, los intentos previos no se arrastran.
       const intentosPrevios = await Final.countDocuments({
         estudiante: userId,
         materia: g.materia._id,
-        estado: { $in: ['Aprobado', 'Desaprobado', 'Ausente'] }
+        estado: { $in: ['Aprobado', 'Desaprobado', 'Ausente'] },
+        fecha: { $gte: g.fecha }
       });
 
       const inscripcionActiva = await Final.findOne({
@@ -51,7 +49,7 @@ const getFinalesPendientes = async (req, res) => {
         anioCursada: g.anioCursada,
         fechaRegular: g.fecha,
         intentosPrevios,
-        venceRegularidad: addYears(g.fecha, REGULAR_YEARS),
+        venceRegularidad: getVencimientoRegularidad(g.fecha),
         yaInscripto: !!inscripcionActiva,
         finalId: inscripcionActiva ? inscripcionActiva._id : null
       });
@@ -103,7 +101,14 @@ const inscribirseAFinal = async (req, res) => {
 
 const registrarResultadoFinal = async (req, res) => {
   try {
-    const { estado, nota } = req.body;
+    const { nota, ausente } = req.body;
+    const estado = ausente ? 'Ausente' :
+      nota !== undefined && nota !== null ? calcularEstadoFinal(nota) : req.body.estado;
+
+    if (!estado) {
+      return res.status(400).json({ mensaje: 'Nota invalida (debe ser 1-10)' });
+    }
+
     const final = await Final.findOneAndUpdate(
       { _id: req.params.id, estudiante: req.user.id },
       { estado, nota },
@@ -129,6 +134,28 @@ const registrarResultadoFinal = async (req, res) => {
       // Crear evento académico si corresponde
       if (final.materia) {
         await createAcademicEvent(req.user.id, 'Aprobada', final.materia.nombre);
+      }
+    } else {
+      // No aprobó (Desaprobado o Ausente): si ya agotó los intentos, pierde la regularidad
+      const grade = await Grade.findOne({
+        estudiante: req.user.id,
+        materia: final.materia._id,
+        estado: 'Regular'
+      });
+
+      if (grade) {
+        // Solo cuentan los intentos rendidos desde la última regularización:
+        // si recursó y volvió a regularizarse, los intentos previos no se arrastran.
+        const intentos = await Final.countDocuments({
+          estudiante: req.user.id,
+          materia: final.materia._id,
+          estado: { $in: ['Aprobado', 'Desaprobado', 'Ausente'] },
+          fecha: { $gte: grade.fecha }
+        });
+
+        if (intentos >= MAX_INTENTOS_FINAL) {
+          await perderRegularidad(grade, 'intentos', final.materia.nombre);
+        }
       }
     }
 

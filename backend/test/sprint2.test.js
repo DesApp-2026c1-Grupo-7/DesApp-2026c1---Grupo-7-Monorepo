@@ -11,6 +11,7 @@ let student1Id;
 let student2Token;
 let student2Id;
 let subjectId;
+let careerId;
 
 async function createBootstrapAdmin() {
   const User = require('../src/models/User');
@@ -50,7 +51,7 @@ test.before(async () => {
       nivelInglesRequerido: 'B1'
     });
   assert.equal(career.status, 201);
-  const careerId = career.body.career._id;
+  careerId = career.body.career._id;
 
   const subject = await request(app)
     .post('/api/materias')
@@ -123,12 +124,13 @@ test('búsqueda sanitiza regex especiales sin crashear', async () => {
   assert.ok(Array.isArray(res.body));
 });
 
-test('perfil público: visible si es público, bloqueado si es privado', async () => {
+test('perfil público: completo si es público, vista mínima si es privado', async () => {
   const pub = await request(app)
     .get(`/api/perfil/${student2Id}`)
     .set('Authorization', `Bearer ${student1Token}`)
     .expect(200);
   assert.equal(pub.body.nombre, 'Bruno Paz');
+  assert.equal(pub.body.perfilPrivado, false);
 
   await request(app)
     .put('/api/perfil/me')
@@ -136,17 +138,24 @@ test('perfil público: visible si es público, bloqueado si es privado', async (
     .send({ configuracionPrivacidad: { perfil: 'privado' } })
     .expect(200);
 
-  await request(app)
+  // Privado y no-contacto: se ve una vista mínima (nombre) pero no bio ni situación.
+  const priv = await request(app)
     .get(`/api/perfil/${student2Id}`)
     .set('Authorization', `Bearer ${student1Token}`)
-    .expect(403);
+    .expect(200);
+  assert.equal(priv.body.perfilPrivado, true);
+  assert.equal(priv.body.nombre, 'Bruno Paz');
+  assert.equal(priv.body.bio, undefined);
+  assert.equal(priv.body.situacionAcademica, undefined);
 });
 
 test('invitaciones: enviar, listar pendientes, aceptar y convertirse en contactos', async () => {
+  // El flujo de solicitud pendiente + aceptación aplica a TODOS los perfiles
+  // (públicos y privados): nunca se auto-acepta.
   await request(app)
     .put('/api/perfil/me')
     .set('Authorization', `Bearer ${student2Token}`)
-    .send({ configuracionPrivacidad: { perfil: 'publico' } })
+    .send({ configuracionPrivacidad: { perfil: 'privado' } })
     .expect(200);
 
   const send = await request(app)
@@ -174,6 +183,57 @@ test('invitaciones: enviar, listar pendientes, aceptar y convertirse en contacto
     .set('Authorization', `Bearer ${student1Token}`)
     .expect(200);
   assert.ok(contactos.body.some((c) => c._id === student2Id || c._id.toString() === student2Id));
+});
+
+test('invitaciones: perfil público también requiere aprobación (queda pendiente, sin auto-aceptar)', async () => {
+  const regA = await request(app)
+    .post('/api/auth/register')
+    .send({ nombre: 'Carla Pub', email: 'carla-pub@test.com', password: 'pass1234', carrera: careerId });
+  assert.equal(regA.status, 201);
+  const tokenA = regA.body.token;
+
+  const regB = await request(app)
+    .post('/api/auth/register')
+    .send({ nombre: 'Diego Pub', email: 'diego-pub@test.com', password: 'pass1234', carrera: careerId });
+  assert.equal(regB.status, 201);
+  const idB = regB.body.user.id;
+  const tokenB = regB.body.token;
+
+  // Perfil público por defecto: la solicitud NO se auto-acepta, queda pendiente.
+  const send = await request(app)
+    .post('/api/invitaciones/enviar')
+    .set('Authorization', `Bearer ${tokenA}`)
+    .send({ destinatarioId: idB })
+    .expect(200);
+  assert.notEqual(send.body.autoAceptado, true);
+
+  // Queda una invitación pendiente para el destinatario.
+  const pendientes = await request(app)
+    .get('/api/invitaciones/pendientes')
+    .set('Authorization', `Bearer ${tokenB}`)
+    .expect(200);
+  assert.equal(pendientes.body.length, 1);
+
+  // Todavía NO son contactos: hace falta que el destinatario acepte.
+  const contactosA = await request(app)
+    .get('/api/invitaciones/contactos')
+    .set('Authorization', `Bearer ${tokenA}`)
+    .expect(200);
+  assert.ok(!contactosA.body.some((c) => (c._id?.toString?.() || c._id) === idB));
+
+  // El destinatario acepta y recién ahí se hacen contactos mutuos.
+  const token = pendientes.body[0].token;
+  await request(app)
+    .post('/api/invitaciones/aceptar')
+    .set('Authorization', `Bearer ${tokenB}`)
+    .send({ token })
+    .expect(200);
+
+  const contactosFinal = await request(app)
+    .get('/api/invitaciones/contactos')
+    .set('Authorization', `Bearer ${tokenA}`)
+    .expect(200);
+  assert.ok(contactosFinal.body.some((c) => (c._id?.toString?.() || c._id) === idB));
 });
 
 test('feed: publicar evento y verlo en el feed de un contacto', async () => {
@@ -224,6 +284,69 @@ test('evento: requiere contenido no vacío', async () => {
     .set('Authorization', `Bearer ${student1Token}`)
     .send({ contenido: 'x'.repeat(501) })
     .expect(400);
+});
+
+test('evento: el autor puede editar su publicación y queda marcada como editada', async () => {
+  const post = await request(app)
+    .post('/api/eventos')
+    .set('Authorization', `Bearer ${student1Token}`)
+    .send({ contenido: 'Contenido original' })
+    .expect(201);
+  assert.equal(post.body.editado, false);
+
+  const edit = await request(app)
+    .put(`/api/eventos/${post.body._id}`)
+    .set('Authorization', `Bearer ${student1Token}`)
+    .send({ contenido: 'Contenido editado' })
+    .expect(200);
+  assert.equal(edit.body.contenido, 'Contenido editado');
+  assert.equal(edit.body.editado, true);
+});
+
+test('evento: un usuario no puede editar la publicación de otro', async () => {
+  const post = await request(app)
+    .post('/api/eventos')
+    .set('Authorization', `Bearer ${student1Token}`)
+    .send({ contenido: 'Publicación de student1' })
+    .expect(201);
+
+  await request(app)
+    .put(`/api/eventos/${post.body._id}`)
+    .set('Authorization', `Bearer ${student2Token}`)
+    .send({ contenido: 'Intento de edición ajena' })
+    .expect(403);
+});
+
+test('evento: un usuario no puede eliminar la publicación de otro', async () => {
+  const post = await request(app)
+    .post('/api/eventos')
+    .set('Authorization', `Bearer ${student1Token}`)
+    .send({ contenido: 'Otra publicación de student1' })
+    .expect(201);
+
+  await request(app)
+    .delete(`/api/eventos/${post.body._id}`)
+    .set('Authorization', `Bearer ${student2Token}`)
+    .expect(403);
+});
+
+test('evento: el autor puede eliminar su propia publicación', async () => {
+  const post = await request(app)
+    .post('/api/eventos')
+    .set('Authorization', `Bearer ${student1Token}`)
+    .send({ contenido: 'Publicación a eliminar' })
+    .expect(201);
+
+  await request(app)
+    .delete(`/api/eventos/${post.body._id}`)
+    .set('Authorization', `Bearer ${student1Token}`)
+    .expect(200);
+
+  const feed = await request(app)
+    .get('/api/eventos/feed')
+    .set('Authorization', `Bearer ${student1Token}`)
+    .expect(200);
+  assert.ok(!feed.body.some((e) => e._id === post.body._id));
 });
 
 test('sesiones: proponer una sesión con todos los campos requeridos', async () => {

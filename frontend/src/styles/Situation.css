@@ -187,6 +187,13 @@ td {
   border-top: 1px solid #e2e8f0;
 }
 
+/* Tabla de Materias: centra todas las columnas a partir de "Año" (la 2ª),
+   dejando "Materia" alineada a la izquierda. */
+.materias-table th:not(:first-child),
+.materias-table td:not(:first-child) {
+  text-align: center;
+}
+
 /* Badges */
 .badge {
   padding: 4px 10px;
@@ -212,6 +219,11 @@ td {
 .badge.gray {
   background: #e5e7eb;
   color: #374151;
+}
+
+.badge.red {
+  background: #fecaca;
+  color: #991b1b;
 }
 
 /* Dropdown */

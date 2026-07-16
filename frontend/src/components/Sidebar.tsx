@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -9,7 +10,9 @@ import {
   User,
   ShieldAlert,
   Rss,
-  LibraryBig
+  LibraryBig,
+  Menu,
+  X
 } from "lucide-react";
 
 import { useUnreadNotifications } from "../hooks/useUnreadNotifications";
@@ -52,25 +55,47 @@ const Sidebar = ({ role }: SidebarProps) => {
   const panelName = role === "student" ? "Panel Estudiante" : "Panel Administrador";
   const unread = useUnreadNotifications(role === "student");
 
+  // Menú hamburguesa para mobile: en pantallas chicas el menú arranca cerrado
+  // y se despliega como lista vertical al tocar el botón.
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="sidebar-brand">
           <span className="sidebar-mark"><LibraryBig size={20} /></span>
           <div>
-            <h2>Trayectoria</h2>
+            <h2>Sistema Académico</h2>
             <p>{panelName}</p>
           </div>
         </div>
+
+        <button
+          className="sidebar-toggle"
+          onClick={() => setMenuOpen((prev) => !prev)}
+          aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
+          aria-expanded={menuOpen}
+        >
+          {menuOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
       </div>
 
-      <nav className="menu">
+      {menuOpen && (
+        <div
+          className="menu-backdrop"
+          onClick={() => setMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <nav className={`menu ${menuOpen ? "open" : ""}`}>
         {items.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             className="link"
             end={item.to === "/student" || item.to === "/admin"}
+            onClick={() => setMenuOpen(false)}
           >
             {item.icon}
             <span>{item.label}</span>

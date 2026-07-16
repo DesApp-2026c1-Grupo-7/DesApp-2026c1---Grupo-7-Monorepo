@@ -1,4 +1,5 @@
 const StudySession = require('../models/StudySession');
+const Notification = require('../models/Notification');
 const mailService = require('./mail.service');
 const logger = require('../utils/logger');
 
@@ -26,6 +27,12 @@ const checkAndSendReminders = async () => {
         } catch (mailError) {
           logger.error(`Error al enviar recordatorio a ${participant.email}: ${mailError.message}`);
         }
+
+        await Notification.create({
+          usuario: participant._id,
+          titulo: 'Recordatorio de sesión de estudio',
+          descripcion: `Te recordamos que mañana tienes una sesión de estudio de ${session.materia.nombre} - tema: ${session.tema}`
+        });
       }
       
       // Marcar como enviado para no repetir

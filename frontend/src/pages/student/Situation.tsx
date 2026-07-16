@@ -41,7 +41,7 @@ const Situation = () => {
   const [subjectToDelete, setSubjectToDelete] = useState<{ id: string, nombre: string } | null>(null);
   const { toast, showToast, hideToast } = useToast();
 
-  const options = ["Todos los estados", "Aprobada", "Regular", "Cursando", "Pendiente"];
+  const options = ["Todos los estados", "Aprobada", "Regular", "Cursando", "Desaprobado", "Pendiente"];
   const yearOptions = ["Todos los años", "1°", "2°", "3°", "4°", "5°"];
 
   const fetchSituation = useCallback((showLoading = false) => {
@@ -99,12 +99,23 @@ const Situation = () => {
 
   const getBadgeClass = (estado: string) => {
     switch (estado) {
-      case "Aprobada": return "badge green";
+      case "Aprobada":
+      case "Promocion": return "badge green";
       case "Regular": return "badge blue";
       case "Cursando": return "badge yellow";
+      case "Desaprobado": return "badge red";
       case "Pendiente": return "badge gray";
       default: return "badge";
     }
+  };
+
+  // La regularidad vence a los 2 años de la fecha de carga. Solo aplica a
+  // materias regulares; aprobadas/promocionadas u otros estados muestran "-".
+  const getVencimiento = (m: AcademicRecord) => {
+    if (m.estado !== "Regular") return "-";
+    const vence = new Date(m.fecha);
+    vence.setFullYear(vence.getFullYear() + 2);
+    return vence.toLocaleDateString();
   };
 
   return (
@@ -204,7 +215,7 @@ const Situation = () => {
         {loading ? (
           <p style={{ padding: '20px', textAlign: 'center' }}>Cargando situación académica...</p>
         ) : (
-          <table>
+          <table className="materias-table">
             <thead>
               <tr>
                 <th>Materia</th>
@@ -212,6 +223,7 @@ const Situation = () => {
                 <th>Estado</th>
                 <th>Nota</th>
                 <th>Fecha</th>
+                <th>Vence</th>
                 <th>Acciones</th>
               </tr>
             </thead>
@@ -225,12 +237,13 @@ const Situation = () => {
                     <td><span className={getBadgeClass(m.estado)}>{m.estado}</span></td>
                     <td>{m.nota || "-"}</td>
                     <td>{new Date(m.fecha).toLocaleDateString()}</td>
+                    <td>{getVencimiento(m)}</td>
                     <td>
                       <button
-                        className={`btn-baja ${m.estado === 'Aprobada' || m.estado === 'Promocion' || m.estado === 'Regular' ? 'btn-disabled' : 'btn-danger'}`}
+                        className={`btn-baja ${m.estado !== 'Cursando' ? 'btn-disabled' : 'btn-danger'}`}
                         onClick={() => openDeleteModal(m.materia._id, m.materia.nombre)}
-                        disabled={m.estado === 'Aprobada' || m.estado === 'Promocion' || m.estado === 'Regular'}
-                        title={m.estado === 'Regular' ? "No se puede dar de baja una materia regular" : m.estado === 'Aprobada' || m.estado === 'Promocion' ? "No se puede dar de baja una materia aprobada" : ""}
+                        disabled={m.estado !== 'Cursando'}
+                        title={m.estado !== 'Cursando' ? "Solo se puede dar de baja una materia que estás cursando" : ""}
                       >
                         Darse de baja
                       </button>
@@ -239,7 +252,7 @@ const Situation = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '20px' }}>No hay registros académicos.</td>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '20px' }}>No hay registros académicos.</td>
                 </tr>
               )}
             </tbody>
@@ -271,13 +284,18 @@ const Situation = () => {
                   <label>Fecha</label>
                   <span>{new Date(m.fecha).toLocaleDateString()}</span>
                 </div>
+                <div>
+                  <label>Vence</label>
+                  <span>{getVencimiento(m)}</span>
+                </div>
               </div>
               <div className="card-footer">
                 <button
-                  className={`btn-baja ${m.estado === 'Aprobada' || m.estado === 'Promocion' || m.estado === 'Regular' ? 'btn-disabled' : 'btn-danger'}`}
+                  className={`btn-baja ${m.estado !== 'Cursando' ? 'btn-disabled' : 'btn-danger'}`}
                   style={{ width: '100%' }}
                   onClick={() => openDeleteModal(m.materia._id, m.materia.nombre)}
-                  disabled={m.estado === 'Aprobada' || m.estado === 'Promocion' || m.estado === 'Regular'}
+                  disabled={m.estado !== 'Cursando'}
+                  title={m.estado !== 'Cursando' ? "Solo se puede dar de baja una materia que estás cursando" : ""}
                 >
                   Darse de baja
                 </button>

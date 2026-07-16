@@ -10,6 +10,7 @@ router.post('/', auth, reportController.createReport);
 
 // Rutas solo para admins
 router.get('/', auth, authorize('admin'), reportController.getAllReports);
+router.get('/stats', auth, authorize('admin'), reportController.getReportStats);
 router.patch('/config', auth, authorize('admin'), reportController.updateReportConfig);
 router.patch('/:id/status', auth, authorize('admin'), reportController.updateReportStatus);
 

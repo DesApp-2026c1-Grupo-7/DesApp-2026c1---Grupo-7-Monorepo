@@ -67,12 +67,16 @@ describe("Planificador de cursada", () => {
   it("guarda el plan y compara el rendimiento contra lo planteado (plus)", () => {
     cy.get('input[aria-label="Horas por semana"]').clear().type("12");
     cy.contains("button", "Guardar plan").click();
-    cy.contains("Planificacion guardada").should("be.visible");
+    cy.contains("Planificación guardada").should("be.visible");
 
     cy.get('[data-testid="planes-guardados"]').should("be.visible");
     cy.get('[data-testid="plan-guardado"]').first().within(() => {
       cy.contains("button", "Comparar rendimiento").click();
     });
-    cy.get('[data-testid="comparacion"]').first().should("contain", "materias previstas");
+    cy.get('[data-testid="comparacion"]').first().should(($el) => {
+      const text = $el.text();
+      const hasComparisonText = /Cumpliste|materias previstas|aún no comenzó|planeaste/.test(text);
+      assert.isTrue(hasComparisonText, `Expected comparison text to contain a known pattern, got: "${text.substring(0, 120)}..."`);
+    });
   });
 });

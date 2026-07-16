@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import { Users } from "lucide-react";
 import Toast from "../../components/Toast";
+import ConfirmModal from "../../components/ConfirmModal";
 import { useToast } from "../../hooks/useToast";
 
 interface Subject {
@@ -34,6 +35,7 @@ interface Session {
   cupos?: number;
   participantes: User[];
   solicitudes: { usuario: string | { _id: string; nombre: string }; estado: string }[];
+  estado: string;
   requiereAprobacion: boolean;
   descripcion?: string;
 }
@@ -47,6 +49,11 @@ const StudySessions = () => {
   
   // Estado para modal de miembros
   const [viewingMembers, setViewingMembers] = useState<Session | null>(null);
+
+  // Modal de confirmación in-app (reemplaza window.confirm)
+  const [confirmModal, setConfirmModal] = useState<
+    { title: string; message: string; confirmLabel: string; onConfirm: () => void } | null
+  >(null);
 
   // Estados de filtros
   const [searchQuery, setSearchQuery] = useState("");
@@ -128,7 +135,6 @@ const StudySessions = () => {
   };
 
   const handleCancel = async (sessionId: string) => {
-    if (!window.confirm("¿Estás seguro de que quieres cancelar esta sesión? Se notificará a todos los participantes.")) return;
     setActionLoading(sessionId);
     try {
       const res = await api.delete(`/sesiones/${sessionId}`);
@@ -143,7 +149,6 @@ const StudySessions = () => {
   };
 
   const handleKick = async (sessionId: string, userId: string) => {
-    if (!window.confirm("¿Estás seguro de que quieres expulsar a este miembro?")) return;
     setActionLoading(`kick-${userId}`);
     try {
       const res = await api.post(`/sesiones/${sessionId}/kick/${userId}`);
@@ -326,7 +331,7 @@ const StudySessions = () => {
               return solUserId === currentUser?.id && sol.estado === 'pendiente';
             });
             const isFull = !!s.cupos && s.participantes.length >= s.cupos;
-            const isClosed = new Date(s.fechaHora) < new Date();
+            const isClosed = s.estado === 'finalizada' || new Date(s.fechaHora) < new Date();
 
             return (
               <div key={s._id} className="session-card" style={{ opacity: isClosed ? 0.7 : 1 }}>
@@ -439,7 +444,12 @@ const StudySessions = () => {
                       <button 
                         className="btn-secondary" 
                         style={{ padding: '6px 12px', fontSize: '0.85rem', color: '#dc2626', borderColor: '#fca5a5' }}
-                        onClick={() => handleCancel(s._id)}
+                        onClick={() => setConfirmModal({
+                          title: "Cancelar sesión",
+                          message: "¿Seguro que querés cancelar esta sesión? Se notificará a todos los participantes.",
+                          confirmLabel: "Cancelar sesión",
+                          onConfirm: () => handleCancel(s._id),
+                        })}
                         disabled={actionLoading === s._id}
                       >
                         {actionLoading === s._id ? "..." : "Cancelar"}
@@ -516,7 +526,12 @@ const StudySessions = () => {
                     <button 
                       className="btn-secondary"
                       style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#dc2626', borderColor: '#fca5a5' }}
-                      onClick={() => handleKick(viewingMembers._id, member._id)}
+                      onClick={() => setConfirmModal({
+                        title: "Expulsar miembro",
+                        message: `¿Seguro que querés expulsar a ${member.nombre} de esta sesión?`,
+                        confirmLabel: "Expulsar",
+                        onConfirm: () => handleKick(viewingMembers._id, member._id),
+                      })}
                       disabled={actionLoading === `kick-${member._id}`}
                     >
                       {actionLoading === `kick-${member._id}` ? "..." : "Expulsar"}
@@ -533,6 +548,19 @@ const StudySessions = () => {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={!!confirmModal}
+        title={confirmModal?.title || ""}
+        message={confirmModal?.message || ""}
+        confirmLabel={confirmModal?.confirmLabel}
+        danger
+        onCancel={() => setConfirmModal(null)}
+        onConfirm={() => {
+          confirmModal?.onConfirm();
+          setConfirmModal(null);
+        }}
+      />
     </div>
   );
 };

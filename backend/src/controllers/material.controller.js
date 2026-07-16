@@ -105,10 +105,11 @@ const getMaterials = async (req, res) => {
     }
     
     if (search) {
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       match.$or = [
-        { titulo: { $regex: search, $options: 'i' } },
-        { descripcion: { $regex: search, $options: 'i' } },
-        { tags: { $in: [new RegExp(search, 'i')] } }
+        { titulo: { $regex: escaped, $options: 'i' } },
+        { descripcion: { $regex: escaped, $options: 'i' } },
+        { tags: { $in: [new RegExp(escaped, 'i')] } }
       ];
     }
 
@@ -154,6 +155,10 @@ const getMaterials = async (req, res) => {
               { $gte: ['$pendingReports', thresholds.nPending] },
               { $gte: ['$verifiedReports', thresholds.mVerified] }
             ]
+          },
+          // ¿El usuario actual ya denunció este material? (solo puede una vez)
+          userReported: {
+            $in: [new mongoose.Types.ObjectId(req.user.id), '$reports.denunciante']
           }
         }
       },
@@ -418,10 +423,124 @@ const getDiscordInfo = async (req, res) => {
   }
 };
 
+const getTopSubjectsByMaterials = async (req, res) => {
+  try {
+    const result = await Material.aggregate([
+      { $group: { _id: '$materia', cantidad: { $sum: 1 } } },
+      { $sort: { cantidad: -1 } },
+      { $limit: 10 },
+      {
+        $lookup: {
+          from: 'subjects',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'materia'
+        }
+      },
+      { $unwind: '$materia' },
+      {
+        $lookup: {
+          from: 'careers',
+          localField: 'materia.carrera',
+          foreignField: '_id',
+          as: 'carrera'
+        }
+      },
+      { $unwind: { path: '$carrera', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: '$materia._id',
+          nombre: '$materia.nombre',
+          codigo: '$materia.codigo',
+          carrera: { $ifNull: ['$carrera.nombre', 'Sin carrera'] },
+          cantidad: 1
+        }
+      }
+    ]);
+
+    const totalMateriales = await Material.countDocuments();
+
+    res.json({ materias: result, totalMateriales });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener materias con más materiales' });
+  }
+};
+
+const getTopRatedMaterials = async (req, res) => {
+  try {
+    const result = await Material.aggregate([
+      {
+        $addFields: {
+          likes: {
+            $size: {
+              $filter: { input: '$valoraciones', as: 'v', cond: { $eq: ['$$v.voto', 1] } }
+            }
+          },
+          dislikes: {
+            $size: {
+              $filter: { input: '$valoraciones', as: 'v', cond: { $eq: ['$$v.voto', -1] } }
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          puntaje: { $subtract: ['$likes', '$dislikes'] },
+          totalValoraciones: { $add: ['$likes', '$dislikes'] }
+        }
+      },
+      { $sort: { puntaje: -1, likes: -1 } },
+      {
+        $lookup: {
+          from: 'subjects',
+          localField: 'materia',
+          foreignField: '_id',
+          as: 'materia'
+        }
+      },
+      { $unwind: '$materia' },
+      {
+        $group: {
+          _id: '$materia._id',
+          nombreMateria: { $first: '$materia.nombre' },
+          codigoMateria: { $first: '$materia.codigo' },
+          totalMateriales: { $sum: 1 },
+          materiales: {
+            $push: {
+              _id: '$_id',
+              titulo: '$titulo',
+              tipo: '$tipo',
+              puntaje: '$puntaje',
+              likes: '$likes',
+              dislikes: '$dislikes',
+              totalValoraciones: '$totalValoraciones'
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          nombreMateria: 1,
+          codigoMateria: 1,
+          totalMateriales: 1,
+          materiales: { $slice: ['$materiales', 3] }
+        }
+      },
+      { $sort: { totalMateriales: -1 } }
+    ]);
+
+    res.json({ materias: result });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener materiales más valorados', error: error.message });
+  }
+};
+
 module.exports = {
   createMaterial,
   getMaterials,
   deleteMaterial,
   rateMaterial,
-  getDiscordInfo
+  getDiscordInfo,
+  getTopSubjectsByMaterials,
+  getTopRatedMaterials
 };

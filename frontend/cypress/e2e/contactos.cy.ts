@@ -47,6 +47,7 @@ describe("Crear dos usuarios y agregarlos como amigos", () => {
     registrar(alan);
 
     // 2. Alan (ya logueado) busca a Ada y le manda solicitud desde su perfil.
+    //    La solicitud queda pendiente hasta que Ada la apruebe (también en perfiles públicos).
     cy.visit("/student/social");
     cy.get(".search-bar-input").type(ada.nombre);
     cy.get(".search-result-item").contains(ada.nombre).click();

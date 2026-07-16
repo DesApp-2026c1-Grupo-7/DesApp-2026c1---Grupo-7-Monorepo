@@ -28,8 +28,23 @@ interface Plan {
   creditosNecesarios?: number;
   materiasUnahurRequeridas?: number;
   nivelInglesRequerido?: string;
+  estado?: 'Vigente' | 'En transicion' | 'Discontinuado';
   activo: boolean;
 }
+
+// Deriva la etiqueta de estado del plan (con fallback al booleano activo para
+// planes viejos sin el campo estado). Mismos colores que el badge de la lista.
+const getEstadoBox = (plan: Plan): { bg: string; color: string; label: string } => {
+  const estado = plan.estado ?? (plan.activo ? 'Vigente' : 'Discontinuado');
+  switch (estado) {
+    case 'En transicion':
+      return { bg: '#fef3c7', color: '#92600e', label: 'En transición' };
+    case 'Discontinuado':
+      return { bg: '#fee2e2', color: '#991b1b', label: 'Inactivo' };
+    default:
+      return { bg: '#d1fae5', color: '#065f46', label: 'Vigente' };
+  }
+};
 
 export default function StudyPlanDetail() {
   const { id } = useParams<{ id: string }>();
@@ -74,9 +89,14 @@ export default function StudyPlanDetail() {
         <div style={{ padding: '12px 16px', background: '#f3f4f6', borderRadius: 8 }}>
           <strong>Nivel Inglés:</strong> {plan.nivelInglesRequerido || '-'}
         </div>
-        <div style={{ padding: '12px 16px', background: plan.activo ? '#d1fae5' : '#fee2e2', borderRadius: 8 }}>
-          <strong>Estado:</strong> {plan.activo ? 'Vigente' : 'Inactivo'}
-        </div>
+        {(() => {
+          const estadoBox = getEstadoBox(plan);
+          return (
+            <div style={{ padding: '12px 16px', background: estadoBox.bg, color: estadoBox.color, borderRadius: 8 }}>
+              <strong>Estado:</strong> {estadoBox.label}
+            </div>
+          );
+        })()}
       </div>
 
       {Object.keys(porAnio).sort().map((y) => (

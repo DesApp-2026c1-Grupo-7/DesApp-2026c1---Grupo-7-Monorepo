@@ -8,6 +8,7 @@ const app = require('../src/app');
 let mongo;
 let studentToken;
 let denuncianteToken;
+let denunciante2Token;
 let adminToken;
 let materialId;
 let reasonId;
@@ -83,6 +84,16 @@ test.before(async () => {
     .send({ email: 'denunciante@test.com', password: 'pass1234' });
   denuncianteToken = loginDenunciante.body.token;
 
+  // Un tercer estudiante: cada usuario solo puede denunciar una vez el mismo material.
+  await request(app)
+    .post('/api/auth/register')
+    .send({ nombre: 'Denunciante 2', email: 'denunciante2@test.com', password: 'pass1234', carrera: careerId });
+
+  const loginDenunciante2 = await request(app)
+    .post('/api/auth/login')
+    .send({ email: 'denunciante2@test.com', password: 'pass1234' });
+  denunciante2Token = loginDenunciante2.body.token;
+
   // Crear material
   const mat = await request(app)
     .post('/api/materiales')
@@ -128,12 +139,12 @@ test('suspensión de material: umbrales y visibilidad', async () => {
     .send({ nPending: 2, mVerified: 1 })
     .expect(200);
 
-  // 3. Crear 2 denuncias pendientes (no debería suspenderse aún porque es > N)
-  for (let i = 0; i < 2; i++) {
+  // 3. Crear 2 denuncias pendientes de 2 estudiantes distintos (una por usuario).
+  for (const token of [denuncianteToken, denunciante2Token]) {
     await request(app)
       .post('/api/denuncias')
-      .set('Authorization', `Bearer ${denuncianteToken}`)
-      .send({ materialId, reasonId, detalle: `Denuncia ${i}` })
+      .set('Authorization', `Bearer ${token}`)
+      .send({ materialId, reasonId, detalle: 'Denuncia' })
       .expect(201);
   }
 

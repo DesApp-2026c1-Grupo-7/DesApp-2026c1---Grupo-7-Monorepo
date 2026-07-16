@@ -7,6 +7,8 @@ const AcademicOffer = require('../models/AcademicOffer');
 const SavedStudyPlan = require('../models/SavedStudyPlan');
 const Event = require('../models/Event');
 const { createAcademicEvent } = require('../utils/academicEvents');
+const { calcularEstadoGrade, APPROVED_STATES, CORRELATIVA_STATES } = require('../utils/gradeState');
+const { recalcularPlanesDelEstudiante } = require('../utils/recalcularPlan');
 
 const sortBySubjectPosition = (items) => [...items].sort((a, b) => {
   const materiaA = a.materia || {};
@@ -16,15 +18,7 @@ const sortBySubjectPosition = (items) => [...items].sort((a, b) => {
     (materiaA.nombre || '').localeCompare(materiaB.nombre || '');
 });
 
-const APPROVED_STATES = ['Aprobada', 'Promocion'];
 const UNLOCKING_STATES = ['Regular', 'Aprobada', 'Promocion'];
-const REGULAR_YEARS = 2;
-
-const addYears = (date, years) => {
-  const result = new Date(date);
-  result.setFullYear(result.getFullYear() + years);
-  return result;
-};
 
 const getPlanSubjectsForUser = async (userId) => {
   const user = await User.findById(userId).populate('planEstudio').populate('carrera');
@@ -142,19 +136,25 @@ const getPendingSubjects = async (req, res) => {
 
 const updateGrade = async (req, res) => {
   try {
-    const { materiaId, estado, nota, cuatrimestre, anioCursada } = req.body;
+    const { materiaId, nota, cuatrimestre, anioCursada } = req.body;
     const userId = req.user.id;
+    const estado = nota !== undefined && nota !== null
+      ? calcularEstadoGrade(nota)
+      : (req.body.estado || 'Cursando');
+
+    if (nota !== undefined && nota !== null && !estado) {
+      return res.status(400).json({ mensaje: 'Nota invalida (debe ser 1-10)' });
+    }
 
     const { materias: planSubjects } = await getPlanSubjectsForUser(userId);
     const subjectInPlan = planSubjects.find(m => m._id.toString() === materiaId.toString());
 
-    // Validación estricta de correlatividades para Aprobar/Promocionar
-    if (APPROVED_STATES.includes(estado)) {
+    if (['Cursando', ...CORRELATIVA_STATES].includes(estado)) {
       if (subjectInPlan && subjectInPlan.correlativas.length > 0) {
         const approvedGrades = await Grade.find({
           estudiante: userId,
           materia: { $in: subjectInPlan.correlativas.map(c => c._id) },
-          estado: { $in: APPROVED_STATES }
+          estado: { $in: CORRELATIVA_STATES }
         });
         
         if (approvedGrades.length < subjectInPlan.correlativas.length) {
@@ -162,8 +162,9 @@ const updateGrade = async (req, res) => {
             .filter(c => !approvedGrades.some(g => g.materia.toString() === c._id.toString()))
             .map(c => c.nombre)
             .join(', ');
+          const accion = estado === 'Cursando' ? 'cursar' : (estado === 'Regular' ? 'regularizar' : 'aprobar');
           return res.status(400).json({ 
-            mensaje: `No puedes aprobar ${subjectInPlan.nombre} sin haber aprobado antes: ${missing}` 
+            mensaje: `No puedes ${accion} ${subjectInPlan.nombre} sin haber regularizado/aprobado antes: ${missing}` 
           });
         }
       }
@@ -176,6 +177,9 @@ const updateGrade = async (req, res) => {
     };
     if (cuatrimestre !== undefined) update.cuatrimestre = cuatrimestre;
     if (anioCursada !== undefined) update.anioCursada = anioCursada;
+    // Al (re)regularizar arranca de nuevo el plazo de 2 años, asi que el aviso de
+    // vencimiento debe poder dispararse otra vez.
+    if (estado === 'Regular') update.notificacionVencimientoEnviada = false;
 
     const grade = await Grade.findOneAndUpdate(
       { estudiante: userId, materia: materiaId },
@@ -187,6 +191,9 @@ const updateGrade = async (req, res) => {
     if (grade && grade.materia) {
       await createAcademicEvent(userId, estado, grade.materia.nombre);
     }
+
+    // Etapa 3: recalcular planes guardados si la nota afecta el progreso
+    await recalcularPlanesDelEstudiante(userId);
 
     res.json({ mensaje: 'Situación actualizada', grade });
   } catch (error) {
@@ -210,41 +217,66 @@ const bulkLoadSituation = async (req, res) => {
     // Obtenemos todas las notas actuales para validar correlativas en memoria durante el loop
     const currentGrades = await Grade.find({ estudiante: userId });
     const approvedIds = new Set(
-      currentGrades.filter(g => APPROVED_STATES.includes(g.estado)).map(g => g.materia.toString())
+      currentGrades.filter(g => CORRELATIVA_STATES.includes(g.estado)).map(g => g.materia.toString())
     );
 
     // Procesamos uno por uno para validar dependencias
     const { materias: planSubjects } = await getPlanSubjectsForUser(userId);
 
-    for (const r of records) {
-      if (APPROVED_STATES.includes(r.estado)) {
+    for (let fila = 1; fila <= records.length; fila++) {
+      const r = records[fila - 1];
+
+      if (!r.materiaId) {
+        errors.push({ fila, materiaNombre: 'N/A', motivo: 'Falta materia' });
+        continue;
+      }
+
+      const estadoCalculado = r.nota !== undefined && r.nota !== null
+        ? calcularEstadoGrade(r.nota)
+        : (r.estado || 'Cursando');
+
+      if (r.nota !== undefined && r.nota !== null && !estadoCalculado) {
+        errors.push({ fila, materiaNombre: 'N/A', motivo: 'Nota invalida (debe ser 1-10)' });
+        continue;
+      }
+
+      const necesitaCorrelativas = ['Cursando', ...CORRELATIVA_STATES].includes(estadoCalculado);
+      if (necesitaCorrelativas) {
         const subjectInPlan = planSubjects.find(m => m._id.toString() === r.materiaId.toString());
         if (subjectInPlan && subjectInPlan.correlativas.length > 0) {
           const hasAll = subjectInPlan.correlativas.every(c => approvedIds.has(c._id.toString()));
           if (!hasAll) {
-            errors.push(`Materia ${subjectInPlan.nombre} salteada: no cumple correlativas.`);
+            errors.push({ fila, materiaNombre: subjectInPlan.nombre, motivo: 'Correlativas no cumplidas' });
             continue;
           }
         }
-        approvedIds.add(r.materiaId.toString());
+        if (CORRELATIVA_STATES.includes(estadoCalculado)) {
+          approvedIds.add(r.materiaId.toString());
+        }
       }
 
       const grade = await Grade.findOneAndUpdate(
         { estudiante: userId, materia: r.materiaId },
         {
-          estado: r.estado,
+          estado: estadoCalculado,
           nota: r.nota,
           cuatrimestre: r.cuatrimestre,
           anioCursada: r.anioCursada,
-          fecha: Date.now()
+          fecha: Date.now(),
+          ...(estadoCalculado === 'Regular' ? { notificacionVencimientoEnviada: false } : {})
         },
         { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
       ).populate('materia');
 
       if (grade && grade.materia) {
-        await createAcademicEvent(userId, r.estado, grade.materia.nombre);
+        await createAcademicEvent(userId, estadoCalculado, grade.materia.nombre);
       }
       results.push(grade);
+    }
+
+    // Etapa 3: recalcular planes guardados tras carga masiva
+    if (results.length > 0) {
+      await recalcularPlanesDelEstudiante(userId);
     }
 
     res.json({ 
@@ -288,7 +320,7 @@ const inscribirseACursada = async (req, res) => {
     const grade = await Grade.findOneAndUpdate(
       { estudiante: userId, materia: materiaId },
       {
-        estado: 'Inscripto',
+        estado: 'Cursando',
         cuatrimestre,
         anioCursada,
         fecha: Date.now()
@@ -298,7 +330,7 @@ const inscribirseACursada = async (req, res) => {
 
     // Crear evento académico si corresponde
     if (grade && grade.materia) {
-      await createAcademicEvent(userId, 'Inscripto', grade.materia.nombre);
+      await createAcademicEvent(userId, 'Cursando', grade.materia.nombre);
     }
 
     res.json({ mensaje: 'Inscripción a cursada registrada', grade });
@@ -310,15 +342,21 @@ const inscribirseACursada = async (req, res) => {
 const cerrarCuatrimestre = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { materiaId, estado, nota } = req.body;
+    const { materiaId, nota } = req.body;
+    const estado = nota !== undefined && nota !== null ? calcularEstadoGrade(nota) : req.body.estado;
 
-    if (!['Regular', 'Aprobada', 'Libre', 'Promocion'].includes(estado)) {
+    if (!['Regular', 'Aprobada', 'Desaprobado', 'Libre', 'Promocion'].includes(estado)) {
       return res.status(400).json({ mensaje: 'Estado inválido para cierre de cuatrimestre' });
     }
 
     const grade = await Grade.findOneAndUpdate(
       { estudiante: userId, materia: materiaId },
-      { estado, nota, fecha: Date.now() },
+      {
+        estado,
+        nota,
+        fecha: Date.now(),
+        ...(estado === 'Regular' ? { notificacionVencimientoEnviada: false } : {})
+      },
       { new: true, runValidators: true }
     ).populate('materia');
 
@@ -331,6 +369,9 @@ const cerrarCuatrimestre = async (req, res) => {
       await createAcademicEvent(userId, estado, grade.materia.nombre);
     }
 
+    // Etapa 3: recalcular planes guardados tras cierre de cuatrimestre
+    await recalcularPlanesDelEstudiante(userId);
+
     res.json({ mensaje: 'Cuatrimestre cerrado', grade });
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al cerrar cuatrimestre', error: error.message });
@@ -342,7 +383,7 @@ const getInscripcionesActivas = async (req, res) => {
     const userId = req.user.id;
     const inscripciones = await Grade.find({
       estudiante: userId,
-      estado: { $in: ['Inscripto', 'Cursando'] }
+      estado: { $in: ['Cursando'] }
     }).populate('materia');
     res.json(inscripciones);
   } catch (error) {
@@ -366,7 +407,7 @@ const getMateriasDisponibles = async (req, res) => {
         .map((g) => g.materia.toString())
     );
     const yaInscriptaIds = new Set(
-      grades.filter((g) => ['Inscripto', 'Cursando', 'Regular'].includes(g.estado))
+      grades.filter((g) => ['Cursando', 'Regular'].includes(g.estado))
         .map((g) => g.materia.toString())
     );
 
@@ -456,7 +497,7 @@ const getAvanceCarrera = async (req, res) => {
 
     const aprobadas = gradesDelPlan.filter((g) => APPROVED_STATES.includes(g.estado));
     const regularizadas = gradesDelPlan.filter((g) => g.estado === 'Regular');
-    const cursando = gradesDelPlan.filter((g) => ['Inscripto', 'Cursando'].includes(g.estado));
+    const cursando = gradesDelPlan.filter((g) => ['Cursando'].includes(g.estado));
 
     const creditosMateriasAprobadas = aprobadas.reduce(
       (sum, g) => {
@@ -502,7 +543,7 @@ const getAvanceCarrera = async (req, res) => {
         avancePorAnio[ps.anio].regulares++;
         materiasCubiertas.add(g.materia._id.toString());
       }
-      else if (['Inscripto', 'Cursando'].includes(g.estado)) {
+      else if (g.estado === 'Cursando') {
         avancePorAnio[ps.anio].cursando++;
         materiasCubiertas.add(g.materia._id.toString());
       }
@@ -628,7 +669,7 @@ const getQuePasaSi = async (req, res) => {
     );
     
     const yaInscriptaIds = new Set(
-      grades.filter((g) => ['Inscripto', 'Cursando', 'Regular', 'Aprobada', 'Promocion'].includes(g.estado))
+      grades.filter((g) => ['Cursando', 'Regular', 'Aprobada', 'Promocion'].includes(g.estado))
         .map((g) => g.materia.toString())
     );
 
@@ -789,8 +830,11 @@ const getPlanificador = async (req, res) => {
       }
 
       // Tras el primer período proyectado, las materias en curso se consideran aprobadas y
-      // pasan a desbloquear sus correlativas para los cuatrimestres siguientes.
-      if (!enCursoDesbloqueado) {
+      // pasan a desbloquear sus correlativas para los cuatrimestres siguientes. Se exige que
+      // ese primer período ya haya quedado registrado en "periodos" (no alcanza con que haya
+      // pasado una vuelta del loop): si la primera vuelta no ubico nada (por falta de materias
+      // elegibles), el desbloqueo debe esperar al primer periodo que si se registre.
+      if (!enCursoDesbloqueado && periodos.length > 0) {
         inProgressIds.forEach((id) => virtualApproved.add(id));
         enCursoDesbloqueado = true;
       }
@@ -835,6 +879,14 @@ const saveStudyPlan = async (req, res) => {
     if (!nombre || !Array.isArray(periodos)) {
       return res.status(400).json({ mensaje: 'nombre y periodos son obligatorios' });
     }
+    for (const p of periodos) {
+      if (typeof p.anio !== 'number' || typeof p.cuatrimestre !== 'number') {
+        return res.status(400).json({ mensaje: 'Cada período debe tener anio y cuatrimestre numéricos' });
+      }
+      if (!Array.isArray(p.materias)) {
+        return res.status(400).json({ mensaje: 'Cada período debe tener un array de materias' });
+      }
+    }
 
     const normalized = periodos.map((periodo) => ({
       anio: periodo.anio,
@@ -845,7 +897,8 @@ const saveStudyPlan = async (req, res) => {
         nombre: materia.nombre,
         codigo: materia.codigo,
         creditos: materia.creditos,
-        horasSemanalesEstimadas: materia.horasSemanalesEstimadas
+        horasSemanalesEstimadas: materia.horasSemanalesEstimadas,
+        correlativas: materia.correlativas || []
       }))
     }));
 
@@ -853,7 +906,8 @@ const saveStudyPlan = async (req, res) => {
       estudiante: req.user.id,
       nombre,
       horasPorSemana: Math.max(1, Number(horasPorSemana || 1)),
-      periodos: normalized
+      periodos: normalized,
+      periodosOriginales: JSON.parse(JSON.stringify(normalized))
     });
 
     res.status(201).json({ mensaje: 'Planificacion guardada', plan: saved });
@@ -874,6 +928,10 @@ const getComparacionPlanGuardado = async (req, res) => {
     const aprobadasIds = new Set(
       grades.filter((g) => APPROVED_STATES.includes(g.estado)).map((g) => g.materia.toString())
     );
+    // Mapa materiaId -> estado para mostrar el estado de cada materia pendiente
+    const gradeEstadoMap = new Map(
+      grades.map((g) => [g.materia.toString(), g.estado])
+    );
 
     const now = new Date();
     const anioActual = now.getFullYear();
@@ -881,23 +939,32 @@ const getComparacionPlanGuardado = async (req, res) => {
     const periodoTranscurrido = (p) =>
       p.anio < anioActual || (p.anio === anioActual && p.cuatrimestre <= cuatrimestreActual);
 
-    const periodos = plan.periodos.map((p) => {
+    const periodosSource = plan.periodosOriginales && plan.periodosOriginales.length > 0
+      ? plan.periodosOriginales
+      : plan.periodos;
+
+    const periodos = periodosSource.map((p) => {
       const transcurrido = periodoTranscurrido(p);
       const total = p.materias.length;
+      const aprobadas = p.materias.filter((m) => m.materia && aprobadasIds.has(m.materia.toString()));
+      const noAprobadas = p.materias.filter((m) => m.materia && !aprobadasIds.has(m.materia.toString()));
       return {
         anio: p.anio,
         cuatrimestre: p.cuatrimestre,
         transcurrido,
         totalMaterias: total,
-        cumplidas: p.materias.filter((m) => m.materia && aprobadasIds.has(m.materia.toString())).length,
-        materiasAtrasadas: p.materias
-          .filter((m) => m.materia && !aprobadasIds.has(m.materia.toString()))
-          .map((m) => ({ nombre: m.nombre, codigo: m.codigo }))
+        cumplidas: aprobadas.length,
+        materiasCumplidas: aprobadas.map((m) => ({ nombre: m.nombre, codigo: m.codigo })),
+        materiasAtrasadas: noAprobadas.map((m) => ({
+          nombre: m.nombre,
+          codigo: m.codigo,
+          estado: gradeEstadoMap.get(m.materia.toString()) || 'Sin cursar'
+        }))
       };
     });
 
     // Total absoluto del plan (sólo como referencia para mostrar).
-    const totalPlan = plan.periodos.reduce(
+    const totalPlan = periodosSource.reduce(
       (sum, p) => sum + p.materias.filter((m) => m.materia).length,
       0
     );
@@ -905,12 +972,20 @@ const getComparacionPlanGuardado = async (req, res) => {
     // El rendimiento se compara SÓLO contra los cuatrimestres ya transcurridos: cuántas
     // materias deberían estar aprobadas a esta altura del plan y cuántas realmente lo están.
     // Así el porcentaje y el estado son coherentes (no se exige el plan completo desde el día uno).
-    const periodosTranscurridos = plan.periodos.filter(periodoTranscurrido);
+    const periodosTranscurridos = periodosSource.filter(periodoTranscurrido);
     const materiasEsperadas = periodosTranscurridos.reduce(
       (sum, p) => sum + p.materias.filter((m) => m.materia).length,
       0
     );
     const materiasCumplidas = periodosTranscurridos.reduce(
+      (sum, p) => sum + p.materias.filter((m) => m.materia && aprobadasIds.has(m.materia.toString())).length,
+      0
+    );
+
+    // Materias aprobadas de todo el plan (sin importar si el período ya transcurrió o no).
+    // Sirve para que el estudiante que guarda un plan con inicio futuro pueda ver cuántas
+    // materias del plan ya aprobó, aunque la comparación formal aún no haya comenzado.
+    const materiasCumplidasTotal = periodosSource.reduce(
       (sum, p) => sum + p.materias.filter((m) => m.materia && aprobadasIds.has(m.materia.toString())).length,
       0
     );
@@ -925,6 +1000,7 @@ const getComparacionPlanGuardado = async (req, res) => {
       cuatrimestreActual,
       materiasEsperadas,
       materiasCumplidas,
+      materiasCumplidasTotal,
       totalPlan,
       diferencia,
       estado,
@@ -941,15 +1017,98 @@ const deleteGrade = async (req, res) => {
     const { materiaId } = req.params;
     const userId = req.user.id;
 
-    const result = await Grade.findOneAndDelete({ estudiante: userId, materia: materiaId });
+    const grade = await Grade.findOne({ estudiante: userId, materia: materiaId });
 
-    if (!result) {
+    if (!grade) {
       return res.status(404).json({ mensaje: 'No se encontró la materia en tu situación académica' });
     }
+
+    if (grade.estado !== 'Cursando') {
+      return res.status(400).json({ mensaje: 'Solo se puede dar de baja una materia que estás cursando' });
+    }
+
+    await grade.deleteOne();
+
+    await recalcularPlanesDelEstudiante(userId);
 
     res.json({ mensaje: 'Materia eliminada de la situación académica' });
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al eliminar la materia', error: error.message });
+  }
+};
+
+const getMateriasPorAlumno = async (req, res) => {
+  try {
+    const stats = await Grade.aggregate([
+      { $match: { estado: 'Cursando' } },
+      { $group: { _id: '$estudiante', materias: { $addToSet: '$materia' } } },
+      { $project: { _id: 1, cantidad: { $size: '$materias' } } },
+      { $group: { _id: '$cantidad', alumnos: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const totalAlumnos = stats.reduce((sum, s) => sum + s.alumnos, 0);
+
+    res.json({ distribucion: stats, totalAlumnos });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener estadísticas de materias por alumno', error: error.message });
+  }
+};
+
+const getMateriasAprobadasPorAlumno = async (req, res) => {
+  try {
+    const stats = await Grade.aggregate([
+      { $match: { estado: { $in: ['Aprobada', 'Promocion'] } } },
+      { $group: { _id: '$estudiante', materias: { $addToSet: '$materia' } } },
+      { $project: { _id: 1, cantidad: { $size: '$materias' } } },
+      { $group: { _id: '$cantidad', alumnos: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const totalAlumnos = stats.reduce((sum, s) => sum + s.alumnos, 0);
+
+    res.json({ distribucion: stats, totalAlumnos });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener estadísticas de materias aprobadas por alumno', error: error.message });
+  }
+};
+
+const getMateriasCursadasPorCarrera = async (req, res) => {
+  try {
+    const stats = await Grade.aggregate([
+      { $lookup: { from: 'users', localField: 'estudiante', foreignField: '_id', as: 'usuario' } },
+      { $unwind: '$usuario' },
+      { $lookup: { from: 'careers', localField: 'usuario.carrera', foreignField: '_id', as: 'carrera' } },
+      { $unwind: { path: '$carrera', preserveNullAndEmptyArrays: true } },
+      { $group: { _id: { $ifNull: ['$carrera.nombre', 'Sin carrera'] }, cursadas: { $sum: 1 } } },
+      { $sort: { cursadas: -1 } }
+    ]);
+
+    const totalCursadas = stats.reduce((sum, s) => sum + s.cursadas, 0);
+
+    res.json({ distribucion: stats, totalCursadas });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener estadísticas de materias cursadas por carrera', error: error.message });
+  }
+};
+
+const getMateriasAprobadasPorCarrera = async (req, res) => {
+  try {
+    const stats = await Grade.aggregate([
+      { $match: { estado: { $in: ['Aprobada', 'Promocion'] } } },
+      { $lookup: { from: 'users', localField: 'estudiante', foreignField: '_id', as: 'usuario' } },
+      { $unwind: '$usuario' },
+      { $lookup: { from: 'careers', localField: 'usuario.carrera', foreignField: '_id', as: 'carrera' } },
+      { $unwind: { path: '$carrera', preserveNullAndEmptyArrays: true } },
+      { $group: { _id: { $ifNull: ['$carrera.nombre', 'Sin carrera'] }, aprobadas: { $sum: 1 } } },
+      { $sort: { aprobadas: -1 } }
+    ]);
+
+    const totalAprobadas = stats.reduce((sum, s) => sum + s.aprobadas, 0);
+
+    res.json({ distribucion: stats, totalAprobadas });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener estadísticas de materias aprobadas por carrera', error: error.message });
   }
 };
 
@@ -973,5 +1132,9 @@ module.exports = {
   listSavedStudyPlans,
   saveStudyPlan,
   getComparacionPlanGuardado,
-  deleteGrade
+  deleteGrade,
+  getMateriasPorAlumno,
+  getMateriasAprobadasPorAlumno,
+  getMateriasCursadasPorCarrera,
+  getMateriasAprobadasPorCarrera
 };

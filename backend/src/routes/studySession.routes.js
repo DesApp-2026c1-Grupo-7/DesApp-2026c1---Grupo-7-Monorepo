@@ -8,7 +8,9 @@ const {
   getStudySessionById,
   updateStudySession,
   cancelStudySession,
-  kickParticipant
+  kickParticipant,
+  getSessionsByPeriod,
+  getSessionUtilization
 } = require('../controllers/studySession.controller');
 const { auth, authorize } = require('../middlewares/auth');
 
@@ -18,6 +20,10 @@ const router = Router();
 router.use(auth);
 
 router.get('/', getStudySessions);
+
+// Admin — sesiones agrupadas por período
+router.get('/admin/sesiones-por-periodo', authorize('admin'), getSessionsByPeriod);
+router.get('/admin/utilizacion', authorize('admin'), getSessionUtilization);
 
 // Obtener detalles de una sesión específica
 router.get('/:id', getStudySessionById);
