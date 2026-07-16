@@ -61,8 +61,17 @@ exports.getReasons = async (req, res) => {
 // Crear una nueva denuncia de material
 exports.createReport = async (req, res) => {
   try {
-    const { materialId, reasonId, motivoEspecifico, detalle } = req.body;
+    const { materialId, reasonIds, reasonId, motivoEspecifico, detalle } = req.body;
     const denuncianteId = req.user.id;
+
+    // ponytail: acepta reasonIds (checklist) o reasonId (single, back-compat)
+    const motivosIds = Array.isArray(reasonIds) && reasonIds.length
+      ? reasonIds
+      : (reasonId ? [reasonId] : []);
+
+    if (motivosIds.length === 0) {
+      return res.status(400).json({ mensaje: 'Debe seleccionar al menos un motivo' });
+    }
 
     // Verificar si el material existe
     const material = await Material.findById(materialId);
@@ -75,32 +84,40 @@ exports.createReport = async (req, res) => {
       return res.status(400).json({ mensaje: 'No podés denunciar tu propio material' });
     }
 
-    // Un estudiante solo puede denunciar una vez el mismo material
+    // Un estudiante solo puede denunciar una vez el mismo material (ruta rápida;
+    // el índice único del modelo blinda la carrera concurrente).
     const yaDenuncio = await MaterialReport.findOne({ material: materialId, denunciante: denuncianteId });
     if (yaDenuncio) {
       return res.status(409).json({ mensaje: 'Ya denunciaste este material. Solo podés denunciarlo una vez.' });
     }
 
-    // Verificar si el motivo existe
-    const reason = await ReportReason.findById(reasonId);
-    if (!reason) {
+    // Verificar que todos los motivos existan
+    const reasons = await ReportReason.find({ _id: { $in: motivosIds } });
+    if (reasons.length !== new Set(motivosIds.map(String)).size) {
       return res.status(404).json({ mensaje: 'Motivo de denuncia no encontrado' });
     }
 
-    // Si el motivo es "Otro", el motivo específico es requerido
-    if (reason.titulo.toLowerCase() === 'otro' && !motivoEspecifico) {
+    // Si alguno de los motivos es "Otro", el motivo específico es requerido
+    if (reasons.some(r => r.titulo.toLowerCase() === 'otro') && !motivoEspecifico) {
       return res.status(400).json({ mensaje: 'Debe especificar el motivo' });
     }
 
     const report = new MaterialReport({
       material: materialId,
       denunciante: denuncianteId,
-      motivo: reasonId,
+      motivo: motivosIds,
       motivoEspecifico,
       detalle
     });
 
-    await report.save();
+    try {
+      await report.save();
+    } catch (err) {
+      if (err.code === 11000) {
+        return res.status(409).json({ mensaje: 'Ya denunciaste este material. Solo podés denunciarlo una vez.' });
+      }
+      throw err;
+    }
 
     res.status(201).json({ mensaje: 'Denuncia enviada correctamente', report });
   } catch (error) {

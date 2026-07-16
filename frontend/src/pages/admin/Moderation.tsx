@@ -29,9 +29,7 @@ interface Report {
     nombre: string;
     email: string;
   };
-  motivo: {
-    titulo: string;
-  };
+  motivo: { titulo: string }[];
   motivoEspecifico?: string;
   detalle: string;
   estado: 'pendiente' | 'revisado' | 'ignorado';
@@ -292,7 +290,8 @@ export default function Moderation() {
                 </div>
 
                 <p className="motivo">
-                  <strong>Motivo:</strong> {r.motivo?.titulo}
+                  <strong>{r.motivo?.length > 1 ? 'Motivos:' : 'Motivo:'}</strong>{' '}
+                  {r.motivo?.map(m => m.titulo).join(', ')}
                   {r.motivoEspecifico && ` - ${r.motivoEspecifico}`}
                 </p>
                 <div className="report-detail">

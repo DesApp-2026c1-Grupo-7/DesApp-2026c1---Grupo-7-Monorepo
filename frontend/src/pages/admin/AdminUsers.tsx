@@ -6,7 +6,7 @@ import { useToast } from "../../hooks/useToast";
 import "../../styles/AdminUsers.css";
 
 // Solo el administrador principal maneja la jerarquía de roles.
-const SUPREME_ADMIN_EMAIL = "admin@universidad.edu";
+const SUPREME_ADMIN_EMAIL = (import.meta.env.VITE_SUPREME_ADMIN_EMAIL || "admin@universidad.edu").toLowerCase();
 
 interface UserAccount {
   _id: string;

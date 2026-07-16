@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { GoogleOAuthProvider, GoogleLogin, type CredentialResponse } from "@react-oauth/google";
-import { GraduationCap, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import api from "../../services/api";
 import "../../styles/Auth.css";
 
@@ -64,7 +64,7 @@ const Login = () => {
       <div className="login-card">
 
         <div className="login-header">
-          <div className="auth-mark"><GraduationCap size={30} /></div>
+          <img src="/unahur-logo.svg" alt="UNAHUR - Universidad Nacional de Hurlingham" className="unahur-logo" />
           <h1>Bienvenido</h1>
           <p>Sistema de Acompañamiento Académico</p>
         </div>
