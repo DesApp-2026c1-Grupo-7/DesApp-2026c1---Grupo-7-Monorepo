@@ -543,8 +543,8 @@ test('eliminar una nota recalcula los planes guardados (etapa 3 delete)', async 
     .expect(201);
   const planId = saved.body.plan._id;
 
-  // Ensure grade exists, then delete it → recalc should run
-  await setEstado(S.M1A, 'Aprobada').expect(200);
+  // Ensure grade exists (Cursando, la única baja permitida), then delete it → recalc should run
+  await setEstado(S.M1A, 'Cursando').expect(200);
 
   await request(app)
     .delete(`/api/academico/situacion/${S.M1A}`)
@@ -558,4 +558,37 @@ test('eliminar una nota recalcula los planes guardados (etapa 3 delete)', async 
   const planAct = list.body.find((p) => p._id === planId);
   assert.ok(planAct, 'el plan existe');
   assert.ok(planAct.ultimoRecalculo, 'hubo recálculo tras delete');
+});
+
+test('dar de baja solo está permitido si la materia está en estado Cursando', async () => {
+  // M1B tiene a M1A como correlativa: hay que aprobarla para poder setear M1B
+  // en los estados que la requieren (todos salvo Desaprobado).
+  await setEstado(S.M1A, 'Aprobada').expect(200);
+
+  for (const inputEstado of ['Regular', 'Aprobada', 'Desaprobado', 'Promocion']) {
+    // setEstado calcula el estado real a partir de la nota cuando corresponde
+    // (p.ej. "Aprobada" con nota 8 termina en 'Promocion'), así que se valida
+    // contra el estado devuelto, no contra el input.
+    const setRes = await setEstado(S.M1B, inputEstado).expect(200);
+    const actualEstado = setRes.body.grade.estado;
+
+    const res = await request(app)
+      .delete(`/api/academico/situacion/${S.M1B}`)
+      .set('Authorization', `Bearer ${studentToken}`)
+      .expect(400);
+    assert.match(res.body.mensaje, /solo se puede dar de baja/i);
+
+    const grade = await Grade.findOne({ materia: S.M1B });
+    assert.ok(grade, `la materia en estado ${actualEstado} no debe eliminarse`);
+    assert.equal(grade.estado, actualEstado);
+  }
+
+  await setEstado(S.M1B, 'Cursando').expect(200);
+  await request(app)
+    .delete(`/api/academico/situacion/${S.M1B}`)
+    .set('Authorization', `Bearer ${studentToken}`)
+    .expect(200);
+
+  const grade = await Grade.findOne({ materia: S.M1B });
+  assert.equal(grade, null, 'la materia en Cursando sí se puede dar de baja');
 });

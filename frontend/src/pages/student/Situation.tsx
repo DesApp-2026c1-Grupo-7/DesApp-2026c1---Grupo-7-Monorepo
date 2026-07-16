@@ -240,10 +240,10 @@ const Situation = () => {
                     <td>{getVencimiento(m)}</td>
                     <td>
                       <button
-                        className={`btn-baja ${m.estado === 'Aprobada' || m.estado === 'Promocion' || m.estado === 'Regular' ? 'btn-disabled' : 'btn-danger'}`}
+                        className={`btn-baja ${m.estado !== 'Cursando' ? 'btn-disabled' : 'btn-danger'}`}
                         onClick={() => openDeleteModal(m.materia._id, m.materia.nombre)}
-                        disabled={m.estado === 'Aprobada' || m.estado === 'Promocion' || m.estado === 'Regular'}
-                        title={m.estado === 'Regular' ? "No se puede dar de baja una materia regular" : m.estado === 'Aprobada' || m.estado === 'Promocion' ? "No se puede dar de baja una materia aprobada" : ""}
+                        disabled={m.estado !== 'Cursando'}
+                        title={m.estado !== 'Cursando' ? "Solo se puede dar de baja una materia que estás cursando" : ""}
                       >
                         Darse de baja
                       </button>
@@ -291,10 +291,11 @@ const Situation = () => {
               </div>
               <div className="card-footer">
                 <button
-                  className={`btn-baja ${m.estado === 'Aprobada' || m.estado === 'Promocion' || m.estado === 'Regular' ? 'btn-disabled' : 'btn-danger'}`}
+                  className={`btn-baja ${m.estado !== 'Cursando' ? 'btn-disabled' : 'btn-danger'}`}
                   style={{ width: '100%' }}
                   onClick={() => openDeleteModal(m.materia._id, m.materia.nombre)}
-                  disabled={m.estado === 'Aprobada' || m.estado === 'Promocion' || m.estado === 'Regular'}
+                  disabled={m.estado !== 'Cursando'}
+                  title={m.estado !== 'Cursando' ? "Solo se puede dar de baja una materia que estás cursando" : ""}
                 >
                   Darse de baja
                 </button>
