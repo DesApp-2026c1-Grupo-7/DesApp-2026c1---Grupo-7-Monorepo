@@ -7,7 +7,7 @@ const app = require('../src/app');
 const Grade = require('../src/models/Grade');
 const Notification = require('../src/models/Notification');
 const User = require('../src/models/User');
-const { checkAndNotifyExpiringRegularities } = require('../src/services/regularityExpiration.service');
+const { checkAndNotifyExpiringRegularities, checkAndExpireRegularities } = require('../src/services/regularityExpiration.service');
 
 let mongo;
 let adminToken;
@@ -161,4 +161,38 @@ test('resetea el flag y puede volver a notificar si el estudiante se re-regulari
 
   grade = await Grade.findOne({ estudiante: studentId, materia: materiaId });
   assert.equal(grade.notificacionVencimientoEnviada, false);
+});
+
+test('pierde la regularidad (pasa a Desaprobado) cuando el plazo de 2 años ya vencio', async () => {
+  await regularizarConFecha(new Date(Date.now() - (2 * YEAR_MS + 10 * 24 * 60 * 60 * 1000)));
+
+  await checkAndExpireRegularities();
+
+  const grade = await Grade.findOne({ estudiante: studentId, materia: materiaId });
+  assert.equal(grade.estado, 'Desaprobado');
+
+  const notis = await getNotificaciones();
+  assert.ok(notis.body.some((n) => n.titulo === 'Perdiste la regularidad'));
+});
+
+test('pierde la regularidad por vencimiento aunque ya se hubiera enviado el aviso previo', async () => {
+  await regularizarConFecha(new Date(Date.now() - (2 * YEAR_MS + 10 * 24 * 60 * 60 * 1000)));
+  await checkAndNotifyExpiringRegularities();
+
+  let grade = await Grade.findOne({ estudiante: studentId, materia: materiaId });
+  assert.equal(grade.notificacionVencimientoEnviada, true, 'precondicion: ya se aviso');
+
+  await checkAndExpireRegularities();
+
+  grade = await Grade.findOne({ estudiante: studentId, materia: materiaId });
+  assert.equal(grade.estado, 'Desaprobado');
+});
+
+test('no pierde la regularidad si todavia no vencio el plazo de 2 años', async () => {
+  await regularizarConFecha(new Date(Date.now() - (2 * YEAR_MS - 20 * 24 * 60 * 60 * 1000)));
+
+  await checkAndExpireRegularities();
+
+  const grade = await Grade.findOne({ estudiante: studentId, materia: materiaId });
+  assert.equal(grade.estado, 'Regular');
 });
