@@ -10,6 +10,13 @@ Cada vez que un agente termine una tarea debe mover Trello, abrir/actualizar PR 
 
 Sprint 2 técnicamente completo. Todos los ítems del alcance están implementados. Quedan abiertos PR #20 (requiere fix de seguridad antes del merge) y PR #21 (listo para review + merge). CI debe verificarse tras los merges.
 
+### Log de Actividades del Agente (20/07/2026)
+
+- [x] **Notificación por edición de sesión de estudio (rama `feature/notificacion-edicion-de-sesion`):** cuando el creador edita `tema`, `tipo`, `ubicacion`/`link`, `fechaHora` o `duracion` de una sesión activa, se notifica a los participantes (excluyendo al creador). Cambios en `tema`/`duracion` solo generan notificación in-app; cambios en `tipo`/`ubicacion`/`fechaHora` generan in-app **y** mail (`sendSessionUpdateEmail` en `mail.service.js`).
+- [x] **Reset de `recordatorioEnviado`:** si cambia `fechaHora`, se resetea el flag para que el recordatorio de 24h se recalcule contra el nuevo horario en vez de quedar bloqueado.
+- [x] **Tests (`test/study-sessions.test.js`, escenario 5):** 4 casos nuevos — edición de tema (solo app), edición de fecha/ubicación (app+mail y reset de recordatorio), edición de campos no notificables (sin aviso), edición de sesión cancelada (sin aviso). Suite completa del backend en verde (90/90).
+- [ ] Pendiente: push de la rama, PR a `dev` y review (a pedido explícito del usuario, no se sube todavía).
+
 ### Log de Actividades del Agente (12/06/2026)
 
 - [x] **Sistema de Valoración de Materiales:** Implementado 👍 Pulgar arriba / 👎 Pulgar abajo en el repositorio de materiales.
