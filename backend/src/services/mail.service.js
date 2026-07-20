@@ -213,11 +213,63 @@ const sendSessionRejectionEmail = async (to, studentName, session) => {
   return transporter.sendMail(mailOptions);
 };
 
+const sendSessionUpdateEmail = async (to, studentName, session, camposCambiados) => {
+  const fecha = new Date(session.fechaHora).toLocaleString('es-AR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  const infoAdicional = session.tipo === 'virtual'
+    ? `<p><strong>Link de la sesión:</strong> <a href="${session.link}">${session.link}</a></p>`
+    : `<p><strong>Ubicación:</strong> ${session.ubicacion}</p>`;
+
+  const listaCambiosTexto = camposCambiados.join(', ');
+  const listaCambiosHtml = camposCambiados
+    .map(c => `<li>${c.charAt(0).toUpperCase()}${c.slice(1)}</li>`)
+    .join('');
+
+  const mailOptions = {
+    from: `"Asistente Académico" <${process.env.MAIL_FROM || 'no-reply@asistente.edu'}>`,
+    to,
+    subject: `Cambios en tu sesión de estudio: ${session.materia.nombre}`,
+    text: `¡Hola ${studentName}! El organizador actualizó ${listaCambiosTexto} de tu sesión de estudio de ${session.materia.nombre}.
+    Tema: ${session.tema}
+    Fecha: ${fecha}
+    ${session.tipo === 'virtual' ? `Link: ${session.link}` : `Ubicación: ${session.ubicacion}`}
+
+    Revisá los detalles actualizados en la aplicación.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
+        <h2 style="color: #4A90E2;">Cambios en tu sesión de estudio</h2>
+        <p>Hola <strong>${studentName}</strong>,</p>
+        <p>El organizador actualizó ${listaCambiosTexto} de la siguiente sesión de estudio:</p>
+        <ul>${listaCambiosHtml}</ul>
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>Materia:</strong> ${session.materia.nombre}</p>
+          <p style="margin: 5px 0;"><strong>Tema:</strong> ${session.tema}</p>
+          <p style="margin: 5px 0;"><strong>Fecha y Hora:</strong> ${fecha}</p>
+          ${infoAdicional}
+        </div>
+        <p>Por favor, tomá nota de los cambios.</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 0.8rem; color: #777;">Este es un mensaje automático, por favor no respondas a este correo.</p>
+      </div>
+    `
+  };
+
+  return transporter.sendMail(mailOptions);
+};
+
 module.exports = {
   sendInvitationEmail,
   sendUserNotFoundEmail,
   sendSessionConfirmationEmail,
   sendSessionCancellationEmail,
   sendSessionReminderEmail,
-  sendSessionRejectionEmail
+  sendSessionRejectionEmail,
+  sendSessionUpdateEmail
 };

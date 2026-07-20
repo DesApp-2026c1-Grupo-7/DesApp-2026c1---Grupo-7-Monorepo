@@ -484,3 +484,137 @@ test('escenario 4: no se envia recordatorio a sesiones a mas de 24h', async (t) 
   assert.ok(!notis.body.some((n) => n.titulo === 'Recordatorio de sesión de estudio'
     && n.descripcion.includes('Sesion lejana')));
 });
+
+// -------------------------------------------------------------------------
+// Escenario 5: notificacion por edicion de una sesion de estudio
+// -------------------------------------------------------------------------
+
+test('escenario 5: editar el tema notifica solo en la app, sin mail', async (t) => {
+  const spyActualizacion = t.mock.method(mailService, 'sendSessionUpdateEmail', async () => ({ messageId: 'test' }));
+
+  const sesion = await crearSesion(prueba.token, { tema: 'Sesion edit A' });
+  await request(app).post(`/api/sesiones/${sesion._id}/join`).set('Authorization', `Bearer ${matias.token}`).expect(200);
+
+  await request(app)
+    .put(`/api/sesiones/${sesion._id}`)
+    .set('Authorization', `Bearer ${prueba.token}`)
+    .send({ tema: 'Sesion edit A modificada' })
+    .expect(200);
+
+  assert.equal(spyActualizacion.mock.callCount(), 0);
+
+  const notis = await request(app)
+    .get('/api/notificaciones')
+    .set('Authorization', `Bearer ${matias.token}`)
+    .expect(200);
+  assert.ok(notis.body.some((n) => n.titulo === 'Sesión de estudio actualizada'
+    && n.descripcion.includes('el tema')));
+});
+
+test('escenario 5: editar fecha/hora y ubicacion notifica en la app y por mail, y resetea el recordatorio enviado', async (t) => {
+  const spyActualizacion = t.mock.method(mailService, 'sendSessionUpdateEmail', async () => ({ messageId: 'test' }));
+
+  const sesion = await crearSesion(prueba.token, {
+    tema: 'Sesion edit B',
+    ubicacion: 'Aula 101',
+    fechaHora: new Date(Date.now() + 20 * 60 * 60 * 1000).toISOString()
+  });
+  await request(app).post(`/api/sesiones/${sesion._id}/join`).set('Authorization', `Bearer ${matias.token}`).expect(200);
+
+  // Forzamos que ya tenga el recordatorio de 24h enviado antes de editar.
+  await checkAndSendReminders();
+  let detalle = await request(app)
+    .get(`/api/sesiones/${sesion._id}`)
+    .set('Authorization', `Bearer ${prueba.token}`)
+    .expect(200);
+  assert.equal(detalle.body.recordatorioEnviado, true);
+
+  await request(app)
+    .put(`/api/sesiones/${sesion._id}`)
+    .set('Authorization', `Bearer ${prueba.token}`)
+    .send({
+      ubicacion: 'Aula 303',
+      fechaHora: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
+    })
+    .expect(200);
+
+  // Mail solo al participante, nunca al creador.
+  assert.equal(spyActualizacion.mock.callCount(), 1);
+  assert.equal(spyActualizacion.mock.calls[0].arguments[0], matias.email);
+
+  const notis = await request(app)
+    .get('/api/notificaciones')
+    .set('Authorization', `Bearer ${matias.token}`)
+    .expect(200);
+  assert.ok(notis.body.some((n) => n.titulo === 'Sesión de estudio actualizada'
+    && n.descripcion.includes('la ubicación')
+    && n.descripcion.includes('la fecha y hora')));
+
+  // El recordatorio debe recalcularse contra el nuevo horario.
+  detalle = await request(app)
+    .get(`/api/sesiones/${sesion._id}`)
+    .set('Authorization', `Bearer ${prueba.token}`)
+    .expect(200);
+  assert.equal(detalle.body.recordatorioEnviado, false);
+});
+
+test('escenario 5: editar solo cupos o descripcion no genera ninguna notificacion', async (t) => {
+  const spyActualizacion = t.mock.method(mailService, 'sendSessionUpdateEmail', async () => ({ messageId: 'test' }));
+
+  const sesion = await crearSesion(prueba.token, { tema: 'Sesion edit C' });
+  await request(app).post(`/api/sesiones/${sesion._id}/join`).set('Authorization', `Bearer ${matias.token}`).expect(200);
+
+  const notisAntes = await request(app)
+    .get('/api/notificaciones')
+    .set('Authorization', `Bearer ${matias.token}`)
+    .expect(200);
+  const cantidadAntes = notisAntes.body.filter((n) => n.titulo === 'Sesión de estudio actualizada').length;
+
+  await request(app)
+    .put(`/api/sesiones/${sesion._id}`)
+    .set('Authorization', `Bearer ${prueba.token}`)
+    .send({ cupos: 5, descripcion: 'Traer apuntes' })
+    .expect(200);
+
+  assert.equal(spyActualizacion.mock.callCount(), 0);
+
+  const notisDespues = await request(app)
+    .get('/api/notificaciones')
+    .set('Authorization', `Bearer ${matias.token}`)
+    .expect(200);
+  const cantidadDespues = notisDespues.body.filter((n) => n.titulo === 'Sesión de estudio actualizada').length;
+  assert.equal(cantidadDespues, cantidadAntes);
+});
+
+test('escenario 5: editar una sesion cancelada no notifica a los participantes', async (t) => {
+  const spyActualizacion = t.mock.method(mailService, 'sendSessionUpdateEmail', async () => ({ messageId: 'test' }));
+
+  const sesion = await crearSesion(prueba.token, { tema: 'Sesion edit D' });
+  await request(app).post(`/api/sesiones/${sesion._id}/join`).set('Authorization', `Bearer ${matias.token}`).expect(200);
+
+  await request(app)
+    .delete(`/api/sesiones/${sesion._id}`)
+    .set('Authorization', `Bearer ${prueba.token}`)
+    .expect(200);
+
+  const notisAntes = await request(app)
+    .get('/api/notificaciones')
+    .set('Authorization', `Bearer ${matias.token}`)
+    .expect(200);
+  const cantidadAntes = notisAntes.body.filter((n) => n.titulo === 'Sesión de estudio actualizada').length;
+
+  await request(app)
+    .put(`/api/sesiones/${sesion._id}`)
+    .set('Authorization', `Bearer ${prueba.token}`)
+    .send({ tema: 'Sesion edit D modificada' })
+    .expect(200);
+
+  assert.equal(spyActualizacion.mock.callCount(), 0);
+
+  const notisDespues = await request(app)
+    .get('/api/notificaciones')
+    .set('Authorization', `Bearer ${matias.token}`)
+    .expect(200);
+  const cantidadDespues = notisDespues.body.filter((n) => n.titulo === 'Sesión de estudio actualizada').length;
+  assert.equal(cantidadDespues, cantidadAntes);
+});

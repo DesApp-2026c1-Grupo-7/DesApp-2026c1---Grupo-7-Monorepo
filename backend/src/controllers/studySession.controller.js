@@ -328,19 +328,36 @@ const getStudySessionById = async (req, res) => {
   }
 };
 
+const ETIQUETAS_CAMPO = {
+  tema: 'el tema',
+  tipo: 'la modalidad',
+  ubicacion: 'la ubicación',
+  fechaHora: 'la fecha y hora',
+  duracion: 'la duración'
+};
+
+const CAMPOS_QUE_DISPARAN_MAIL = ['tipo', 'ubicacion', 'fechaHora'];
+
+const formatearListado = (items) => {
+  if (items.length === 1) return items[0];
+  return `${items.slice(0, -1).join(', ')} y ${items[items.length - 1]}`;
+};
+
+const mismaDuracion = (a, b) => (a?.horas || 0) === (b?.horas || 0) && (a?.minutos || 0) === (b?.minutos || 0);
+
 const updateStudySession = async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
-      tema, 
-      tipo, 
-      link, 
-      ubicacion, 
-      fechaHora, 
-      duracion, 
-      cupos, 
-      descripcion, 
-      requiereAprobacion 
+    const {
+      tema,
+      tipo,
+      link,
+      ubicacion,
+      fechaHora,
+      duracion,
+      cupos,
+      descripcion,
+      requiereAprobacion
     } = req.body;
 
     const sesion = await StudySession.findById(id);
@@ -350,6 +367,15 @@ const updateStudySession = async (req, res) => {
     if (sesion.creador.toString() !== req.user.id) {
       return res.status(403).json({ mensaje: 'No tienes permiso para editar esta sesión' });
     }
+
+    // Snapshot de los campos notificables antes de mutar, para saber qué cambió realmente
+    const antes = {
+      tema: sesion.tema,
+      tipo: sesion.tipo,
+      lugar: sesion.tipo === 'virtual' ? sesion.link : sesion.ubicacion,
+      fechaHora: sesion.fechaHora.getTime(),
+      duracion: { horas: sesion.duracion.horas, minutos: sesion.duracion.minutos }
+    };
 
     // Actualizar campos
     if (tema) sesion.tema = tema;
@@ -369,8 +395,57 @@ const updateStudySession = async (req, res) => {
       sesion.requiereAprobacion = requiereAprobacion === true || requiereAprobacion === 'true';
     }
 
+    // Detectar cambios en los campos que ameritan avisar a los participantes
+    const camposCambiados = [];
+    if (antes.tema !== sesion.tema) camposCambiados.push('tema');
+    if (antes.tipo !== sesion.tipo) {
+      camposCambiados.push('tipo');
+    } else {
+      const lugarAhora = sesion.tipo === 'virtual' ? sesion.link : sesion.ubicacion;
+      if (antes.lugar !== lugarAhora) camposCambiados.push('ubicacion');
+    }
+    if (antes.fechaHora !== sesion.fechaHora.getTime()) camposCambiados.push('fechaHora');
+    if (!mismaDuracion(antes.duracion, sesion.duracion)) camposCambiados.push('duracion');
+
+    // Si cambia la fecha/hora, el recordatorio de 24hs debe recalcularse contra el nuevo horario
+    if (camposCambiados.includes('fechaHora')) {
+      sesion.recordatorioEnviado = false;
+    }
+
     await sesion.save();
-    
+
+    if (sesion.estado === 'activa' && camposCambiados.length > 0) {
+      const sesionParaNotificar = await StudySession.findById(sesion._id)
+        .populate('materia', 'nombre')
+        .populate('participantes', 'nombre email');
+
+      const etiquetas = camposCambiados.map(c => ETIQUETAS_CAMPO[c]);
+      const resumen = formatearListado(etiquetas);
+      const enviarMail = camposCambiados.some(c => CAMPOS_QUE_DISPARAN_MAIL.includes(c));
+
+      const participantesANotificar = sesionParaNotificar.participantes.filter(
+        p => p._id.toString() !== req.user.id
+      );
+
+      for (const participante of participantesANotificar) {
+        await Notification.create({
+          usuario: participante._id,
+          titulo: 'Sesión de estudio actualizada',
+          descripcion: `El organizador actualizó ${resumen} de tu sesión de estudio de ${sesionParaNotificar.materia.nombre}`,
+          tipo: 'info',
+          link: '/student/sessions'
+        });
+
+        if (enviarMail) {
+          try {
+            await mailService.sendSessionUpdateEmail(participante.email, participante.nombre, sesionParaNotificar, etiquetas);
+          } catch (mailError) {
+            console.error(`Error al enviar mail de actualización a ${participante.email}:`, mailError);
+          }
+        }
+      }
+    }
+
     const sesionPoblada = await StudySession.findById(sesion._id)
       .populate('creador', 'nombre foto')
       .populate('materia', 'nombre codigo');
