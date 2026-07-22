@@ -6,6 +6,7 @@ import api from "../../services/api";
 import "../../styles/Auth.css";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+const MAX_INTENTOS = 4;
 
 const Login = () => {
   const navigate = useNavigate();
@@ -14,6 +15,9 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [intentosFallidos, setIntentosFallidos] = useState(0);
+  const bloqueado = intentosFallidos >= MAX_INTENTOS;
+  const intentosRestantes = Math.max(0, MAX_INTENTOS - intentosFallidos);
 
   const from = location.state?.from || null;
 
@@ -35,14 +39,17 @@ const Login = () => {
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (bloqueado) return;
     setLoading(true);
     setError("");
     try {
       const response = await api.post("/auth/login", { email, password });
+      setIntentosFallidos(0);
       finalizarSesion(response.data.token, response.data.user);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { mensaje?: string } } };
       setError(axiosErr.response?.data?.mensaje || "Error al iniciar sesión");
+      setIntentosFallidos((n) => n + 1);
     } finally {
       setLoading(false);
     }
@@ -70,7 +77,17 @@ const Login = () => {
         </div>
 
         <form className="login-form" onSubmit={handleLogin}>
-          {error && <p className="error-message" style={{ color: 'var(--error)', fontSize: '0.875rem', textAlign: 'center' }}>{error}</p>}
+          {error && <p className="error-message" style={{ color: 'var(--error)', fontSize: '0.875rem', textAlign: 'center', margin: 0 }}>{error}</p>}
+          {intentosFallidos > 0 && !bloqueado && (
+            <p style={{ color: 'var(--error)', fontSize: '0.875rem', textAlign: 'center', margin: 0 }}>
+              Intentos restantes: {intentosRestantes}
+            </p>
+          )}
+          {bloqueado && (
+            <p style={{ color: 'var(--error)', fontSize: '0.875rem', textAlign: 'center', margin: 0 }}>
+              Se alcanzó el máximo de intentos. Recargá la página para volver a intentar.
+            </p>
+          )}
           
           <label htmlFor="email">Email</label>
           <input 
@@ -79,7 +96,7 @@ const Login = () => {
             placeholder="usuario@universidad.edu" 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            disabled={loading}
+            disabled={loading || bloqueado}
             required
           />
 
@@ -90,7 +107,7 @@ const Login = () => {
             placeholder="••••••••" 
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            disabled={loading}
+            disabled={loading || bloqueado}
             required
           />
 
@@ -101,7 +118,7 @@ const Login = () => {
           <button
             type="submit"
             className="btn primary"
-            disabled={loading}
+            disabled={loading || bloqueado}
           >
             {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
           </button>

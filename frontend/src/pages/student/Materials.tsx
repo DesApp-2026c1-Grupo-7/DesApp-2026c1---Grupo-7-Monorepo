@@ -67,6 +67,7 @@ const tieneDenuncias = (m: Material) => m.pendingReports + m.verifiedReports > 0
 export default function Materials() {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [materialCounts, setMaterialCounts] = useState<Record<string, number>>({});
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -150,6 +151,21 @@ export default function Materials() {
     }
   }, [search, sortBy, filterBy, filterReported, filterSuspended, currentUserId, contactIds]);
 
+  const fetchAllMaterialCounts = useCallback(async () => {
+    try {
+      const res = await api.get('/materiales');
+      const counts: Record<string, number> = {};
+      for (const m of res.data as Material[]) {
+        const id = m.materia?._id;
+        if (!id) continue;
+        counts[id] = (counts[id] || 0) + 1;
+      }
+      setMaterialCounts(counts);
+    } catch (err) {
+      console.error('Error al cargar conteos de materiales', err);
+    }
+  }, []);
+
   const fetchContacts = useCallback(async () => {
     try {
       const res = await api.get("/invitaciones/contactos");
@@ -173,8 +189,9 @@ export default function Materials() {
       await fetchSubjects();
       await fetchReasons();
       await fetchContacts();
+      await fetchAllMaterialCounts();
     })();
-  }, [fetchSubjects, fetchReasons, fetchContacts]);
+  }, [fetchSubjects, fetchReasons, fetchContacts, fetchAllMaterialCounts]);
 
   useEffect(() => {
     if (selectedSubject) {
@@ -486,8 +503,17 @@ export default function Materials() {
       <div className="materials-header">
         <div className="header-left">
           <div className="header-center">
-            <h2>{selectedSubject ? `Repositorio: ${selectedSubject.nombre}` : "Materiales de Estudio"}</h2>
-            <p>{selectedSubject ? `Recursos compartidos para esta materia` : "Selecciona una materia para ver su repositorio"}</p>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {selectedSubject ? `Repositorio: ${selectedSubject.nombre}` : "Materiales de Estudio"}
+              {!selectedSubject && (
+                <span style={{ padding: '2px 10px', borderRadius: 999, background: '#dbeafe', color: '#1e40af', fontSize: 13, fontWeight: 500 }}>
+                  Total Materias: {subjects.length}
+                </span>
+              )}
+            </h2>
+            <p>{selectedSubject
+              ? `Recursos compartidos para esta materia: ${(materialCounts[selectedSubject._id] || 0) === 0 ? 'Ninguno' : (materialCounts[selectedSubject._id] || 0)}`
+              : "Selecciona una materia para ver su repositorio"}</p>
           </div>
         </div>
 
@@ -562,16 +588,27 @@ export default function Materials() {
             <div className="no-results py-10 text-center">No se encontraron materias con ese nombre.</div>
           ) : (
             <div className="repositories-grid">
-              {filteredSubjects.map((s) => (
-                <div key={s._id} className="repository-card" onClick={() => setSelectedSubject(s)}>
-                  <div className="repo-icon">📚</div>
-                  <div className="repo-info">
-                    <h3>{s.nombre}</h3>
-                    <span className="repo-code">{s.codigo}</span>
+              {filteredSubjects.map((s) => {
+                const count = materialCounts[s._id] || 0;
+                const badge = count === 0
+                  ? { text: 'Vacío', bg: '#e5e7eb', color: '#4b5563' }
+                  : { text: `Materiales: ${count > 99 ? '99+' : count}`, bg: '#dbeafe', color: '#1e40af' };
+                return (
+                  <div key={s._id} className="repository-card" onClick={() => setSelectedSubject(s)}>
+                    <div className="repo-icon">📚</div>
+                    <div className="repo-info">
+                      <h3>{s.nombre}</h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span className="repo-code">{s.codigo}</span>
+                        <span style={{ padding: '2px 8px', borderRadius: 999, background: badge.bg, color: badge.color, fontSize: 12, fontWeight: 500 }}>
+                          {badge.text}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="repo-arrow">→</div>
                   </div>
-                  <div className="repo-arrow">→</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </>

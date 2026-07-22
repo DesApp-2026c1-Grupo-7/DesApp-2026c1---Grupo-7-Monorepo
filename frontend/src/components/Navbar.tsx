@@ -1,6 +1,6 @@
-import { Bell, LogOut } from "lucide-react";
+import { Bell, LogOut, Sun, Moon } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useUnreadNotifications, refreshUnread } from "../hooks/useUnreadNotifications";
 import "../styles/Navbar.css";
 
@@ -13,6 +13,15 @@ const Navbar = () => {
   const isStudent = user.role !== "admin";
 
   const unread = useUnreadNotifications(isStudent);
+
+  const [theme, setTheme] = useState<'light' | 'dark'>(() =>
+    (localStorage.getItem('theme') as 'light' | 'dark') || 'light'
+  );
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+  const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'));
 
   // Al cambiar de pantalla refrescamos el contador (ej. al volver de Notificaciones
   // tras marcarlas como leidas, para que baje enseguida).
@@ -35,7 +44,7 @@ const Navbar = () => {
       </div>
 
       <div className="right">
-        <div className="user-info" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '1rem' }}>
+        <div className="user-info" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '1.75rem' }}>
           <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{user.nombre}</span>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{roleLabel}</span>
         </div>
@@ -55,6 +64,15 @@ const Navbar = () => {
             )}
           </button>
         )}
+
+        <button
+          className="theme-toggle"
+          onClick={toggleTheme}
+          aria-label={theme === 'light' ? 'Activar modo oscuro' : 'Activar modo claro'}
+          title={theme === 'light' ? 'Modo oscuro' : 'Modo claro'}
+        >
+          {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+        </button>
 
         <button className="logout" onClick={handleLogout} aria-label="Cerrar sesión" title="Cerrar sesión">
           <LogOut size={16} />
