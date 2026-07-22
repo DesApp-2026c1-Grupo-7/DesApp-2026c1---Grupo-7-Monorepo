@@ -44,9 +44,8 @@ export default function Notifications() {
     loadNotifications();
   }, [loadNotifications]);
 
-  useEffect(() => {
-    setVisibles(PAGE_SIZE);
-  }, [orden, filtro]);
+  const cambiarOrden = (v: Orden) => { setOrden(v); setVisibles(PAGE_SIZE); };
+  const cambiarFiltro = (v: Filtro) => { setFiltro(v); setVisibles(PAGE_SIZE); };
 
   const marcarComoLeida = async (id: string) => {
     try {
@@ -146,14 +145,14 @@ export default function Notifications() {
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', margin: '8px 0 16px' }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
           Ordenar por:
-          <select style={selectStyle} value={orden} onChange={(e) => setOrden(e.target.value as Orden)}>
+          <select style={selectStyle} value={orden} onChange={(e) => cambiarOrden(e.target.value as Orden)}>
             <option value="nuevas">Más nuevas</option>
             <option value="antiguas">Más antiguas</option>
           </select>
         </label>
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
           Filtrar por:
-          <select style={selectStyle} value={filtro} onChange={(e) => setFiltro(e.target.value as Filtro)}>
+          <select style={selectStyle} value={filtro} onChange={(e) => cambiarFiltro(e.target.value as Filtro)}>
             <option value="todas">Todas</option>
             <option value="leidas">Leídas</option>
             <option value="noleidas">No leídas</option>
