@@ -35,6 +35,257 @@
   --radius-xl: 1rem;
 }
 
+/* Modo oscuro: chrome (body/navbar) oscuro, cards siempre blancas y texto oscuro. */
+[data-theme="dark"] {
+  --primary-soft: rgba(109, 139, 255, 0.14);
+  --bg-main: #0f172a;
+  --bg-sidebar: #020617;
+  --bg-card: #ffffff;
+  --bg-card-solid: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-soft: #f8fafc;
+  --shadow-glow: 0 18px 44px rgb(109 139 255 / 0.28);
+}
+
+[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at top left, rgba(109, 139, 255, 0.14), transparent 34rem),
+    linear-gradient(135deg, #0b1120 0%, #111827 46%, #1e293b 100%);
+  /* text-main sigue oscuro: cards blancas heredan texto oscuro legible */
+}
+
+/* Chrome oscuro: navbar + botones outer llevan texto claro explicito. */
+[data-theme="dark"] .navbar,
+[data-theme="dark"] .navbar-context,
+[data-theme="dark"] .navbar .user-info span,
+[data-theme="dark"] .navbar .user-info span:first-child {
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .navbar {
+  background: rgba(15, 23, 42, 0.85);
+}
+
+[data-theme="dark"] .theme-toggle {
+  color: #f8fafc;
+  background: rgba(30, 41, 59, 0.72);
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+[data-theme="dark"] .notification-button {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .logout {
+  background: rgba(30, 41, 59, 0.72) !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(148, 163, 184, 0.25) !important;
+}
+
+/* Forzar cards blancas opacas (no rgba con transparencia sobre body oscuro) */
+[data-theme="dark"] .dashboard-header,
+[data-theme="dark"] .admin-careers-header,
+[data-theme="dark"] .admin-header,
+[data-theme="dark"] .plans-header,
+[data-theme="dark"] .subjects-header,
+[data-theme="dark"] .sessions-header,
+[data-theme="dark"] .materials-header,
+[data-theme="dark"] .notifications-header,
+[data-theme="dark"] .header,
+[data-theme="dark"] .card,
+[data-theme="dark"] .section,
+[data-theme="dark"] .repository-card,
+[data-theme="dark"] .notification-card,
+[data-theme="dark"] .material-card,
+[data-theme="dark"] .login-card,
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] .subjects-table,
+[data-theme="dark"] .admin-table-container,
+[data-theme="dark"] .table-container,
+[data-theme="dark"] .careers-table,
+[data-theme="dark"] .session-card,
+[data-theme="dark"] .plan-card,
+[data-theme="dark"] .stat,
+[data-theme="dark"] .stat-card,
+[data-theme="dark"] .quick-card,
+[data-theme="dark"] .event,
+[data-theme="dark"] .final-card,
+[data-theme="dark"] .projection,
+[data-theme="dark"] .option-card,
+[data-theme="dark"] .action,
+[data-theme="dark"] .create-session-card,
+[data-theme="dark"] .assistant .section {
+  background: #ffffff !important;
+  border-color: #e5e7eb !important;
+  color: #111827;
+}
+
+/* Elementos que traen su color hardcodeado light (var --text-white o similar). */
+[data-theme="dark"] .card *,
+[data-theme="dark"] .section *,
+[data-theme="dark"] .repository-card *,
+[data-theme="dark"] .material-card *,
+[data-theme="dark"] .session-card *,
+[data-theme="dark"] .subjects-table *,
+[data-theme="dark"] .table-container *,
+[data-theme="dark"] .admin-table-container *,
+[data-theme="dark"] .plan-card *,
+[data-theme="dark"] .stat-card *,
+[data-theme="dark"] .stat *,
+[data-theme="dark"] .modal-content *,
+[data-theme="dark"] .final-card *,
+[data-theme="dark"] .projection *,
+[data-theme="dark"] .option-card *,
+[data-theme="dark"] .create-session-card *,
+[data-theme="dark"] .assistant *,
+[data-theme="dark"] .situation *,
+[data-theme="dark"] .profile-container *,
+[data-theme="dark"] .load-situation *,
+[data-theme="dark"] .dashboard-header *,
+[data-theme="dark"] .plans-header *,
+[data-theme="dark"] .subjects-header *,
+[data-theme="dark"] .sessions-header *,
+[data-theme="dark"] .materials-header *,
+[data-theme="dark"] .notifications-header *,
+[data-theme="dark"] .admin-header *,
+[data-theme="dark"] .admin-careers-header *,
+[data-theme="dark"] .header * {
+  color: #111827;
+}
+
+/* Excepciones: badges, botones y elementos con texto en color claro deben conservarlo */
+[data-theme="dark"] .btn-primary,
+[data-theme="dark"] .btn.primary,
+[data-theme="dark"] .btn-primary *,
+[data-theme="dark"] .btn-danger,
+[data-theme="dark"] .btn-danger *,
+[data-theme="dark"] .badge[style*="rgb(22"],
+[data-theme="dark"] .progress-card,
+[data-theme="dark"] .progress-card * {
+  color: #ffffff !important;
+}
+
+/* Textos muted (subtitulos, meta) mantienen tono gris legible */
+[data-theme="dark"] .subtitle,
+[data-theme="dark"] .dashboard-header p,
+[data-theme="dark"] .admin-header p,
+[data-theme="dark"] .plans-header p,
+[data-theme="dark"] .subjects-header p,
+[data-theme="dark"] .sessions-header p,
+[data-theme="dark"] .materials-header p,
+[data-theme="dark"] .notifications-header p,
+[data-theme="dark"] .admin-careers-header p,
+[data-theme="dark"] .section-title,
+[data-theme="dark"] .repo-code,
+[data-theme="dark"] .header p {
+  color: #4b5563 !important;
+}
+
+/* Inputs y selects legibles: fondo blanco con texto oscuro incluso en dark. */
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-color: #d1d5db !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+/* Botones outline dentro de la app quedan visibles */
+[data-theme="dark"] .btn-secondary,
+[data-theme="dark"] .btn.secondary,
+[data-theme="dark"] .btn-outline,
+[data-theme="dark"] .btn-primary-outline {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-color: #d1d5db !important;
+}
+
+[data-theme="dark"] tr:hover,
+[data-theme="dark"] .table-row:hover {
+  background: rgba(109, 139, 255, 0.08) !important;
+}
+
+/* Titulos y subtitulos que viven directamente sobre el body oscuro
+   (no dentro de una card blanca) llevan texto claro. */
+[data-theme="dark"] .assistant > h1,
+[data-theme="dark"] .assistant > .subtitle,
+[data-theme="dark"] .load-situation > h1,
+[data-theme="dark"] .load-situation > .subtitle,
+[data-theme="dark"] .create-session-main-title,
+[data-theme="dark"] .create-session-main-subtitle,
+[data-theme="dark"] .profile-container > h1,
+[data-theme="dark"] .profile-container > .subtitle,
+[data-theme="dark"] .profile-container > p,
+[data-theme="dark"] .situation > h1,
+[data-theme="dark"] .situation > .subtitle,
+[data-theme="dark"] .situation > .section-title,
+[data-theme="dark"] .situation > .section-title h2,
+[data-theme="dark"] .social-container > h1,
+[data-theme="dark"] .social-container > .subtitle,
+[data-theme="dark"] .notifications-container > .section-title,
+[data-theme="dark"] .notifications-container > div > label {
+  color: #e2e8f0 !important;
+}
+
+/* Grid EMAIL/CARRERA de perfil: mantener fondo claro para no perder los textos. */
+[data-theme="dark"] .user-meta-grid,
+[data-theme="dark"] .academic-item {
+  background: #f3f4f6 !important;
+}
+
+[data-theme="dark"] .grade-badge {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .faltantes-tooltip,
+[data-theme="dark"] .faltantes-tooltip *,
+[data-theme="dark"] .faltantes-tooltip-list,
+[data-theme="dark"] .faltantes-tooltip-list li {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .faltantes-tooltip-title {
+  color: #fca5a5 !important;
+}
+
+/* Dashboard: seccion "¿Que queres hacer hoy?" sin recuadro. Texto claro sobre body. */
+[data-theme="dark"] .dashboard-actions {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+[data-theme="dark"] .dashboard-actions > .section-heading h2,
+[data-theme="dark"] .dashboard-actions > .section-heading p {
+  color: #e2e8f0 !important;
+}
+
+.theme-toggle {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  border-radius: 999px;
+  color: var(--text-main);
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-color: rgba(49, 87, 213, 0.28);
+}
+
 * {
   margin: 0;
   padding: 0;

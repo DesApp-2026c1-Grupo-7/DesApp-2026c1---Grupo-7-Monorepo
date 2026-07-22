@@ -782,6 +782,21 @@ async function seedUsers() {
       logger.info('Usuario Marcos Bejarano creado.');
     }
 
+    const santinoEmail = 'santugaldin8@gmail.com';
+    let santino = await User.findOne({ email: santinoEmail });
+    if (!santino) {
+      santino = await User.create({
+        nombre: 'Santino Galdin',
+        email: santinoEmail,
+        password: await bcrypt.hash('estudiante123', 10),
+        role: 'student',
+        carrera: careerTup._id,
+        planEstudio: plan._id,
+        configuracionPrivacidad: { perfil: 'publico' }
+      });
+      logger.info('Usuario Santino Galdin creado.');
+    }
+
     // Establecer contacto mutuo para la demo
     const yaSonContactos = matias.contactos.includes(privado._id);
     if (!yaSonContactos) {
